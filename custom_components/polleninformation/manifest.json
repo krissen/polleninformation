@@ -1,0 +1,14 @@
+{
+  "domain": "pollenprognos",
+  "name": "Pollenprognos",
+  "after_dependencies": ["http"],
+  "codeowners": ["@JohNan"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/JohNan/homeassistant-pollenprognos",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/JohNan/homeassistant-pollenprognos/issues",
+  "requirements": [],
+  "version": "0.0.0"
+}
