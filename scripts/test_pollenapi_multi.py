@@ -35,6 +35,7 @@ REQUEST_DELAY = 3  # sekunder mellan API-anrop
 DB_FILE = "country_ids.json"
 
 EUROPEAN_LOCATIONS = [
+    # --- Befintliga (allerade i er lista) ---
     ("AT", 46.628, 14.309, "Klagenfurt"),
     ("BE", 50.8503, 4.3517, "Brussels"),
     ("BG", 42.6977, 23.3219, "Sofia"),
@@ -68,6 +69,26 @@ EUROPEAN_LOCATIONS = [
     ("SK", 48.1486, 17.1077, "Bratislava"),
     ("TR", 39.9334, 32.8597, "Ankara"),
     ("UA", 50.4501, 30.5234, "Kyiv"),
+
+    # --- Saknade suveräna stater & mikroländer ---
+    ("AL", 41.3275, 19.8187, "Tirana"),            # Albanien
+    ("AD", 42.5063, 1.5218, "Andorra la Vella"),   # Andorra
+    ("AM", 40.1792, 44.4991, "Yerevan"),           # Armenien
+    ("AZ", 40.4093, 49.8671, "Baku"),              # Azerbajdzjan
+    ("BA", 43.8563, 18.4131, "Sarajevo"),          # Bosnien & Herzegovina
+    ("BY", 53.9006, 27.5590, "Minsk"),             # Vitryssland
+    ("FO", 62.0078, -6.7908, "Tórshavn"),          # Färöarna
+    ("GE", 41.7151, 44.8271, "Tbilisi"),           # Georgien
+    ("IS", 64.1265, -21.8174, "Reykjavik"),        # Island
+    ("KZ", 51.1605, 71.4704, "Astana"),            # Kazakstan (delvis Europa)
+    ("LI", 47.1660, 9.5554, "Vaduz"),              # Liechtenstein
+    ("MK", 41.6086, 21.7453, "Skopje"),            # Nordmakedonien
+    ("MD", 47.0105, 28.8638, "Chişinău"),          # Moldavien
+    ("MC", 43.7384, 7.4246, "Monaco"),             # Monaco
+    ("ME", 42.4304, 19.2594, "Podgorica"),         # Montenegro
+    ("SM", 43.9354, 12.4475, "San Marino"),        # San Marino
+    ("VA", 41.9029, 12.4534, "Vatican City"),      # Vatikanstaten (Heliga stolen)
+    ("XK", 42.6026, 20.9010, "Pristina"),          # Kosovo (ovanligt kodformat ‘XK’)
 ]
 
 should_exit = False  # flagga för Ctrl-C
@@ -349,9 +370,9 @@ async def discover_country_ids():
         await test_country_ids(primary_ids, "primär")
 
         # 2) Om ingen match hittades, testa sekundära IDs
-        if not found and secondary_ids:
-            print("  ℹ️  Ingen match i primär pool, testar sekundär pool (tidigare markerade som ogiltiga)...")
-            await test_country_ids(secondary_ids, "sekundär")
+        # if not found and secondary_ids:
+            # print("  ℹ️  Ingen match i primär pool, testar sekundär pool (tidigare markerade som ogiltiga)...")
+            # await test_country_ids(secondary_ids, "sekundär")
 
         # 3) Om fortfarande ingen match, testa tertiary IDs (IDs som redan matchats för andra länder)
         if not found and tertiary_ids:
