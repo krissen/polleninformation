@@ -5,6 +5,7 @@
 NAME = "PollenInformation"
 VERSION = "1.0.0"
 DOMAIN = "polleninformation"
+ATTRIBUTION = "© Polleninformation Austria"
 
 # Plattformar
 PLATFORMS = ["sensor"]
@@ -37,4 +38,3 @@ POLLENAT_API_URL = (
     "&sensitivity=0"
     "&country={country}"
 )
-
