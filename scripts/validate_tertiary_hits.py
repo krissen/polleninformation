@@ -1,253 +1,183 @@
 #!/usr/bin/env python3
 import json
 import os
-import re
 import sys
+import math
 from datetime import datetime, timezone
 
-import pandas as pd
-
-# Externa beroenden:
-#   pip install pgeocode pandas geopy reverse_geocoder
-import pgeocode
-import reverse_geocoder as rg
-from geopy.extra.rate_limiter import RateLimiter
+# Kräver: pip install geopy reverse_geocoder
 from geopy.geocoders import Nominatim
+from geopy.extra.rate_limiter import RateLimiter
+import reverse_geocoder as rg
 
 DB_FILE = "country_ids.json"
 
-# -----------------------------------------------
-# 1) Hjälpfunktioner för postnummer och JSON‐databas
-# -----------------------------------------------
 
-
-def extract_postal_and_prefix(place_format: str):
-    """
-    Plockar ut (prefix, postnummer) ur en sträng som t.ex.:
-      - "LV-4248 Arakste"  → ("LV", "4248")
-      - "EC1A London"      → ("EC", "1")    (Vi får prefix="EC", postal="1")
-      - "01778 Müglitz"    → (None, "01778")
-      - "10435 Berlin"     → (None, "10435")
-      - "75004 Paris"      → (None, "75004")
-    Om ingen match, returnerar (None,None).
-    """
-    pf = place_format.strip()
-
-    # a) Prefix (2 stora bokstäver) + bindestreck/mellanslag + siffror
-    m = re.match(r"^([A-Z]{2})[-\s]?(\d+)", pf)
-    if m:
-        return m.group(1), m.group(2)
-
-    # b) Enbart siffror i början
-    m2 = re.match(r"^(\d+)", pf)
-    if m2:
-        return None, m2.group(1)
-
-    return None, None
-
-
+# ---------------------------------------------------
+# 1) Hjälpfunktion: läsa in JSON‐filen
+# ---------------------------------------------------
 def load_db():
     if not os.path.exists(DB_FILE):
         print(f"Fel: Kunde inte hitta {DB_FILE}.", file=sys.stderr)
         sys.exit(1)
     with open(DB_FILE, "r", encoding="utf-8") as f:
         data = json.load(f)
-    if "invalid" not in data:
-        data["invalid"] = []
     return data
 
 
-def save_db(db):
-    temp_file = DB_FILE + ".tmp"
-    with open(temp_file, "w", encoding="utf-8") as f:
-        json.dump(db, f, indent=2, ensure_ascii=False)
-    os.replace(temp_file, DB_FILE)
-
-
-# -----------------------------------------------
-# 2) pgeocode‐baserad postnummer→land‐uppslagning
-# -----------------------------------------------
-
-
-def lookup_postcode_country(postcode: str, country_code: str) -> str | None:
+# ---------------------------------------------------
+# 2) Haversine‐funktion: avstånd i km mellan två punkter
+# ---------------------------------------------------
+def haversine(lat1, lon1, lat2, lon2):
     """
-    Givet ett postnummer (t.ex. "4248") och en ISO‐landskod (t.ex. "lv" eller "FI"),
-    returnerar vi med pgeocode den faktiska landkoden (tvåkod, t.ex. "LV" eller "FI")
-    om uppslaget lyckas. Om pgeocode inte känner till landet eller postnumret, returnera None.
+    Beräknar Haversine‐avståndet (i kilometer) mellan (lat1, lon1) och (lat2, lon2).
     """
-    try:
-        nomi = pgeocode.Nominatim(country_code.lower())
-    except ValueError:
-        # Om pgeocode inte har någon datakälla för t.ex. "ec"
-        return None
+    R = 6371.0  # Jordens radie i km
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
 
-    res = nomi.query_postal_code(postcode)
-    if res is None:
-        return None
-
-    cc = res.get("country_code", pd.NA)
-    # Om pgeocode returnerar NaN eller None
-    if cc is pd.NA or (isinstance(cc, float) and pd.isna(cc)):
-        return None
-
-    # Vissa versioner returnerar bytestring
-    if isinstance(cc, bytes):
-        cc = cc.decode("utf-8")
-    return cc
+    a = math.sin(dphi / 2.0) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2.0) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
 
 
-# -----------------------------------------------
-# 3) Reverse‐geocoding med geopy + reverse_geocoder
-# -----------------------------------------------
-
-# Initiera geopy‐klient med viss ratelimit (1 sekund mellan förfrågningar)
-geolocator = Nominatim(user_agent="pollen_validation_script/1.0")
+# ---------------------------------------------------
+# 3) Initiera Geopy (för att geokoda "place_format")
+# ---------------------------------------------------
+geolocator = Nominatim(user_agent="validate_tertiary_dryrun/1.0")
+# RateLimiter säkerställer att vi inte överskrider Nominatim‐tjänstens gränser
 geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1, error_wait_seconds=2)
 
 
-def geocode_place(place_format: str, country_hint: str) -> tuple[float, float] | None:
-    """
-    Anropar geopy för att slå upp lat/lon av orten. Vi skickar med en "landshint"
-    för att höja träffsäkerheten, exempelvis "Paris, FR", "Berlin, DE".
-    Om geopy misslyckas returnerar vi None.
-    """
-    # Kombinera t.ex. "75004 Paris" + ", FR"
-    query = f"{place_format}, {country_hint}"
-    try:
-        loc = geocode(query)
-    except Exception as e:
-        # T.ex. om vi får nätverksfel eller quota‐problem
-        return None
-
-    if loc is None:
-        return None
-    return (loc.latitude, loc.longitude)
-
-
+# ---------------------------------------------------
+# 4) Reverse‐geocoding: lat/lon → country code
+# ---------------------------------------------------
 def reverse_geocode_country(lat: float, lon: float) -> str | None:
     """
-    Använder reverse_geocoder för att mappa (lat, lon) till närmaste stad, och
-    returnerar dess country code (tvåkod). Om inget lyckas, returnera None.
+    Returnerar landkoden (tvåkod, t.ex. 'FI', 'SE', 'LV') för (lat, lon) med reverse_geocoder.
+    Om inget kan hittas, returnera None.
     """
     try:
-        results = rg.search((lat, lon), mode=1)  # mode=1 = frisökning
+        results = rg.search((lat, lon), mode=1)
     except Exception:
         return None
 
     if not results or len(results) == 0:
         return None
 
-    # results[0] är en dict med bl.a. 'cc'
     cc = results[0].get("cc", None)
     return cc.upper() if isinstance(cc, str) else None
 
 
-# -----------------------------------------------
-# 4) Huvudfunktion: validera tertiära träffar
-# -----------------------------------------------
-
-
-def validate_tertiary_hits():
+# ---------------------------------------------------
+# 5) Huvudfunktion: “dry run” utan att skriva till JSON
+# ---------------------------------------------------
+def validate_tertiary_dryrun():
     db = load_db()
-    updated = False
 
-    for country, info in db.get("countries", {}).items():
-        # Hoppa över redan validerade poster
-        if "country_found" in info or "validation_uncertain" in info:
-            continue
+    print(f"==> Startar “dry run” validering: {DB_FILE}\n")
 
+    for country_code, info in db.get("countries", {}).items():
         place_format = info.get("place_format", "").strip()
-        print(f"\n=== Validerar {country} → '{place_format}' ===")
+        lat_search = info.get("lat", None)
+        lon_search = info.get("lon", None)
 
+        # Om varken place_format eller lat/lon finns → skippa (men vi använder lat/lon endast för diagnostik)
         if not place_format:
-            # Inget place_format överhuvudtaget ⇒ uncertainty
-            info["validation_uncertain"] = True
-            info["last_validated"] = datetime.now(timezone.utc).isoformat()
-            updated = True
-            print("  [Utläsning] Inget place_format, markeras som uncertain.")
+            print(f"--- {country_code}: Ingen ‘place_format’ angiven → skippad.")
             continue
 
-        # Första försöket: strippa ut prefix + postnummer
-        prefix, postal = extract_postal_and_prefix(place_format)
-        true_country = None
+        print(f"\n=== {country_code}  «{place_format}» ===")
 
-        # Försök 1: pgeocode med prefix (om finns)
-        if postal:
-            if prefix:
-                print(
-                    f"  [Steg 1] Försöker pgeocode med prefix='{prefix}', postnummer='{postal}'"
-                )
-                true_country = lookup_postcode_country(postal, prefix)
-                if true_country:
-                    print(
-                        f"    [pgeocode] Hittade land='{true_country}' via prefix‐uppslag."
-                    )
-
-            # Om prefixuppslaget gav None, försök med antaget land
-            if true_country is None:
-                print(
-                    f"  [Steg 2] pgeocode med antaget land='{country}', postnummer='{postal}'"
-                )
-                true_country = lookup_postcode_country(postal, country)
-                if true_country:
-                    print(
-                        f"    [pgeocode] Hittade land='{true_country}' via antaget land."
-                    )
-
-        # Fall A: pgeocode sade None (eller postnummer var inte extraherat) → fallback till geopy + reverse_geocoder
-        if true_country is None:
-            # (i detta läge kanske postal==None också)
-            print("  [Fallback] pgeocode kunde inte avgöra, försöker reverse‐geocode…")
-
-            coords = geocode_place(place_format, country)
-            if coords:
-                lat, lon = coords
-                print(
-                    f"    [geopy] Geolocation av '{place_format}' gav (lat,lon)=({lat:.5f},{lon:.5f})"
-                )
-                rc = reverse_geocode_country(lat, lon)
-                if rc:
-                    true_country = rc
-                    print(f"    [reverse_geocoder] Koordinater → land='{true_country}'")
-                else:
-                    print(
-                        "    [reverse_geocoder] Kunde inte avgöra land från koordinater."
-                    )
-            else:
-                print("    [geopy] Kunde inte hitta någon lat/lon för platsen.")
-
-        # Utvärdera resultatet från pgeocode eller reverse_geocoder
-        if true_country is None:
-            # Både pgeocode och reverse_geocoder/ geopy misslyckades
-            info["validation_uncertain"] = True
-            info["last_validated"] = datetime.now(timezone.utc).isoformat()
-            updated = True
-            print("  [RESULTAT] Kunde inte avgöra land → validation_uncertain = true.")
-            continue
-
-        # Om vi hittade ett landkod, men det skiljer sig från det vi trodde
-        if true_country.upper() != country.upper():
-            info["country_found"] = False
-            info["matched_neighbor"] = true_country.upper()
-            info["last_validated"] = datetime.now(timezone.utc).isoformat()
-            updated = True
-            print(
-                f"  [INVALID] '{place_format}' hör tydligen till '{true_country.upper()}', inte '{country}'."
-            )
+        # ------------------------------------------------------------------
+        # 5a) Försök geokoda “place_format, <country_code>” (med land‐hint)
+        # ------------------------------------------------------------------
+        query_hint = f"{place_format}, {country_code}"
+        try:
+            location_hint = geocode(query_hint)
+        except Exception as e:
+            print(f"  [GEOPY‐FEL] Kunde inte köra geocode('{query_hint}'): {e}")
+            geocoded = None
+            geocode_method = None
         else:
-            info["country_found"] = True
-            info["matched_neighbor"] = ""
-            info["last_validated"] = datetime.now(timezone.utc).isoformat()
-            updated = True
-            print(f"  [VALID] '{place_format}' valideras som '{country}'.")
+            if location_hint:
+                geocoded = (location_hint.latitude, location_hint.longitude)
+                geocode_method = "med hint"
+            else:
+                geocoded = None
+                geocode_method = None
 
-    # Om vi uppdaterat något → skriv tillbaka JSON‐filen
-    if updated:
-        save_db(db)
-        print(f"\nValidering slutförd. Skrev uppdaterad data till {DB_FILE}.")
-    else:
-        print("Inga ändringar behövde göras (alla poster redan validerade).")
+        # ---------------------------------------------------
+        # 5b) Om “med hint” misslyckades, försök utan hint
+        # ---------------------------------------------------
+        if geocoded is None:
+            print(f"  [GEOPY] Ingen lat/lon funnen för “{query_hint}”.")
+            # Försök geokoda enbart “place_format”
+            query_no_hint = place_format
+            try:
+                location_no_hint = geocode(query_no_hint)
+            except Exception as e:
+                print(f"  [GEOPY‐FEL] Kunde inte köra geocode('{query_no_hint}'): {e}")
+                geocoded = None
+                geocode_method = None
+            else:
+                if location_no_hint:
+                    geocoded = (location_no_hint.latitude, location_no_hint.longitude)
+                    geocode_method = "utan hint"
+                else:
+                    geocoded = None
+                    geocode_method = None
+
+            if geocoded:
+                lat_geo, lon_geo = geocoded
+                print(f"    → Geokodning “utan hint” för “{query_no_hint}” → lat/lon = ({lat_geo:.5f}, {lon_geo:.5f})")
+            else:
+                print(f"    → Ingen lat/lon funnen för “{place_format}” utan hint.")
+
+        else:
+            lat_geo, lon_geo = geocoded
+            print(f"  [GEOPY] Geokodning “{geocode_method}” för “{query_hint}” → lat/lon = ({lat_geo:.5f}, {lon_geo:.5f})")
+
+        # ---------------------------------------------------
+        # 5c) Om vi har en geokodat punkt → räkna ut avstånd (diagnostik)
+        # ---------------------------------------------------
+        if geocoded and lat_search is not None and lon_search is not None:
+            dist_km = haversine(lat_search, lon_search, lat_geo, lon_geo)
+            print(f"    • Avstånd (km) mellan sök‐koordinater ({lat_search},{lon_search}) "
+                  f"och geokodat ({lat_geo:.5f},{lon_geo:.5f}) = {dist_km:.2f} km")
+
+        # ---------------------------------------------------
+        # 6) Reverse‐geocode med geokodat punkt (om geokodat finns)
+        # ---------------------------------------------------
+        if geocoded:
+            rc_geo = reverse_geocode_country(lat_geo, lon_geo)
+            if rc_geo:
+                print(f"  [REV_GEO] Landkod från geokodat ({lat_geo:.5f},{lon_geo:.5f}) = '{rc_geo}'")
+            else:
+                print(f"  [REV_GEO] Kunde inte avgöra land från geokodat ({lat_geo:.5f},{lon_geo:.5f})")
+        else:
+            rc_geo = None
+
+        # ---------------------------------------------------
+        # 7) Slutsats jämfört med förväntat country_code
+        # ---------------------------------------------------
+        if not rc_geo:
+            print("  ❓ Ingen giltig geokodat‐landkod – kan inte validera landet.")
+            print("     → Markera denna post för manuell genomgång.")
+            continue
+
+        if rc_geo.upper() == country_code.upper():
+            print(f"  ✅ Landkod “{rc_geo}” matchar förväntat “{country_code}”.")
+        else:
+            print(f"  ⚠️  Felaktig landmatchning: förväntat = “{country_code}”, "
+                  f"men geokodat reverse_geocoder säger = “{rc_geo}”.")
+            print("     → Detta är troligen en tertiär‐träff eller grannträff.")
+
+    print("\n==> Klart med dry‐run (inga ändringar skrevs till JSON).")
 
 
 if __name__ == "__main__":
-    validate_tertiary_hits()
+    validate_tertiary_dryrun()
+
