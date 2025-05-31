@@ -1,0 +1,299 @@
+{
+  "generated_at": "2025-05-31T19:43:42.947810+00:00",
+  "countries": [
+    {
+      "code": "AT",
+      "name": "Austria",
+      "country_id": [
+        1
+      ]
+    },
+    {
+      "code": "BE",
+      "name": "Belgium",
+      "country_id": [
+        10
+      ]
+    },
+    {
+      "code": "BG",
+      "name": "Bulgaria",
+      "country_id": [
+        33
+      ]
+    },
+    {
+      "code": "CH",
+      "name": "Switzerland",
+      "country_id": [
+        83
+      ]
+    },
+    {
+      "code": "CZ",
+      "name": "Czechia",
+      "country_id": [
+        7
+      ]
+    },
+    {
+      "code": "DE",
+      "name": "Germany",
+      "country_id": [
+        90
+      ]
+    },
+    {
+      "code": "DK",
+      "name": "Denmark",
+      "country_id": [
+        26
+      ]
+    },
+    {
+      "code": "EE",
+      "name": "Estonia",
+      "country_id": [
+        16
+      ]
+    },
+    {
+      "code": "ES",
+      "name": "Spain",
+      "country_id": [
+        31
+      ]
+    },
+    {
+      "code": "FR",
+      "name": "France",
+      "country_id": [
+        91
+      ]
+    },
+    {
+      "code": "GB",
+      "name": "United Kingdom",
+      "country_id": [
+        12
+      ]
+    },
+    {
+      "code": "FI",
+      "name": "Finland",
+      "country_id": [
+        16
+      ]
+    },
+    {
+      "code": "GR",
+      "name": "Greece",
+      "country_id": [
+        33
+      ]
+    },
+    {
+      "code": "HR",
+      "name": "Croatia",
+      "country_id": [
+        89
+      ]
+    },
+    {
+      "code": "HU",
+      "name": "Hungary",
+      "country_id": [
+        1
+      ]
+    },
+    {
+      "code": "IE",
+      "name": "Ireland",
+      "country_id": [
+        92
+      ]
+    },
+    {
+      "code": "IT",
+      "name": "Italy",
+      "country_id": [
+        14
+      ]
+    },
+    {
+      "code": "LT",
+      "name": "Lithuania",
+      "country_id": [
+        17
+      ]
+    },
+    {
+      "code": "LU",
+      "name": "Luxembourg",
+      "country_id": [
+        99
+      ]
+    },
+    {
+      "code": "LV",
+      "name": "Latvia",
+      "country_id": [
+        16
+      ]
+    },
+    {
+      "code": "MT",
+      "name": "Malta",
+      "country_id": [
+        14
+      ]
+    },
+    {
+      "code": "NL",
+      "name": "Netherlands",
+      "country_id": [
+        7
+      ]
+    },
+    {
+      "code": "NO",
+      "name": "Norway",
+      "country_id": [
+        94
+      ]
+    },
+    {
+      "code": "PL",
+      "name": "Poland",
+      "country_id": [
+        22
+      ]
+    },
+    {
+      "code": "PT",
+      "name": "Portugal",
+      "country_id": [
+        93
+      ]
+    },
+    {
+      "code": "RO",
+      "name": "Romania",
+      "country_id": [
+        34
+      ]
+    },
+    {
+      "code": "SE",
+      "name": "Sweden",
+      "country_id": [
+        26
+      ]
+    },
+    {
+      "code": "SI",
+      "name": "Slovenia",
+      "country_id": [
+        1
+      ]
+    },
+    {
+      "code": "SK",
+      "name": "Slovakia",
+      "country_id": [
+        1
+      ]
+    },
+    {
+      "code": "TR",
+      "name": "Türkiye",
+      "country_id": [
+        33
+      ]
+    },
+    {
+      "code": "UA",
+      "name": "Ukraine",
+      "country_id": [
+        34
+      ]
+    },
+    {
+      "code": "AL",
+      "name": "Albania",
+      "country_id": [
+        14
+      ]
+    },
+    {
+      "code": "AD",
+      "name": "Andorra",
+      "country_id": [
+        98
+      ]
+    },
+    {
+      "code": "BA",
+      "name": "Bosnia and Herzegovina",
+      "country_id": [
+        14
+      ]
+    },
+    {
+      "code": "BY",
+      "name": "Belarus",
+      "country_id": [
+        17
+      ]
+    },
+    {
+      "code": "LI",
+      "name": "Liechtenstein",
+      "country_id": [
+        95
+      ]
+    },
+    {
+      "code": "MK",
+      "name": "North Macedonia",
+      "country_id": [
+        14
+      ]
+    },
+    {
+      "code": "MD",
+      "name": "Moldova, Republic of",
+      "country_id": [
+        34
+      ]
+    },
+    {
+      "code": "MC",
+      "name": "Monaco",
+      "country_id": [
+        10
+      ]
+    },
+    {
+      "code": "ME",
+      "name": "Montenegro",
+      "country_id": [
+        14
+      ]
+    },
+    {
+      "code": "SM",
+      "name": "San Marino",
+      "country_id": [
+        14
+      ]
+    },
+    {
+      "code": "VA",
+      "name": "Holy See (Vatican City State)",
+      "country_id": [
+        14
+      ]
+    }
+  ]
+}
