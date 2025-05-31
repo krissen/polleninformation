@@ -1,50 +1,40 @@
-from enum import Enum
-"""Pollenprognos Custom Update Version."""
-NAME = "Pollenprognos"
-VERSION = '1.0.0'
-DOMAIN = 'pollenprognos'
+# custom_components/polleninformation/const.py
+"""Konstanter för polleninformation.at-integration."""
 
-# Platforms
-SENSOR = "sensor"
-PLATFORMS = [SENSOR]
+# Metadata
+NAME = "PollenInformation"
+VERSION = "1.0.0"
+DOMAIN = "polleninformation"
 
-CONF_CITY = 'conf_city'
-CONF_ALLERGENS = 'conf_allergens'
-CONF_NUMERIC_STATE = 'conf_numeric_state'
-CONF_ALLERGENS_MAP = 'conf_allergens_map'
-CONF_NAME = 'conf_name'
-CONF_URL = 'conf_url'
+# Plattformar
+PLATFORMS = ["sensor"]
 
-STATES = {
-    "i.h.": 0,
-    "L": 1,
-    "L-M": 2,
-    "M": 3,
-    "M-H": 4,
-    "H": 5,
-    "H-H+": 6,
-    "H+": 7
-}
+# Konfiguratonsnycklar
+CONF_LATITUDE = "latitude"
+CONF_LONGITUDE = "longitude"
+CONF_COUNTRY = "country"
+CONF_LANGUAGE = "language"
 
-SENSOR_ICONS = {
-    'al': 'mdi:leaf',
-    'alm': 'mdi:leaf',
-    'malörtsambrosia': 'mdi:leaf',
-    'asp': 'mdi:leaf',
-    'bok': 'mdi:leaf',
-    'björk': 'mdi:leaf',
-    'ek': 'mdi:leaf',
-    'gråbo': 'mdi:flower',
-    'gräs': 'mdi:flower',
-    'hassel': 'mdi:leaf',
-    'sälg och viden': 'mdi:leaf',
-    'default': 'mdi:leaf'
-}
+# Standardvärden för konfiguration
+DEFAULT_LATITUDE = 46.628
+DEFAULT_LONGITUDE = 14.309
+DEFAULT_COUNTRY = "AT"
+DEFAULT_LANGUAGE = "en"
 
-BASE_URL = 'https://api.pollenrapporten.se'
+# URL-template för polleninformation.at
+POLLENAT_API_URL = (
+    "https://www.polleninformation.at/index.php"
+    "?eID=appinterface"
+    "&pure_json=1"
+    "&lang_code={lang}"
+    "&lang_id=0"
+    "&action=getFullContaminationData"
+    "&type=gps"
+    "&value[latitude]={lat}"
+    "&value[longitude]={lon}"
+    "&country_id=1"
+    "&personal_contamination=false"
+    "&sensitivity=0"
+    "&country={country}"
+)
 
-class Endpoints(Enum):
-    POLLEN_TYPES = '/v1/pollen-types'
-    REGIONS = '/v1/regions'
-    FORECASTS = '/v1/forecasts'
-    POLLEN_LEVEL_DEFINITIONS = '/v1/pollen-level-definitions'

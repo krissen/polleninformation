@@ -1,14 +1,13 @@
 {
-  "domain": "pollenprognos",
-  "name": "Pollenprognos",
-  "after_dependencies": ["http"],
-  "codeowners": ["@JohNan"],
-  "config_flow": true,
+  "domain": "polleninformation",
+  "name": "Pollen Information AT",
+  "version": "1.0.0",
+  "documentation": "https://github.com/krissen/polleninformation",
+  "issue_tracker": "https://github.com/krissen/polleninformation/issues",
   "dependencies": [],
-  "documentation": "https://github.com/JohNan/homeassistant-pollenprognos",
-  "integration_type": "hub",
-  "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/JohNan/homeassistant-pollenprognos/issues",
+  "codeowners": ["@krissen"],
   "requirements": [],
-  "version": "0.0.0"
+  "config_flow": true,
+  "iot_class": "cloud_polling"
 }
+

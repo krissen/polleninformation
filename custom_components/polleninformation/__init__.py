@@ -1,78 +1,91 @@
-"""Pollenprognos Custom Component."""
-import asyncio
 import logging
 from datetime import timedelta, datetime
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers.update_coordinator import UpdateFailed, DataUpdateCoordinator
-from .api import PollenApi
-from .const import DOMAIN, PLATFORMS, CONF_URL, CONF_CITY
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-SCAN_INTERVAL = timedelta(hours=4)
+from .api import async_get_pollenat_data
+from .const import (
+    DOMAIN, PLATFORMS,
+    CONF_LATITUDE, CONF_LONGITUDE,
+    CONF_COUNTRY, CONF_LANGUAGE,
+    DEFAULT_LATITUDE, DEFAULT_LONGITUDE,
+    DEFAULT_COUNTRY,   DEFAULT_LANGUAGE,
+)
 
-_LOGGER: logging.Logger = logging.getLogger(__package__)
+_LOGGER = logging.getLogger(__name__)
+SCAN_INTERVAL = timedelta(hours=3)
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
-    """Set up this integration using UI."""
-    if hass.data.get(DOMAIN) is None:
-        hass.data.setdefault(DOMAIN, {})
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up the integration from a config entry."""
+    hass.data.setdefault(DOMAIN, {})
 
-    client = PollenApi(hass)
+    # Läsa in konfigurering
+    lat = entry.data.get(CONF_LATITUDE, DEFAULT_LATITUDE)
+    lon = entry.data.get(CONF_LONGITUDE, DEFAULT_LONGITUDE)
+    country = entry.data.get(CONF_COUNTRY, DEFAULT_COUNTRY)
+    lang = entry.data.get(CONF_LANGUAGE, DEFAULT_LANGUAGE)
 
-    coordinator = PollenprognosDataUpdateCoordinator(hass, client=client)
+    # Initiera koordinatorn
+    coordinator = PollenInformationDataUpdateCoordinator(
+        hass, lat, lon, country, lang
+    )
+
+    # Gör första uppdatering
     await coordinator.async_config_entry_first_refresh()
-
     if not coordinator.last_update_success:
         raise ConfigEntryNotReady
-    
+
+    # Spara koordinatorn och ladda plattformar
     hass.data[DOMAIN][entry.entry_id] = coordinator
-
     for platform in PLATFORMS:
-        coordinator.platforms.append(platform)
+        hass.async_create_task(
+            hass.config_entries.async_forward_entry_setup(entry, platform)
+        )
 
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-
-    entry.add_update_listener(async_reload_entry)
+    entry.add_update_listener(_async_reload_entry)
     return True
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Handle removal of an entry."""
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
 
-    return unload_ok
-
-
-async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def _async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Reload config entry."""
     await hass.config_entries.async_reload(entry.entry_id)
 
-class PollenprognosDataUpdateCoordinator(DataUpdateCoordinator):
-    """Class to manage fetching data from the API."""
+
+class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):
+    """Coordinator to fetch data from polleninformation.at."""
 
     def __init__(
-            self, hass: HomeAssistant, client: PollenApi
-    ) -> None:
-        """Initialize."""
-        self.api = client
-        self.platforms = []
+        self,
+        hass: HomeAssistant,
+        lat: float,
+        lon: float,
+        country: str,
+        lang: str
+    ):
+        super().__init__(
+            hass,
+            _LOGGER,
+            name=DOMAIN,
+            update_interval=SCAN_INTERVAL
+        )
+        self.lat = lat
+        self.lon = lon
+        self.country = country
+        self.lang = lang
         self.last_updated = None
 
-        super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=SCAN_INTERVAL)
-
-    async def _async_setup(self):
-        await self.api.async_get_pollen_level_definitions()
-        await self.api.async_get_pollen_types()
-
-    async def _async_update_data(self):
-        """Update data via library."""
+    async def _async_update_data(self) -> dict:
+        """Fetch data from polleninformation.at API."""
         try:
-            data = await self.api.async_get_forecast()
+            result = await async_get_pollenat_data(
+                self.hass, self.lat, self.lon, self.country, self.lang
+            )
             self.last_updated = datetime.now()
-            return data
-        except Exception as exception:
-            raise UpdateFailed() from exception
+            return result
+        except Exception as err:
+            raise UpdateFailed(err) from err
+
