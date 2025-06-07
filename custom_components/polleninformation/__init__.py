@@ -6,6 +6,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
+from .options_flow import OptionsFlowHandler
+
 from .api import async_get_pollenat_data
 from .const import (
     CONF_COUNTRY,
@@ -55,6 +57,8 @@ async def _async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Handle config entry reload."""
     await hass.config_entries.async_reload(entry.entry_id)
 
+async def async_get_options_flow(config_entry):
+    return OptionsFlowHandler(config_entry)
 
 class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):
     """Coordinator to fetch data from polleninformation.at."""
