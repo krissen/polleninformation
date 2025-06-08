@@ -1,4 +1,5 @@
 aiohttp
+unidecode
 voluptuous
 async-timeout
 homeassistant
