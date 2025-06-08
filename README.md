@@ -14,8 +14,8 @@ A modern Home Assistant integration for monitoring pollen and air quality across
 ## Features
 
 - **Supported countries:**  Albania, Andorra, Austria, Belarus, Belgium, Bosnia and Herzegovina, Bulgaria, Croatia, Czechia, Denmark, Estonia, Finland, France, Germany, Greece, Holy See (Vatican City State), Hungary, Ireland, Italy, Latvia, Liechtenstein, Lithuania, Luxembourg, Malta, Moldova, Republic of, Monaco, Montenegro, Netherlands, North Macedonia, Norway, Poland, Romania, San Marino, Slovakia, Slovenia, Spain, Sweden, Switzerland, Türkiye, Ukraine, United Kingdom
-- **Multiple allergens:** Individual sensors for each detected allergen.
-- **Air quality:** Additional sensors for ozone, particulate matter, nitrogen dioxide, sulphur dioxide, temperature, and more.
+- **Multiple allergens:** Individual sensors for each detected allergen. *Different countries have different supported allergens.*
+- **Air quality:** Additional sensors for ozone, particulate matter, nitrogen dioxide, sulphur dioxide, temperature, and more. *Different countries have different supported air quality sensors.*
 - **Multi-day forecast:** Each sensor exposes several days of forecast data.
 - **Beautiful icons & friendly names:** Instantly recognizable in the Home Assistant UI.
 - **Ready for Lovelace cards:** Fully compatible with the most popular pollen and air quality cards.
