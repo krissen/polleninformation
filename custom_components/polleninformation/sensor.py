@@ -12,7 +12,7 @@ from .const import DOMAIN
 
 DEBUG = True
 _LOGGER = logging.getLogger(__name__)
-SCAN_INTERVAL = timedelta(minutes=60)
+SCAN_INTERVAL = timedelta(hours=8)
 
 LEVELS_DE = ["keine Belastung", "gering", "mäßig", "hoch", "sehr hoch"]
 LEVELS_EN = ["none", "low", "moderate", "high", "very high"]

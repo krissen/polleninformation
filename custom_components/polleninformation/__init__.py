@@ -29,7 +29,7 @@ from .options_flow import OptionsFlowHandler
 
 DEBUG = True
 _LOGGER = logging.getLogger(__name__)
-SCAN_INTERVAL = timedelta(hours=3)
+SCAN_INTERVAL = timedelta(hours=8)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
