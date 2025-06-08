@@ -8,3 +8,4 @@ out/
 __pycache__
 configcountry_ids.json
 config
+custom_components/hacs
