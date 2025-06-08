@@ -7,7 +7,7 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
   return 1
 fi
 
-BASEDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+BASEDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/" && pwd)"
 
 if [ -f "$BASEDIR/.venv/bin/activate" ]; then
   source "$BASEDIR/.venv/bin/activate"
