@@ -53,6 +53,8 @@ Each sensor includes:
 - Multi-day forecast as an attribute
 - Human-friendly names and icons for all entities
 
+**The integration updates sensor data every 8 hours.** On the one hand, this could have been user configurable. On the other, we are using undocumented API and I doubt the pollen situation changes drastically within 8 hours. Better be conservative and keep using the API.
+
 ---
 
 ## Data Source & Attribution
