@@ -73,7 +73,13 @@ AIR_SENSOR_ICON_MAP = {
 
 def slugify(text: str) -> str:
     import re
-
+    import unicodedata
+    try:
+        from unidecode import unidecode
+        text = unidecode(text)
+    except ImportError:
+        # Fallback: bara ta bort diakritik (funkar ej för kyrilliska)
+        text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
     text = text.split("(", 1)[0] if "(" in text else text
     text = text.strip().lower()
     text = text.replace("ö", "o").replace("ä", "a").replace("å", "a").replace("ß", "ss")
