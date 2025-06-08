@@ -2,40 +2,23 @@
   "config": {
     "step": {
       "user": {
-        "description": "Ange URL till API (fråga runt om du inte känner till den)",
+        "title": "Lägg till polleninformation",
+        "description": "Välj land och plats där du vill övervaka pollenprognos.",
         "data": {
-          "conf_url": "API URL"
-        }
-      },
-      "fetch_cities": {
-        "title": "Pollenprognos - Hämtar...",
-        "description": "Hämtar aktuella pollenprognoser"
-      },
-      "select_city": {
-        "title": "Pollenprognos - Stad",
-        "description": "Välj vilken stad du vill övervaka",
-        "data": {
-          "conf_city": "Välj stad"
-        }
-      },
-      "select_pollen": {
-        "title": "Pollenprognos - Pollen",
-        "description": "Välja vilka pollen du vill övervaka",
-        "data": {
-          "conf_pollen": "Välj pollen",
-          "conf_numeric_state": "Använd numeriskt tillstånd"
+          "country": "Land",
+          "latitude": "Latitud",
+          "longitude": "Longitud"
         }
       }
     },
-    "abort": {
-      "already_configured": "[%key:common::config_flow::abort::already_configured_account%]",
-      "fetch_data_failed": "Fel vid hämtning av data"
-    },
-    "progress": {
-      "fetch_cities": "Hämtar pollenprognoser"
-    },
     "error": {
-      "bad_host": "Ogiltig API URL"
+      "invalid_latitude": "Ogiltig latitud",
+      "invalid_longitude": "Ogiltig longitud",
+      "invalid_country": "Ogiltigt land"
+    },
+    "abort": {
+      "already_configured": "Den här platsen är redan konfigurerad."
     }
   }
 }
+

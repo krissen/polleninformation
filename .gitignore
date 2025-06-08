@@ -6,4 +6,5 @@ out/
 .idea/
 .DS_Store
 __pycache__
+configcountry_ids.json
 config

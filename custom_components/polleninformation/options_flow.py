@@ -1,5 +1,6 @@
 import json
 import os
+
 import voluptuous as vol
 from homeassistant import config_entries
 
@@ -7,6 +8,9 @@ DOMAIN = "polleninformation"
 AVAILABLE_COUNTRIES_FILE = os.path.join(
     os.path.dirname(__file__), "available_countries.json"
 )
+
+DEFAULT_LANG = "de"
+DEFAULT_LANG_ID = 0
 
 def load_available_countries():
     with open(AVAILABLE_COUNTRIES_FILE, encoding="utf-8") as f:
@@ -16,6 +20,16 @@ def load_available_countries():
 def get_country_options():
     countries = load_available_countries()
     return {c["code"]: c["name"] for c in countries}
+
+def get_country_id(code):
+    countries = load_available_countries()
+    for c in countries:
+        if c["code"] == code:
+            cid = c.get("country_id")
+            if isinstance(cid, list):
+                return cid[0]
+            return cid
+    return 1  # fallback
 
 class OptionsFlowHandler(config_entries.OptionsFlow):
     def __init__(self, config_entry):
@@ -37,12 +51,17 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             if country_code not in country_options:
                 errors["country"] = "invalid_country"
             elif not errors:
+                # Se till att country_id och språk följer med och uppdateras om landet ändras
+                country_id = get_country_id(country_code)
                 return self.async_create_entry(
                     title=country_options[country_code],
                     data={
                         "country": country_code,
+                        "country_id": country_id,
                         "latitude": latitude,
                         "longitude": longitude,
+                        "lang": DEFAULT_LANG,
+                        "lang_id": DEFAULT_LANG_ID,
                     }
                 )
 
