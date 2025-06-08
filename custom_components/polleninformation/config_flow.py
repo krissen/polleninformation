@@ -7,7 +7,6 @@ import os
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.const import CONF_LATITUDE, CONF_LONGITUDE
 
 from .api import async_get_pollenat_data
 

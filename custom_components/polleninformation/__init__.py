@@ -1,5 +1,6 @@
 # custom_components/polleninformation/__init__.py
-""" Init file for polleninformation.at integration."""
+"""Init file for polleninformation.at integration."""
+
 import logging
 from datetime import datetime, timedelta
 

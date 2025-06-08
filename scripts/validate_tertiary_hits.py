@@ -17,8 +17,6 @@ from geopy.exc import GeocoderUnavailable, GeocoderTimedOut
 
 # Tredjepartsbibliotek:
 #   pip install geopy reverse_geocoder
-from geopy.geocoders import Nominatim
-from geopy.extra.rate_limiter import RateLimiter
 import reverse_geocoder as rg
 
 DB_FILE = "country_ids.json"
@@ -65,26 +63,25 @@ EUROPEAN_LOCATIONS = [
     ("SK", 48.1486, 17.1077, "Bratislava"),
     ("TR", 39.9334, 32.8597, "Ankara"),
     ("UA", 50.4501, 30.5234, "Kyiv"),
-
     # Saknade suveräna stater & mikroländer
-    ("AL", 41.3275, 19.8187, "Tirana"),          # Albanien
-    ("AD", 42.5063, 1.5218, "Andorra la Vella"), # Andorra
-    ("AM", 40.1792, 44.4991, "Yerevan"),         # Armenien
-    ("AZ", 40.4093, 49.8671, "Baku"),            # Azerbajdzjan
-    ("BA", 43.8563, 18.4131, "Sarajevo"),        # Bosnien & Herzegovina
-    ("BY", 53.9006, 27.5590, "Minsk"),           # Vitryssland
-    ("FO", 62.0078, -6.7908, "Tórshavn"),        # Färöarna
-    ("GE", 41.7151, 44.8271, "Tbilisi"),         # Georgien
-    ("IS", 64.1265, -21.8174, "Reykjavik"),      # Island
-    ("KZ", 51.1605, 71.4704, "Astana"),          # Kazakstan (delvis i Europa)
-    ("LI", 47.1660, 9.5554, "Vaduz"),            # Liechtenstein
-    ("MK", 41.6086, 21.7453, "Skopje"),          # Nordmakedonien
-    ("MD", 47.0105, 28.8638, "Chişinău"),        # Moldavien
-    ("MC", 43.7384, 7.4246, "Monaco"),           # Monaco
-    ("ME", 42.4304, 19.2594, "Podgorica"),       # Montenegro
-    ("SM", 43.9354, 12.4475, "San Marino"),      # San Marino
-    ("VA", 41.9029, 12.4534, "Vatican City"),    # Vatikanstaten
-    ("XK", 42.6026, 20.9010, "Pristina"),        # Kosovo (kod ‘XK’ i UE‐system)
+    ("AL", 41.3275, 19.8187, "Tirana"),  # Albanien
+    ("AD", 42.5063, 1.5218, "Andorra la Vella"),  # Andorra
+    ("AM", 40.1792, 44.4991, "Yerevan"),  # Armenien
+    ("AZ", 40.4093, 49.8671, "Baku"),  # Azerbajdzjan
+    ("BA", 43.8563, 18.4131, "Sarajevo"),  # Bosnien & Herzegovina
+    ("BY", 53.9006, 27.5590, "Minsk"),  # Vitryssland
+    ("FO", 62.0078, -6.7908, "Tórshavn"),  # Färöarna
+    ("GE", 41.7151, 44.8271, "Tbilisi"),  # Georgien
+    ("IS", 64.1265, -21.8174, "Reykjavik"),  # Island
+    ("KZ", 51.1605, 71.4704, "Astana"),  # Kazakstan (delvis i Europa)
+    ("LI", 47.1660, 9.5554, "Vaduz"),  # Liechtenstein
+    ("MK", 41.6086, 21.7453, "Skopje"),  # Nordmakedonien
+    ("MD", 47.0105, 28.8638, "Chişinău"),  # Moldavien
+    ("MC", 43.7384, 7.4246, "Monaco"),  # Monaco
+    ("ME", 42.4304, 19.2594, "Podgorica"),  # Montenegro
+    ("SM", 43.9354, 12.4475, "San Marino"),  # San Marino
+    ("VA", 41.9029, 12.4534, "Vatican City"),  # Vatikanstaten
+    ("XK", 42.6026, 20.9010, "Pristina"),  # Kosovo (kod ‘XK’ i UE‐system)
 ]
 
 
@@ -92,9 +89,11 @@ EUROPEAN_LOCATIONS = [
 # SIGNALHANTERING FÖR CTRL-C
 # ===============================================
 
+
 def handle_sigint(signum, frame):
     global should_exit
     should_exit = True
+
 
 signal.signal(signal.SIGINT, handle_sigint)
 
@@ -102,6 +101,7 @@ signal.signal(signal.SIGINT, handle_sigint)
 # ===============================================
 # HJÄLPFUNKTIONER FÖR SLUG OCH JSON-DATABAS
 # ===============================================
+
 
 def slugify(text: str) -> str:
     """
@@ -117,6 +117,7 @@ def slugify(text: str) -> str:
     text = re.sub(r"[^a-z0-9_]", "", text)
     return text
 
+
 def extract_place_slug(full_location: str) -> str:
     """
     Extraherar bara själva ortsnamnet (utan postnummer eller liknande).
@@ -131,6 +132,7 @@ def extract_place_slug(full_location: str) -> str:
         place_name = full_location
     return slugify(place_name)
 
+
 def load_db():
     if not os.path.exists(DB_FILE):
         print(f"Fel: Kunde inte hitta {DB_FILE}.", file=sys.stderr)
@@ -141,6 +143,7 @@ def load_db():
     if "invalid" not in data:
         data["invalid"] = []
     return data
+
 
 def save_db(db):
     temp_file = DB_FILE + ".tmp"
@@ -155,14 +158,17 @@ def save_db(db):
 
 # 1) Initiera Geopy (för “place_format, <landkod>”)
 geolocator = Nominatim(user_agent="polleninfo_validator", timeout=10)
-geocode = RateLimiter(geolocator.geocode,
-                      min_delay_seconds=1,
-                      error_wait_seconds=5.0,
-                      swallow_exceptions=False)
+geocode = RateLimiter(
+    geolocator.geocode,
+    min_delay_seconds=1,
+    error_wait_seconds=5.0,
+    swallow_exceptions=False,
+)
+
 
 def geocode_with_hint(place_format: str, country_code: str):
     """
-    Försöker först med hint "place_format, country_code". 
+    Försöker först med hint "place_format, country_code".
     Returnerar (lat, lon, metod) eller (None, None, None) om inget hittades.
     """
     # Först: försök med hint "place_format, country_code"
@@ -190,6 +196,7 @@ def geocode_with_hint(place_format: str, country_code: str):
 
     return (None, None, None)
 
+
 def reverse_geocode_country(lat: float, lon: float) -> str | None:
     """
     Använder reverse_geocoder för att få landkod (tvåkod).
@@ -204,6 +211,7 @@ def reverse_geocode_country(lat: float, lon: float) -> str | None:
     cc = results[0].get("cc", None)
     return cc.upper() if isinstance(cc, str) else None
 
+
 def haversine(lat1, lon1, lat2, lon2) -> float:
     """
     Beräknar Haversine‐avståndet (km) mellan två punkter.
@@ -213,7 +221,10 @@ def haversine(lat1, lon1, lat2, lon2) -> float:
     phi2 = math.radians(lat2)
     dphi = math.radians(lat2 - lat1)
     dlambda = math.radians(lon2 - lon1)
-    a = math.sin(dphi / 2.0) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2.0) ** 2
+    a = (
+        math.sin(dphi / 2.0) ** 2
+        + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2.0) ** 2
+    )
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return R * c
 
@@ -221,6 +232,7 @@ def haversine(lat1, lon1, lat2, lon2) -> float:
 # ===============================================
 # HUVUDFUNKTION: VALIDERING SOM SKRIVER TILL JSON
 # ===============================================
+
 
 async def validate_and_write():
     global should_exit
@@ -247,11 +259,15 @@ async def validate_and_write():
         # --------- 1) Geokoda “place_format, country_code” eller “place_format” ----------
         lat_geo, lon_geo, method = geocode_with_hint(place_format, country_code)
         if lat_geo is not None and lon_geo is not None:
-            print(f"  [GEOPY] Geokodning “{method}” för “{place_format}, {country_code}” → "
-                  f"lat/lon = ({lat_geo:.5f}, {lon_geo:.5f})")
+            print(
+                f"  [GEOPY] Geokodning “{method}” för “{place_format}, {country_code}” → "
+                f"lat/lon = ({lat_geo:.5f}, {lon_geo:.5f})"
+            )
         else:
-            print(f"  [GEOPY] Ingen lat/lon funnen för “{place_format}, {country_code}” varken med eller utan hint.")
-        
+            print(
+                f"  [GEOPY] Ingen lat/lon funnen för “{place_format}, {country_code}” varken med eller utan hint."
+            )
+
         # --------- 2) Om vi inte hittade geokod, markera invalid och gå vidare ----------
         if lat_geo is None or lon_geo is None:
             reason = "ingen geokodning kunde göras"
@@ -261,7 +277,7 @@ async def validate_and_write():
                 "valid": False,
                 "reason": reason,
                 "found_country": None,
-                "distance_km": None
+                "distance_km": None,
             }
             save_db(db)
             continue
@@ -269,15 +285,21 @@ async def validate_and_write():
         # --------- 3) Reverse‐geocode landkod från (lat_geo, lon_geo) ----------
         rc_geo = reverse_geocode_country(lat_geo, lon_geo)
         if rc_geo:
-            print(f"  [REV_GEO] Landkod från geokodat ({lat_geo:.5f},{lon_geo:.5f}) = '{rc_geo}'")
+            print(
+                f"  [REV_GEO] Landkod från geokodat ({lat_geo:.5f},{lon_geo:.5f}) = '{rc_geo}'"
+            )
         else:
-            print(f"  [REV_GEO] Kunde inte avgöra land från geokodat ({lat_geo:.5f},{lon_geo:.5f})")
+            print(
+                f"  [REV_GEO] Kunde inte avgöra land från geokodat ({lat_geo:.5f},{lon_geo:.5f})"
+            )
 
         # --------- 4) Avståndskalkyl (om vi har sparade lat/lon) ----------
         if lat_search is not None and lon_search is not None:
             dist_km = haversine(lat_search, lon_search, lat_geo, lon_geo)
-            print(f"    • Avstånd (km) mellan sparade sök‐koordinater ({lat_search:.4f},{lon_search:.4f}) "
-                  f"och geokodat ({lat_geo:.5f},{lon_geo:.5f}) = {dist_km:.2f} km")
+            print(
+                f"    • Avstånd (km) mellan sparade sök‐koordinater ({lat_search:.4f},{lon_search:.4f}) "
+                f"och geokodat ({lat_geo:.5f},{lon_geo:.5f}) = {dist_km:.2f} km"
+            )
         else:
             dist_km = None
 
@@ -285,27 +307,29 @@ async def validate_and_write():
         if not rc_geo:
             # Inga landkod hittades → invalid
             reason = "ingen reverse_geocode‐landkod"
-            print(f"    ❌ Ingen giltig geokodat‐landkod → markerar valid=false.")
+            print("    ❌ Ingen giltig geokodat‐landkod → markerar valid=false.")
             db["countries"][country_code]["validation"] = {
                 "validated_at": datetime.now(timezone.utc).isoformat(),
                 "valid": False,
                 "reason": reason,
                 "found_country": None,
-                "distance_km": dist_km
+                "distance_km": dist_km,
             }
             save_db(db)
             continue
 
         # a) Om landkoder skiljer sig → invalid
         if rc_geo.upper() != country_code.upper():
-            reason = f"felaktig landmatchning (förväntat={country_code}, geokodat={rc_geo})"
+            reason = (
+                f"felaktig landmatchning (förväntat={country_code}, geokodat={rc_geo})"
+            )
             print(f"    ⚠️  {reason} → markerar valid=false.")
             db["countries"][country_code]["validation"] = {
                 "validated_at": datetime.now(timezone.utc).isoformat(),
                 "valid": False,
                 "reason": reason,
                 "found_country": rc_geo,
-                "distance_km": dist_km
+                "distance_km": dist_km,
             }
             save_db(db)
             continue
@@ -319,21 +343,23 @@ async def validate_and_write():
                 "valid": False,
                 "reason": reason,
                 "found_country": rc_geo,
-                "distance_km": dist_km
+                "distance_km": dist_km,
             }
             save_db(db)
             continue
 
         # c) Om vi kommer hit betyder det att landkod matchar och avstånd är OK
         reason = "landkod matchade & avstånd OK"
-        print(f"    ✅ Landkod “{rc_geo}” matchar förväntat “{country_code}” "
-              f"och avstånd ({dist_km:.2f} km) är ≤ tröskel.")
+        print(
+            f"    ✅ Landkod “{rc_geo}” matchar förväntat “{country_code}” "
+            f"och avstånd ({dist_km:.2f} km) är ≤ tröskel."
+        )
         db["countries"][country_code]["validation"] = {
             "validated_at": datetime.now(timezone.utc).isoformat(),
             "valid": True,
             "reason": reason,
             "found_country": rc_geo,
-            "distance_km": dist_km
+            "distance_km": dist_km,
         }
         save_db(db)
 
@@ -341,16 +367,13 @@ async def validate_and_write():
 
 
 if __name__ == "__main__":
-    import aiohttp
-    import async_timeout
     import math
     from geopy.extra.rate_limiter import RateLimiter
 
     try:
         # Eftersom vi använder geopy + reverse_geocoder
-        # behöver vi inte köra något asynkront i just denna loop – 
+        # behöver vi inte köra något asynkront i just denna loop –
         # men för enkelhets skull anropar vi funktionen med asyncio.run.
         asyncio.run(validate_and_write())
     except KeyboardInterrupt:
         print("\nAvslutar på användarens begäran (Ctrl-C).")
-

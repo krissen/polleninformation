@@ -1,4 +1,4 @@
-""" custom_components/polleninformation/api.py """
+"""custom_components/polleninformation/api.py"""
 
 import logging
 

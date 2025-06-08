@@ -69,26 +69,25 @@ EUROPEAN_LOCATIONS = [
     ("SK", 48.1486, 17.1077, "Bratislava"),
     ("TR", 39.9334, 32.8597, "Ankara"),
     ("UA", 50.4501, 30.5234, "Kyiv"),
-
     # --- Saknade suveräna stater & mikroländer ---
-    ("AL", 41.3275, 19.8187, "Tirana"),            # Albanien
-    ("AD", 42.5063, 1.5218, "Andorra la Vella"),   # Andorra
-    ("AM", 40.1792, 44.4991, "Yerevan"),           # Armenien
-    ("AZ", 40.4093, 49.8671, "Baku"),              # Azerbajdzjan
-    ("BA", 43.8563, 18.4131, "Sarajevo"),          # Bosnien & Herzegovina
-    ("BY", 53.9006, 27.5590, "Minsk"),             # Vitryssland
-    ("FO", 62.0078, -6.7908, "Tórshavn"),          # Färöarna
-    ("GE", 41.7151, 44.8271, "Tbilisi"),           # Georgien
-    ("IS", 64.1265, -21.8174, "Reykjavik"),        # Island
-    ("KZ", 51.1605, 71.4704, "Astana"),            # Kazakstan (delvis Europa)
-    ("LI", 47.1660, 9.5554, "Vaduz"),              # Liechtenstein
-    ("MK", 41.6086, 21.7453, "Skopje"),            # Nordmakedonien
-    ("MD", 47.0105, 28.8638, "Chişinău"),          # Moldavien
-    ("MC", 43.7384, 7.4246, "Monaco"),             # Monaco
-    ("ME", 42.4304, 19.2594, "Podgorica"),         # Montenegro
-    ("SM", 43.9354, 12.4475, "San Marino"),        # San Marino
-    ("VA", 41.9029, 12.4534, "Vatican City"),      # Vatikanstaten (Heliga stolen)
-    ("XK", 42.6026, 20.9010, "Pristina"),          # Kosovo (ovanligt kodformat ‘XK’)
+    ("AL", 41.3275, 19.8187, "Tirana"),  # Albanien
+    ("AD", 42.5063, 1.5218, "Andorra la Vella"),  # Andorra
+    ("AM", 40.1792, 44.4991, "Yerevan"),  # Armenien
+    ("AZ", 40.4093, 49.8671, "Baku"),  # Azerbajdzjan
+    ("BA", 43.8563, 18.4131, "Sarajevo"),  # Bosnien & Herzegovina
+    ("BY", 53.9006, 27.5590, "Minsk"),  # Vitryssland
+    ("FO", 62.0078, -6.7908, "Tórshavn"),  # Färöarna
+    ("GE", 41.7151, 44.8271, "Tbilisi"),  # Georgien
+    ("IS", 64.1265, -21.8174, "Reykjavik"),  # Island
+    ("KZ", 51.1605, 71.4704, "Astana"),  # Kazakstan (delvis Europa)
+    ("LI", 47.1660, 9.5554, "Vaduz"),  # Liechtenstein
+    ("MK", 41.6086, 21.7453, "Skopje"),  # Nordmakedonien
+    ("MD", 47.0105, 28.8638, "Chişinău"),  # Moldavien
+    ("MC", 43.7384, 7.4246, "Monaco"),  # Monaco
+    ("ME", 42.4304, 19.2594, "Podgorica"),  # Montenegro
+    ("SM", 43.9354, 12.4475, "San Marino"),  # San Marino
+    ("VA", 41.9029, 12.4534, "Vatican City"),  # Vatikanstaten (Heliga stolen)
+    ("XK", 42.6026, 20.9010, "Pristina"),  # Kosovo (ovanligt kodformat ‘XK’)
 ]
 
 should_exit = False  # flagga för Ctrl-C
@@ -96,6 +95,7 @@ should_exit = False  # flagga för Ctrl-C
 # ===============================================
 # HJÄLPFUNKTIONER FÖR SLUG OCH JSON-DATABAS
 # ===============================================
+
 
 def slugify(text: str) -> str:
     """
@@ -121,6 +121,7 @@ def slugify(text: str) -> str:
     # 6) Slutresultat
     return text
 
+
 def extract_place_slug(full_location: str) -> str:
     """
     Extraherar bara själva ortsnamnet, utan postnummer eller landskod.
@@ -138,6 +139,7 @@ def extract_place_slug(full_location: str) -> str:
         place_name = full_location
     return slugify(place_name)
 
+
 def load_db():
     if not os.path.exists(DB_FILE):
         # Skapa grundstruktur med "invalid" om ny fil
@@ -149,17 +151,20 @@ def load_db():
         data["invalid"] = []
     return data
 
+
 def save_db(db):
     temp_file = DB_FILE + ".tmp"
     with open(temp_file, "w", encoding="utf-8") as f:
         json.dump(db, f, indent=2, ensure_ascii=False)
     os.replace(temp_file, DB_FILE)
 
+
 def get_known_country_ids(db, country):
     entry = db["countries"].get(country)
     if not entry:
         return []
     return entry.get("country_ids", [])
+
 
 def mark_country_ids(db, country, country_id, lat, lon, place_slug, place_format):
     entry = {
@@ -173,6 +178,7 @@ def mark_country_ids(db, country, country_id, lat, lon, place_slug, place_format
     db["countries"][country] = entry
     save_db(db)
 
+
 def get_all_matched_ids(db):
     matched = set()
     for entry in db["countries"].values():
@@ -180,11 +186,14 @@ def get_all_matched_ids(db):
             matched.add(cid)
     return matched
 
+
 def get_tested_ids(db, country):
     return set(db["tested"].get(country, []))
 
+
 def get_invalid_ids(db):
     return set(db.get("invalid", []))
+
 
 def is_tested(db, country, country_id):
     """
@@ -198,12 +207,14 @@ def is_tested(db, country, country_id):
         return True
     return False
 
+
 def mark_tested(db, country, country_id):
     if country not in db["tested"]:
         db["tested"][country] = []
     if country_id not in db["tested"][country]:
         db["tested"][country].append(country_id)
         save_db(db)
+
 
 def mark_invalid(db, country_id):
     if "invalid" not in db:
@@ -212,11 +223,15 @@ def mark_invalid(db, country_id):
         db["invalid"].append(country_id)
         save_db(db)
 
+
 # ===============================================
 # ASYNCHRON FUNKTION FÖR API-ANROP
 # ===============================================
 
-async def fetch_pollen(lat: float, lon: float, country: str, country_id: int, lang: str = "de"):
+
+async def fetch_pollen(
+    lat: float, lon: float, country: str, country_id: int, lang: str = "de"
+):
     url = POLLENAT_API_URL.format(
         lat=lat, lon=lon, country=country, country_id=country_id, lang=lang
     )
@@ -227,13 +242,17 @@ async def fetch_pollen(lat: float, lon: float, country: str, country_id: int, la
                     resp.raise_for_status()
                     text = await resp.text()
                     if not text.strip():
-                        print(f"    [DEBUG] fetch_pollen: tomt svar för country_id {country_id}")
+                        print(
+                            f"    [DEBUG] fetch_pollen: tomt svar för country_id {country_id}"
+                        )
                         return None
                     try:
                         payload = json.loads(text)
                         return payload.get("result", {})
                     except JSONDecodeError:
-                        print(f"    [DEBUG] fetch_pollen: ogiltigt JSON för country_id {country_id}")
+                        print(
+                            f"    [DEBUG] fetch_pollen: ogiltigt JSON för country_id {country_id}"
+                        )
                         return None
     except asyncio.CancelledError:
         raise
@@ -241,9 +260,11 @@ async def fetch_pollen(lat: float, lon: float, country: str, country_id: int, la
         print(f"    [DEBUG] fetch_pollen exception: {e}")
         return None
 
+
 # ===============================================
 # HUVUDFUNKTION FÖR ATT UPPTÄCKA OCH SPARA I JSON
 # ===============================================
+
 
 async def discover_country_ids():
     global should_exit
@@ -269,19 +290,19 @@ async def discover_country_ids():
         invalid_global = get_invalid_ids(db)
 
         primary_ids = [
-            cid for cid in range(1, 100)
+            cid
+            for cid in range(1, 100)
             if cid not in matched_global
             and cid not in tested_local
             and cid not in invalid_global
         ]
-        secondary_ids = [
-            cid for cid in sorted(invalid_global)
-            if cid not in matched_global
-            and cid not in tested_local
-        ]
+        # secondary_ids = [
+        #     cid
+        #     for cid in sorted(invalid_global)
+        #     if cid not in matched_global and cid not in tested_local
+        # ]
         tertiary_ids = [
-            cid for cid in sorted(matched_global)
-            if cid not in tested_local
+            cid for cid in sorted(matched_global) if cid not in tested_local
         ]
 
         found = False
@@ -293,7 +314,9 @@ async def discover_country_ids():
                 if should_exit or found:
                     break
 
-                print(f"    [DEBUG] ({pool_label} pool) testar country_id = {cid} för {country}")
+                print(
+                    f"    [DEBUG] ({pool_label} pool) testar country_id = {cid} för {country}"
+                )
 
                 try:
                     result = await fetch_pollen(lat, lon, country, cid, lang="de")
@@ -306,7 +329,9 @@ async def discover_country_ids():
                     break
 
                 if result is None:
-                    print(f"      [DEBUG] Inget giltigt resultat för country_id = {cid}, markerar som ogiltigt.")
+                    print(
+                        f"      [DEBUG] Inget giltigt resultat för country_id = {cid}, markerar som ogiltigt."
+                    )
                     mark_invalid(db, cid)
                     mark_tested(db, country, cid)
                     try:
@@ -338,26 +363,48 @@ async def discover_country_ids():
                         latin_part = ""
 
                     allergen_slug = slugify(german_part)
-                    level_text_de = levels_de[raw_val] if 0 <= raw_val < len(levels_de) else "unavailable"
-                    level_text_en = levels_en[raw_val] if 0 <= raw_val < len(levels_en) else "unavailable"
+                    level_text_de = (
+                        levels_de[raw_val]
+                        if 0 <= raw_val < len(levels_de)
+                        else "unavailable"
+                    )
+                    level_text_en = (
+                        levels_en[raw_val]
+                        if 0 <= raw_val < len(levels_en)
+                        else "unavailable"
+                    )
 
-                    print(f"    – Exempel‐allergen:")
+                    print("    – Exempel‐allergen:")
                     print(f"       Tyskt namn: {german_part}")
                     print(f"       Latinskt: {latin_part}")
                     print(f"       Slugifierat: {allergen_slug}")
                     print(f"       Raw: {raw_val}")
                     print(f"       Tyska etiketten: {level_text_de}")
                     print(f"       Engelska etiketten: {level_text_en}")
-                    print(f"       Exempel entity_id: polleninformation_{example_place_slug}_{allergen_slug}\n")
+                    print(
+                        f"       Exempel entity_id: polleninformation_{example_place_slug}_{allergen_slug}\n"
+                    )
 
-                    print(f"    [DEBUG] Markerar country_id {cid} som testad och sparar matchning.")
+                    print(
+                        f"    [DEBUG] Markerar country_id {cid} som testad och sparar matchning."
+                    )
                     mark_tested(db, country, cid)
-                    mark_country_ids(db, country, cid, lat, lon, example_place_slug, example_place_format)
+                    mark_country_ids(
+                        db,
+                        country,
+                        cid,
+                        lat,
+                        lon,
+                        example_place_slug,
+                        example_place_format,
+                    )
                     found = True
                     break
 
                 else:
-                    print(f"    [DEBUG] Giltigt JSON men ingen 'contamination' för country_id = {cid}, markerar som testad.")
+                    print(
+                        f"    [DEBUG] Giltigt JSON men ingen 'contamination' för country_id = {cid}, markerar som testad."
+                    )
                     mark_tested(db, country, cid)
                     try:
                         await asyncio.sleep(REQUEST_DELAY)
@@ -371,30 +418,37 @@ async def discover_country_ids():
 
         # 2) Om ingen match hittades, testa sekundära IDs
         # if not found and secondary_ids:
-            # print("  ℹ️  Ingen match i primär pool, testar sekundär pool (tidigare markerade som ogiltiga)...")
-            # await test_country_ids(secondary_ids, "sekundär")
+        # print("  ℹ️  Ingen match i primär pool, testar sekundär pool (tidigare markerade som ogiltiga)...")
+        # await test_country_ids(secondary_ids, "sekundär")
 
         # 3) Om fortfarande ingen match, testa tertiary IDs (IDs som redan matchats för andra länder)
         if not found and tertiary_ids:
-            print("  ℹ️  Ingen match i primär eller sekundär pool, testar tertiary pool (matchade globalt)…")
+            print(
+                "  ℹ️  Ingen match i primär eller sekundär pool, testar tertiary pool (matchade globalt)…"
+            )
             await test_country_ids(tertiary_ids, "tertiär")
 
         if should_exit:
             break
 
         if not found:
-            print("  ❌ Ingen giltig data funnen för country_id 1–99 (inklusive ogiltiga och matchade).")
+            print(
+                "  ❌ Ingen giltig data funnen för country_id 1–99 (inklusive ogiltiga och matchade)."
+            )
 
     if not should_exit:
         print("\nKlart! Alla resultat har sparats i:", DB_FILE)
+
 
 # ===============================================
 # SIGNALHANTERING FÖR CTRL-C
 # ===============================================
 
+
 def handle_sigint(signum, frame):
     global should_exit
     should_exit = True
+
 
 signal.signal(signal.SIGINT, handle_sigint)
 
@@ -407,4 +461,3 @@ if __name__ == "__main__":
         asyncio.run(discover_country_ids())
     except KeyboardInterrupt:
         print("\nAvslutar på användarens begäran (Ctrl-C).")
-

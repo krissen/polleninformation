@@ -1,5 +1,6 @@
 # custom_components/polleninformation/sensor.py
-""" Sensorer för polleninformation.at-integration. """
+"""Sensorer för polleninformation.at-integration."""
+
 import logging
 from datetime import datetime, timedelta
 

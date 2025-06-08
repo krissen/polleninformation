@@ -4,7 +4,6 @@ import async_timeout
 import re
 import json
 import os
-import time
 from datetime import datetime
 
 # ===============================================
@@ -77,6 +76,7 @@ EUROPEAN_LOCATIONS = [
 # HJÄLPFUNKTIONER FÖR SLUG OCH JSON-DATABAS
 # ===============================================
 
+
 def slugify(text: str) -> str:
     """
     Enkel slugifiering:
@@ -88,15 +88,11 @@ def slugify(text: str) -> str:
     if "(" in text:
         text = text.split("(", 1)[0]
     text = text.strip().lower()
-    text = (
-        text.replace("ö", "o")
-            .replace("ä", "a")
-            .replace("å", "a")
-            .replace("ß", "ss")
-    )
+    text = text.replace("ö", "o").replace("ä", "a").replace("å", "a").replace("ß", "ss")
     text = re.sub(r"\s+", "_", text)
     text = re.sub(r"[^a-z0-9_]", "", text)
     return text
+
 
 def extract_place_slug(full_location: str) -> str:
     """
@@ -111,6 +107,7 @@ def extract_place_slug(full_location: str) -> str:
     else:
         place_name = full_location
     return slugify(place_name)
+
 
 def load_db():
     """
@@ -138,6 +135,7 @@ def load_db():
     with open(DB_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
 
+
 def save_db(db):
     """
     Skriv JSON-objektet 'db' till fil (atomärt).
@@ -147,6 +145,7 @@ def save_db(db):
         json.dump(db, f, indent=2, ensure_ascii=False)
     os.replace(temp_file, DB_FILE)
 
+
 def get_known_country_ids(db, country):
     """
     Returnerar listan av redan funna country_id för <country>, eller [] om ingen.
@@ -155,6 +154,7 @@ def get_known_country_ids(db, country):
     if not entry:
         return []
     return entry.get("country_ids", [])
+
 
 def mark_country_ids(db, country, ids_list, lat, lon, place_slug):
     """
@@ -168,10 +168,11 @@ def mark_country_ids(db, country, ids_list, lat, lon, place_slug):
         "lat": lat,
         "lon": lon,
         "place_slug": place_slug,
-        "last_updated": datetime.utcnow().isoformat()
+        "last_updated": datetime.utcnow().isoformat(),
     }
     db["countries"][country] = entry
     save_db(db)
+
 
 def is_tested(db, country, country_id):
     """
@@ -179,6 +180,7 @@ def is_tested(db, country, country_id):
     """
     tested_ids = db["tested"].get(country, [])
     return country_id in tested_ids
+
 
 def mark_tested(db, country, country_id):
     """
@@ -190,11 +192,15 @@ def mark_tested(db, country, country_id):
         db["tested"][country].append(country_id)
         save_db(db)
 
+
 # ===============================================
 # ASYNC-FUNKTION FÖR API-ANROP
 # ===============================================
 
-async def fetch_pollen(lat: float, lon: float, country: str, country_id: int, lang: str = "de"):
+
+async def fetch_pollen(
+    lat: float, lon: float, country: str, country_id: int, lang: str = "de"
+):
     """
     Hämtar pollen-data (result) för en given lat/lon, country‐kod och country_id.
     Returnerar None vid fel, annars en dict som innehåller:
@@ -214,9 +220,11 @@ async def fetch_pollen(lat: float, lon: float, country: str, country_id: int, la
     except Exception:
         return None
 
+
 # ===============================================
 # HUVUDFUNKTION FÖR ATT TESTA OCH SPARA I JSON
 # ===============================================
+
 
 async def discover_country_ids():
     """
@@ -252,7 +260,9 @@ async def discover_country_ids():
                 continue
 
             result = await fetch_pollen(lat, lon, country, country_id, lang="de")
-            mark_tested(db, country, country_id)  # Spara som testad, oavsett om giltig eller ej
+            mark_tested(
+                db, country, country_id
+            )  # Spara som testad, oavsett om giltig eller ej
             await asyncio.sleep(REQUEST_DELAY)
 
             if result and result.get("contamination"):
@@ -280,17 +290,27 @@ async def discover_country_ids():
                     latin_part = ""
 
                 allergen_slug = slugify(german_part)
-                level_text_de = levels_de[raw_val] if 0 <= raw_val < len(levels_de) else "unavailable"
-                level_text_en = levels_en[raw_val] if 0 <= raw_val < len(levels_en) else "unavailable"
+                level_text_de = (
+                    levels_de[raw_val]
+                    if 0 <= raw_val < len(levels_de)
+                    else "unavailable"
+                )
+                level_text_en = (
+                    levels_en[raw_val]
+                    if 0 <= raw_val < len(levels_en)
+                    else "unavailable"
+                )
 
-                print(f"    – Exempel‐allergen:")
+                print("    – Exempel‐allergen:")
                 print(f"       Tyskt namn: {german_part}")
                 print(f"       Latinskt: {latin_part}")
                 print(f"       Slugifierat: {allergen_slug}")
                 print(f"       Raw: {raw_val}")
                 print(f"       Tyska etiketten: {level_text_de}")
                 print(f"       Engelska etiketten: {level_text_en}")
-                print(f"       Exempel entity_id: polleninformation_{place_slug_example}_{allergen_slug}\n")
+                print(
+                    f"       Exempel entity_id: polleninformation_{place_slug_example}_{allergen_slug}\n"
+                )
 
         if not found_ids:
             print("  ❌ Ingen giltig data funnen för country_id 1–99.")
@@ -299,10 +319,10 @@ async def discover_country_ids():
 
     print("\nKlart! Alla resultat har sparats i", DB_FILE)
 
+
 # ===============================================
 # KÖRNING
 # ===============================================
 
 if __name__ == "__main__":
     asyncio.run(discover_country_ids())
-

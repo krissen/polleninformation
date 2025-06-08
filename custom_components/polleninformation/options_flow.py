@@ -12,14 +12,17 @@ AVAILABLE_COUNTRIES_FILE = os.path.join(
 DEFAULT_LANG = "de"
 DEFAULT_LANG_ID = 0
 
+
 def load_available_countries():
     with open(AVAILABLE_COUNTRIES_FILE, encoding="utf-8") as f:
         data = json.load(f)
     return data["countries"]
 
+
 def get_country_options():
     countries = load_available_countries()
     return {c["code"]: c["name"] for c in countries}
+
 
 def get_country_id(code):
     countries = load_available_countries()
@@ -30,6 +33,7 @@ def get_country_id(code):
                 return cid[0]
             return cid
     return 1  # fallback
+
 
 class OptionsFlowHandler(config_entries.OptionsFlow):
     def __init__(self, config_entry):
@@ -62,18 +66,19 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         "longitude": longitude,
                         "lang": DEFAULT_LANG,
                         "lang_id": DEFAULT_LANG_ID,
-                    }
+                    },
                 )
 
-        data_schema = vol.Schema({
-            vol.Required("country", default=defaults.get("country")): vol.In(country_options),
-            vol.Required("latitude", default=defaults.get("latitude")): float,
-            vol.Required("longitude", default=defaults.get("longitude")): float,
-        })
-
-        return self.async_show_form(
-            step_id="init",
-            data_schema=data_schema,
-            errors=errors
+        data_schema = vol.Schema(
+            {
+                vol.Required("country", default=defaults.get("country")): vol.In(
+                    country_options
+                ),
+                vol.Required("latitude", default=defaults.get("latitude")): float,
+                vol.Required("longitude", default=defaults.get("longitude")): float,
+            }
         )
 
+        return self.async_show_form(
+            step_id="init", data_schema=data_schema, errors=errors
+        )

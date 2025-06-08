@@ -76,12 +76,7 @@ def slugify(text: str) -> str:
     if "(" in text:
         text = text.split("(", 1)[0]
     text = text.strip().lower()
-    text = (
-        text.replace("ö", "o")
-            .replace("ä", "a")
-            .replace("å", "a")
-            .replace("ß", "ss")
-    )
+    text = text.replace("ö", "o").replace("ä", "a").replace("å", "a").replace("ß", "ss")
     text = re.sub(r"\s+", "_", text)
     text = re.sub(r"[^a-z0-9_]", "", text)
     return text
@@ -205,7 +200,9 @@ async def main(args):
             level_text_de = "unavailable"
 
         # Hämta engelsk etikett
-        level_text_en = levels_en[raw_val] if 0 <= raw_val < len(levels_en) else "unavailable"
+        level_text_en = (
+            levels_en[raw_val] if 0 <= raw_val < len(levels_en) else "unavailable"
+        )
 
         print(f"  – Allergen: {raw_title}")
         print(f"    Tyskt namn: {german_part}")
@@ -214,7 +211,9 @@ async def main(args):
         print(f"    Raw: {raw_val}")
         print(f"    Tyska etiketten: {level_text_de}")
         print(f"    Engelska etiketten: {level_text_en}")
-        print(f"    Kommande entity_id skulle kunna bli: polleninformation_{location_slug}_{allergen_slug}\n")
+        print(
+            f"    Kommande entity_id skulle kunna bli: polleninformation_{location_slug}_{allergen_slug}\n"
+        )
 
 
 def parse_args():
@@ -223,48 +222,64 @@ def parse_args():
     )
 
     parser.add_argument(
-        "--lat", type=float, required=True,
-        help="Latitud för platsen (t.ex. 46.628)."
+        "--lat", type=float, required=True, help="Latitud för platsen (t.ex. 46.628)."
     )
     parser.add_argument(
-        "--lon", type=float, required=True,
-        help="Longitud för platsen (t.ex. 14.309)."
+        "--lon", type=float, required=True, help="Longitud för platsen (t.ex. 14.309)."
     )
     parser.add_argument(
-        "--country", type=str, default="AT",
-        help="Landskod (ISO alpha‐2) för API:t (standard: AT)."
+        "--country",
+        type=str,
+        default="AT",
+        help="Landskod (ISO alpha‐2) för API:t (standard: AT).",
     )
     parser.add_argument(
-        "--country-id", type=int, default=1,
-        help="Numerisk country_id‐parameter (standard: 1)."
+        "--country-id",
+        type=int,
+        default=1,
+        help="Numerisk country_id‐parameter (standard: 1).",
     )
     parser.add_argument(
-        "--lang", type=str, default=DEFAULT_LANG,
-        help=f"Språkkod för API:t (standard: {DEFAULT_LANG})."
+        "--lang",
+        type=str,
+        default=DEFAULT_LANG,
+        help=f"Språkkod för API:t (standard: {DEFAULT_LANG}).",
     )
     parser.add_argument(
-        "--lang-id", type=int, default=DEFAULT_LANG_ID,
-        help=f"Numerisk lang_id (standard: {DEFAULT_LANG_ID})."
+        "--lang-id",
+        type=int,
+        default=DEFAULT_LANG_ID,
+        help=f"Numerisk lang_id (standard: {DEFAULT_LANG_ID}).",
     )
     parser.add_argument(
-        "--action", type=str, default=DEFAULT_ACTION,
-        help=f"Action‐parameter för API:t (standard: {DEFAULT_ACTION})."
+        "--action",
+        type=str,
+        default=DEFAULT_ACTION,
+        help=f"Action‐parameter för API:t (standard: {DEFAULT_ACTION}).",
     )
     parser.add_argument(
-        "--type", type=str, dest="type", default=DEFAULT_TYPE,
-        help=f"Type‐parameter för API:t (standard: {DEFAULT_TYPE})."
+        "--type",
+        type=str,
+        dest="type",
+        default=DEFAULT_TYPE,
+        help=f"Type‐parameter för API:t (standard: {DEFAULT_TYPE}).",
     )
     parser.add_argument(
-        "--personal-contamination", action="store_true",
-        help="Sätt denna flagga för personal_contamination=true, annars false."
+        "--personal-contamination",
+        action="store_true",
+        help="Sätt denna flagga för personal_contamination=true, annars false.",
     )
     parser.add_argument(
-        "--sensitivity", type=int, default=DEFAULT_SENSITIVITY,
-        help=f"Sensitivity‐parameter (0–?... standard: {DEFAULT_SENSITIVITY})."
+        "--sensitivity",
+        type=int,
+        default=DEFAULT_SENSITIVITY,
+        help=f"Sensitivity‐parameter (0–?... standard: {DEFAULT_SENSITIVITY}).",
     )
     parser.add_argument(
-        "--sessionid", type=str, default=DEFAULT_SESSIONID,
-        help="Sessionid‐parameter (standard: tom)."
+        "--sessionid",
+        type=str,
+        default=DEFAULT_SESSIONID,
+        help="Sessionid‐parameter (standard: tom).",
     )
 
     return parser.parse_args()
@@ -280,4 +295,3 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("\nAvbröts av användaren (Ctrl-C).")
         sys.exit(1)
-

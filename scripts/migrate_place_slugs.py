@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 
 DB_FILE = "country_ids.json"
 
+
 def slugify(text: str) -> str:
     """
     Tar bort diakritiska tecken, ersätter mellanslag/bindestreck med _
@@ -20,6 +21,7 @@ def slugify(text: str) -> str:
     text = re.sub(r"[\s\-]+", "_", text)
     text = re.sub(r"[^a-z0-9_]", "", text)
     return text
+
 
 def extract_place_slug(full_location: str) -> str:
     """
@@ -36,6 +38,7 @@ def extract_place_slug(full_location: str) -> str:
     else:
         place_name = full_location
     return slugify(place_name)
+
 
 def migrate_slugs():
     if not os.path.exists(DB_FILE):
@@ -54,7 +57,9 @@ def migrate_slugs():
             if new_slug != old_slug:
                 print(f"[MIGRATE] Land {country}: '{old_slug}' → '{new_slug}'")
                 db["countries"][country]["place_slug"] = new_slug
-                db["countries"][country]["last_updated"] = datetime.now(timezone.utc).isoformat()
+                db["countries"][country]["last_updated"] = datetime.now(
+                    timezone.utc
+                ).isoformat()
                 updated = True
 
     if updated:
@@ -66,6 +71,6 @@ def migrate_slugs():
     else:
         print("Inga ändringar behövde göras, alla slugs var redan korrekta.")
 
+
 if __name__ == "__main__":
     migrate_slugs()
-
