@@ -5,6 +5,7 @@ import json
 import logging
 import os
 
+import aiohttp
 import voluptuous as vol
 from homeassistant import config_entries
 
@@ -41,6 +42,24 @@ async def async_load_available_countries(hass):
     return await hass.async_add_executor_job(_load_sync)
 
 
+async def async_get_country_code_from_latlon(hass, lat, lon):
+    url = f"https://nominatim.openstreetmap.org/reverse"
+    params = {
+        "lat": lat,
+        "lon": lon,
+        "format": "json",
+        "zoom": 3,  # Country-level
+        "addressdetails": 1,
+    }
+    headers = {"User-Agent": "Home Assistant Polleninformation Integration"}
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, params=params, headers=headers, timeout=5) as resp:
+            if resp.status == 200:
+                result = await resp.json()
+                return result.get("address", {}).get("country_code", "").upper()
+    return None
+
+
 async def async_get_country_options(hass):
     countries = await async_load_available_countries(hass)
     return {
@@ -57,9 +76,24 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         country_options = await async_get_country_options(self.hass)
         default_lat = round(self.hass.config.latitude, 5)
         default_lon = round(self.hass.config.longitude, 5)
-        default_country = (
-            "SE" if "SE" in country_options else next(iter(country_options))
-        )
+
+        # Försök hämta land från HA-konfig
+        ha_country = getattr(self.hass.config, "country", None)
+        default_country = None
+
+        if ha_country and ha_country in country_options:
+            default_country = ha_country
+        else:
+            # Prova omvänd geokodning med lat/lon
+            country_code = await async_get_country_code_from_latlon(
+                self.hass, default_lat, default_lon
+            )
+            if country_code and country_code in country_options:
+                default_country = country_code
+            elif "SE" in country_options:
+                default_country = "SE"
+            else:
+                default_country = next(iter(country_options))
 
         if user_input is not None:
             country_code = user_input.get("country")
