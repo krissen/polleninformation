@@ -51,13 +51,6 @@
       ]
     },
     {
-      "code": "EE",
-      "name": "Estonia",
-      "country_id": [
-        16
-      ]
-    },
-    {
       "code": "ES",
       "name": "Spain",
       "country_id": [
@@ -79,31 +72,10 @@
       ]
     },
     {
-      "code": "FI",
-      "name": "Finland",
-      "country_id": [
-        16
-      ]
-    },
-    {
       "code": "GR",
       "name": "Greece",
       "country_id": [
         33
-      ]
-    },
-    {
-      "code": "HR",
-      "name": "Croatia",
-      "country_id": [
-        89
-      ]
-    },
-    {
-      "code": "HU",
-      "name": "Hungary",
-      "country_id": [
-        1
       ]
     },
     {
@@ -191,13 +163,6 @@
       ]
     },
     {
-      "code": "SK",
-      "name": "Slovakia",
-      "country_id": [
-        1
-      ]
-    },
-    {
       "code": "TR",
       "name": "Türkiye",
       "country_id": [
@@ -223,13 +188,6 @@
       "name": "Andorra",
       "country_id": [
         98
-      ]
-    },
-    {
-      "code": "BA",
-      "name": "Bosnia and Herzegovina",
-      "country_id": [
-        14
       ]
     },
     {

@@ -4,8 +4,8 @@
   "zip_release": true,
   "filename": "polleninformation.zip",
   "country": [
-    "AD", "AL", "AT", "BA", "BE", "BG", "BY", "CH", "CZ", "DE", "DK", "EE", "ES",
-    "FI", "FR", "GB", "GR", "HR", "HU", "IE", "IT", "LI", "LT", "LU", "LV", "MC",
-    "MD", "ME", "MK", "MT", "NL", "NO", "PL", "RO", "SE", "SI", "SK", "SM", "TR", "UA"
+    "AD", "AL", "AT", "BE", "BG", "BY", "CH", "CZ", "DE", "DK", "ES",
+    "FR", "GB", "GR", "IE", "IT", "LI", "LT", "LU", "LV", "MC",
+    "MD", "ME", "MK", "MT", "NL", "NO", "PL", "RO", "SE", "SI", "SM", "TR", "UA"
   ]
 }
