@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Get version
         id: version
@@ -22,14 +22,14 @@ jobs:
 
       - name: Create zip
         run: |
-          cd custom_components/pollenprognos
-          zip pollenprognos.zip -r ./
+          cd custom_components/polleninformation
+          zip polleninformation.zip -r ./
 
       - name: Upload zip to release
         uses: svenstaro/upload-release-action@v1-release
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ./custom_components/pollenprognos/pollenprognos.zip
-          asset_name: pollenprognos.zip
+          file: ./custom_components/polleninformation/polleninformation.zip
+          asset_name: polleninformation.zip
           tag: ${{ github.ref }}
           overwrite: true
