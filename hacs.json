@@ -3,5 +3,9 @@
   "hide_default_branch": true,
   "zip_release": true,
   "filename": "polleninformation.zip",
-  "country": ["SE"]
+  "country": [
+    "AD", "AL", "AT", "BA", "BE", "BG", "BY", "CH", "CZ", "DE", "DK", "EE", "ES",
+    "FI", "FR", "GB", "GR", "HR", "HU", "IE", "IT", "LI", "LT", "LU", "LV", "MC",
+    "MD", "ME", "MK", "MT", "NL", "NO", "PL", "RO", "SE", "SI", "SK", "SM", "TR", "UA"
+  ]
 }
