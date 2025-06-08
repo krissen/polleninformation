@@ -3,9 +3,11 @@
   "name": "Polleninformation EU",
   "version": "2025.6.10",
   "documentation": "https://github.com/krissen/polleninformation",
+  "issue_tracker": "https://github.com/krissen/polleninformation/issues",
   "dependencies": [],
   "codeowners": ["@krissen"],
   "requirements": [],
-  "config_flow": true
+  "config_flow": true,
+  "iot_class": "cloud_polling"
 }
 
