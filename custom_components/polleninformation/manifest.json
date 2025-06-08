@@ -1,14 +1,11 @@
 {
-    "codeowners": [
-        "@krissen"
-    ],
-    "config_flow": true,
-    "dependencies": [],
-    "documentation": "https://github.com/krissen/polleninformation",
-    "domain": "polleninformation",
-    "iot_class": "cloud_polling",
-    "issue_tracker": "https://github.com/krissen/polleninformation/issues",
-    "name": "Pollen Information EU",
-    "requirements": [],
-    "version": "0.0.0"
+  "domain": "polleninformation",
+  "name": "Polleninformation EU",
+  "version": "2025.6.10",
+  "documentation": "https://github.com/krissen/polleninformation",
+  "dependencies": [],
+  "codeowners": ["@krissen"],
+  "requirements": [],
+  "config_flow": true
 }
+

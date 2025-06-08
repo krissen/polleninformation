@@ -1,6 +1,5 @@
 {
   "name": "Polleninformation EU",
-  "homeassistant": "2021.3.0",
   "hide_default_branch": true,
   "zip_release": true,
   "filename": "polleninformation.zip",
