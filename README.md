@@ -7,7 +7,25 @@
 [![Project Maintenance][maintenance-shield]][user_profile]
 [![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
 
-A modern Home Assistant integration for monitoring pollen and air quality across Europe, powered by the Austrian Pollen Information Service.
+A modern Home Assistant integration for monitoring pollen and air quality across Europe, data provided through [the Austrian Pollen Information Service](https://www.polleninformation.eu).
+
+<table align="center">
+  <tr>
+    <td><img width="450" alt="Skärmavbild 2025-06-09 kl  20 11 48" src="https://github.com/user-attachments/assets/e3d0815b-ea1a-4366-a3b6-3098ee26ad06" />
+</td>
+    <td align="center" valign="middle">
+      <img width="450" alt="Skärmavbild 2025-06-09 kl  20 24 24" src="https://github.com/user-attachments/assets/0d183dd9-42d1-4dbb-ae14-b8cd5d8a544c" />
+    </td>
+  </tr>
+  <tr>
+    <td align="center" valign="middle">
+      <img width="450" alt="Skärmavbild 2025-06-09 kl  20 10 46" src="https://github.com/user-attachments/assets/9385ba7a-57d8-434a-89ce-9e03892afce3" />
+    </td>
+    <td align="center" valign="middle">
+      <img width="450" alt="Skärmavbild 2025-06-09 kl  20 10 26" src="https://github.com/user-attachments/assets/3ecfcc60-4c91-4164-b175-e3ed151ee566" />
+    </td>
+  </tr>
+</table>
 
 ---
 
@@ -18,7 +36,7 @@ A modern Home Assistant integration for monitoring pollen and air quality across
 - **Air quality:** Additional sensors for ozone, particulate matter, nitrogen dioxide, sulphur dioxide, temperature, and more. *Different countries have different supported air quality sensors.*
 - **Multi-day forecast:** Each sensor exposes several days of forecast data.
 - **Beautiful icons & friendly names:** Instantly recognizable in the Home Assistant UI.
-- **Ready for Lovelace cards:** Fully compatible with the most popular pollen and air quality cards.
+- **Pair with pollenprognos-card:** Screenshots above have been made with [pollenprognos-card](https://github.com/krissen/pollenprognos-card)
 
 ---
 
