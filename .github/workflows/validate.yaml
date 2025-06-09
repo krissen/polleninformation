@@ -9,30 +9,33 @@ on:
       - master
 
 jobs:
-  validate-hassfest:
-    name: With hassfest
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v3
+  hassfest:
+      runs-on: ubuntu-latest
+      name: Hassfest
+      needs: preflight
+      if: needs.preflight.outputs.category == 'integration' && needs.preflight.outputs.removal != 'true'
+      steps:
+        - name: Check out repository
+          uses: actions/checkout@v4.2.2
 
-      - name: Hassfest validation
-        uses: home-assistant/actions/hassfest@master
-
-  validate-hacs:
-    name: With HACS action
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v3
-
-      - name: "Update manifest.json"
-        run: |
-          python3 ${{ github.workspace }}/manage/update_manifest.py
-
-      - name: HACS Validation
-        uses: hacs/action@main
-        with:
-          ignore: brands
-          category: integration
-          comment: True
+        - name: Clone new addition
+          run: |
+            git clone --depth 1 "https://github.com/${{needs.preflight.outputs.repository}}" /tmp/repositories/addition
+        - name: Run hassfest
+          run: |
+            integration=$(python3 -m scripts.helpers.integration_path)
+            domain=$(python3 -m scripts.helpers.domain)
+            docker run --rm \
+              -v "$integration":"/github/workspace/$domain" \
+              ghcr.io/home-assistant/hassfest:latest
+    hacs:
+      runs-on: ubuntu-latest
+      name: HACS action
+      needs: preflight
+      if: needs.preflight.outputs.removal != 'true'
+      steps:
+        - name: HACS action
+          uses: hacs/action@main
+          with:
+            repository: ${{needs.preflight.outputs.repository}}
+            category: ${{needs.preflight.outputs.category}}
