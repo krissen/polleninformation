@@ -2,40 +2,22 @@ name: "Validate"
 
 on:
   push:
-    branches:
-      - master
   pull_request:
-    branches:
-      - master
-
+  schedule:
+    - cron:  '0 0 * * *'
 jobs:
   hassfest:
-      runs-on: ubuntu-latest
-      name: Hassfest
-      needs: preflight
-      if: needs.preflight.outputs.category == 'integration' && needs.preflight.outputs.removal != 'true'
-      steps:
-        - name: Check out repository
-          uses: actions/checkout@v4.2.2
+    runs-on: "ubuntu-latest"
+    steps:
+        - uses: "actions/checkout@v4"
+        - uses: "home-assistant/actions/hassfest@master"
+  hacs:
+    name: HACS Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-        - name: Clone new addition
-          run: |
-            git clone --depth 1 "https://github.com/${{needs.preflight.outputs.repository}}" /tmp/repositories/addition
-        - name: Run hassfest
-          run: |
-            integration=$(python3 -m scripts.helpers.integration_path)
-            domain=$(python3 -m scripts.helpers.domain)
-            docker run --rm \
-              -v "$integration":"/github/workspace/$domain" \
-              ghcr.io/home-assistant/hassfest:latest
-    hacs:
-      runs-on: ubuntu-latest
-      name: HACS action
-      needs: preflight
-      if: needs.preflight.outputs.removal != 'true'
-      steps:
-        - name: HACS action
-          uses: hacs/action@main
-          with:
-            repository: ${{needs.preflight.outputs.repository}}
-            category: ${{needs.preflight.outputs.category}}
+      - name: HACS validation
+        uses: hacs/action@main
+        with:
+          category: integration
