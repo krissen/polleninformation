@@ -12,9 +12,11 @@
       }
     },
     "error": {
+      "invalid_country": "Ogiltigt land",
       "invalid_latitude": "Ogiltig latitud",
       "invalid_longitude": "Ogiltig longitud",
-      "invalid_country": "Ogiltigt land"
+      "suggested_country_sv": "Inga data hittades för valt land på denna plats. Försök ändra land eller plats.",
+      "no_sensors_for_country": "Inga sensorer hittades för valt land på denna plats."
     },
     "abort": {
       "already_configured": "Den här platsen är redan konfigurerad."

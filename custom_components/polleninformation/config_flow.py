@@ -8,8 +8,10 @@ import os
 import aiohttp
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.config_entries import SOURCE_USER
 
 from .api import async_get_pollenat_data
+from .utils import extract_place_slug, slugify, split_location
 
 _LOGGER = logging.getLogger(__name__)
 DEBUG = True
@@ -21,17 +23,6 @@ AVAILABLE_COUNTRIES_FILE = os.path.join(
 
 DEFAULT_LANG = "de"
 DEFAULT_LANG_ID = 0
-
-
-def split_location(locationtitle):
-    """Dela locationtitle till (zip, ort)."""
-    import re
-
-    locationtitle = locationtitle.strip()
-    parts = locationtitle.split(maxsplit=1)
-    if parts and re.match(r"^[A-Za-z0-9\-]+$", parts[0]) and len(parts) == 2:
-        return parts[0], parts[1]
-    return "", locationtitle
 
 
 async def async_load_available_countries(hass):
@@ -130,31 +121,67 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         DEFAULT_LANG,
                         DEFAULT_LANG_ID,
                     )
-                    location_title = pollen_data.get(
-                        "locationtitle", country_options[country_code]
-                    )
-                    _zip, city = split_location(location_title)
-                    entry_title = city if city else location_title
-
-                    entry_data = {
-                        "country": country_code,
-                        "country_id": country_id,
-                        "latitude": latitude,
-                        "longitude": longitude,
-                        "lang": DEFAULT_LANG,
-                        "lang_id": DEFAULT_LANG_ID,
-                    }
-                    if DEBUG:
-                        _LOGGER.debug(
-                            "Skapar polleninformation-entry med data: %s och title: %s",
-                            entry_data,
-                            entry_title,
+                    # Kontroll: Finns något att visa?
+                    if not pollen_data or not pollen_data.get("contamination"):
+                        # Försök föreslå rätt land baserat på long/lat
+                        suggested_code = await async_get_country_code_from_latlon(
+                            self.hass, latitude, longitude
                         )
+                        # Om det blir samma som valt land, använd istället None eller ta närmaste
+                        if suggested_code == country_code or not suggested_code:
+                            suggested_country = None
+                        else:
+                            suggested_country = country_options.get(
+                                suggested_code, suggested_code
+                            )
+                        selected_country = country_options.get(
+                            country_code, country_code
+                        )
+                        # Bygg felmeddelande med placeholders, om vi har förslag
+                        if suggested_country:
+                            errors["country"] = "suggested_country"
+                        else:
+                            errors["country"] = "no_sensors_for_country"
+                    else:
+                        # Vanlig flow om vi har data
+                        location_title = pollen_data.get(
+                            "locationtitle", country_options[country_code]
+                        )
+                        _zip, city = split_location(location_title)
 
-                    return self.async_create_entry(
-                        title=entry_title,
-                        data=entry_data,
-                    )
+                        entry_title = city if city else location_title
+
+                        entry_data = {
+                            "country": country_code,
+                            "country_id": country_id,
+                            "latitude": latitude,
+                            "longitude": longitude,
+                            "lang": DEFAULT_LANG,
+                            "lang_id": DEFAULT_LANG_ID,
+                        }
+                        existing_entries = self._async_current_entries()
+                        already_exists = any(
+                            e.data.get("country") == country_code
+                            and round(e.data.get("latitude", 0), 3)
+                            == round(latitude, 3)
+                            and round(e.data.get("longitude", 0), 3)
+                            == round(longitude, 3)
+                            for e in existing_entries
+                        )
+                        if already_exists:
+                            return self.async_abort(reason="already_configured")
+
+                        if DEBUG:
+                            _LOGGER.debug(
+                                "Skapar polleninformation-entry med data: %s och title: %s",
+                                entry_data,
+                                entry_title,
+                            )
+
+                        return self.async_create_entry(
+                            title=entry_title,
+                            data=entry_data,
+                        )
 
         data_schema = vol.Schema(
             {
