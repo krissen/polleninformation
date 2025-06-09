@@ -8,7 +8,46 @@ on:
     branches:
       - master
 
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
 jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    name: Preflight
+    outputs:
+      repository: ${{ steps.repository.outputs.repository }}
+      category: ${{ steps.category.outputs.category }}
+      removal: ${{ steps.removal.outputs.removal }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.6.0
+        with:
+          python-version-file: ".python-version"
+
+      - name: Clone origin
+        run: git clone --depth 1 https://github.com/hacs/default /tmp/repositories/default
+
+      - name: Set repository
+        id: repository
+        run: echo "repository=$(python3 -m scripts.changed.repo)" >> $GITHUB_OUTPUT
+
+      - name: Set category
+        id: category
+        run: echo "category=$(python3 -m scripts.changed.category)" >> $GITHUB_OUTPUT
+
+      - name: Check removal
+        id: removal
+        run: |
+          if [ "${{ steps.repository.outputs.repository }}" == "Bad data []" ]; then
+            echo "removal=true" >> $GITHUB_OUTPUT
+          fi
   hassfest:
       runs-on: ubuntu-latest
       name: Hassfest
@@ -28,14 +67,15 @@ jobs:
             docker run --rm \
               -v "$integration":"/github/workspace/$domain" \
               ghcr.io/home-assistant/hassfest:latest
-    hacs:
-      runs-on: ubuntu-latest
-      name: HACS action
-      needs: preflight
-      if: needs.preflight.outputs.removal != 'true'
-      steps:
-        - name: HACS action
-          uses: hacs/action@main
-          with:
-            repository: ${{needs.preflight.outputs.repository}}
-            category: ${{needs.preflight.outputs.category}}
+
+  hacs:
+    runs-on: ubuntu-latest
+    name: HACS action
+    needs: preflight
+    if: needs.preflight.outputs.removal != 'true'
+    steps:
+      - name: HACS action
+        uses: hacs/action@main
+        with:
+          repository: ${{needs.preflight.outputs.repository}}
+          category: ${{needs.preflight.outputs.category}}
