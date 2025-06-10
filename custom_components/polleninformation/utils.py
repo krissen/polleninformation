@@ -4,22 +4,34 @@ import re
 def slugify(text: str) -> str:
     try:
         from unidecode import unidecode
-
         text = unidecode(text)
     except ImportError:
-        # Fallback: bara ta bort diakritik (funkar ej för kyrilliska)
         text = (
             unicodedata.normalize("NFKD", text)
             .encode("ascii", "ignore")
             .decode("ascii")
         )
+
+    # Ta bort parentesinnehåll
     text = text.split("(", 1)[0] if "(" in text else text
     text = text.strip().lower()
-    text = text.replace("ö", "o").replace("ä", "a").replace("å", "a").replace("ß", "ss")
-    text = re.sub(r"\s+", "_", text)
-    text = re.sub(r"[^a-z0-9_]", "", text)
-    return text
 
+    # Ersätt diakrit-variationer och specialfall
+    text = (
+        text.replace("ö", "o")
+        .replace("ä", "a")
+        .replace("å", "a")
+        .replace("ß", "ss")
+        .replace("'", "")   # <- tar bort t.ex. apostrof från translit
+    )
+
+    # Ersätt alla icke-alfanumeriska tecken med _
+    text = re.sub(r"[^\w]+", "_", text)
+
+    # Ta bort inledande och avslutande _
+    text = text.strip("_")
+
+    return text
 
 def extract_place_slug(full_location: str) -> str:
     full_location = full_location.strip()
