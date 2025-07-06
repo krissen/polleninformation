@@ -42,8 +42,7 @@ A modern Home Assistant integration for monitoring pollen and air quality across
 
 ## Installation (HACS recommended)
 
-1. Add `https://github.com/krissen/polleninformation` as a "Custom Repository" as an "Integration" in HACS.
-2. Search for and install **Pollen Information EU**.
+1. Search for and install **Pollen Information EU**.
 3. Restart Home Assistant when prompted.
 
 ---
@@ -86,7 +85,7 @@ All data is provided by the [Austrian Pollen Information Service](https://www.po
 ---
 
 [hacs]: https://hacs.xyz
-[hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
+[hacsbadge]: https://img.shields.io/badge/HACS-Official-orange.svg?style=for-the-badge
 [license-shield]: https://img.shields.io/github/license/krissen/polleninformation.svg?style=for-the-badge
 [maintenance-shield]: https://img.shields.io/badge/maintainer-%40krissen-blue.svg?style=for-the-badge
 [releases-shield]: https://img.shields.io/github/release/krissen/polleninformation.svg?style=for-the-badge
