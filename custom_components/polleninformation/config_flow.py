@@ -1,4 +1,3 @@
-# custom_components/polleninformation/config_flow.py
 """Config flow for polleninformation.at integration."""
 
 import json
@@ -11,18 +10,15 @@ from homeassistant import config_entries
 from homeassistant.config_entries import SOURCE_USER
 
 from .api import async_get_pollenat_data
+from .const import DEFAULT_LANG, DEFAULT_LANG_ID, DOMAIN
 from .utils import extract_place_slug, slugify, split_location
 
 _LOGGER = logging.getLogger(__name__)
 DEBUG = True
 
-DOMAIN = "polleninformation"
 AVAILABLE_COUNTRIES_FILE = os.path.join(
     os.path.dirname(__file__), "available_countries.json"
 )
-
-DEFAULT_LANG = "de"
-DEFAULT_LANG_ID = 0
 
 
 async def async_load_available_countries(hass):
@@ -111,7 +107,17 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     country_id = None
 
                 if not errors:
-                    # Gör API-anrop för att få platsnamn
+                    # Gör API-anrop för att få platsnamn (nya API:t tar nu C/country_id separat)
+                    _LOGGER.debug(
+                        "Kallar async_get_pollenat_data med: lat=%r, lon=%r, country=%r, country_id=%r, lang=%r, lang_id=%r",
+                        latitude,
+                        longitude,
+                        country_code,
+                        country_id,
+                        DEFAULT_LANG,
+                        DEFAULT_LANG_ID,
+                    )
+
                     pollen_data = await async_get_pollenat_data(
                         self.hass,
                         latitude,
@@ -121,34 +127,29 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         DEFAULT_LANG,
                         DEFAULT_LANG_ID,
                     )
+
+                    _LOGGER.debug("API-svar: %r", pollen_data)
+
+                    if not pollen_data:
+                        _LOGGER.debug("Inget pollen_data mottaget")
+                    elif not pollen_data.get("contamination"):
+                        _LOGGER.debug("Ingen 'contamination'-lista: %r", pollen_data)
+
                     # Kontroll: Finns något att visa?
-                    if not pollen_data or not pollen_data.get("contamination"):
-                        # Försök föreslå rätt land baserat på long/lat
-                        suggested_code = await async_get_country_code_from_latlon(
-                            self.hass, latitude, longitude
-                        )
-                        if suggested_code == country_code or not suggested_code:
-                            suggested_country = None
-                        else:
-                            suggested_country = country_options.get(suggested_code, suggested_code)
-                        selected_country = country_options.get(country_code, country_code)
-                        # Bygg felmeddelande med placeholders, om vi har förslag
-                        if suggested_country:
-                            errors["country"] = "suggested_country"
-                        else:
-                            errors["country"] = "no_sensors_for_country"
+                    result = None
+                    if pollen_data and pollen_data.get("result"):
+                        result = pollen_data["result"]
+                    if not result or not result.get("contamination"):
+                        _LOGGER.debug("Ingen 'contamination'-lista på rätt nivå: %r", pollen_data)
+                        # error
                     else:
-                        # Nu har vi data: men är contamination en TOM lista?
-                        contamination = pollen_data.get("contamination")
-                        if not contamination:  # Dvs: tom lista []
+                        contamination = result.get("contamination")
+                        if not contamination:
                             errors["country"] = "no_sensors_for_country"
                         else:
-                            location_title = pollen_data.get(
-                                "locationtitle", country_options[country_code]
-                            )
+                            location_title = result.get("locationtitle", country_options[country_code])
                             _zip, city = split_location(location_title)
                             entry_title = city if city else location_title
-
                             entry_data = {
                                 "country": country_code,
                                 "country_id": country_id,
@@ -166,14 +167,12 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             )
                             if already_exists:
                                 return self.async_abort(reason="already_configured")
-
                             if DEBUG:
                                 _LOGGER.debug(
                                     "Skapar polleninformation-entry med data: %s och title: %s",
                                     entry_data,
                                     entry_title,
                                 )
-
                             return self.async_create_entry(
                                 title=entry_title,
                                 data=entry_data,

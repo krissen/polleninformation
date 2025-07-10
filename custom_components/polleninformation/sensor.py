@@ -1,4 +1,4 @@
-# custom_components/polleninformation/sensor.py
+""" custom_components/polleninformation/sensor.py """
 """Sensorer för polleninformation.at-integration."""
 
 import logging
@@ -8,7 +8,7 @@ from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers.event import async_track_time_interval
 
 from .api import async_get_pollenat_data
-from .const import DOMAIN
+from .const import DEFAULT_LANG, DEFAULT_LANG_ID, DOMAIN
 from .utils import extract_place_slug, slugify, split_location
 
 DEBUG = True
@@ -72,16 +72,14 @@ AIR_SENSOR_ICON_MAP = {
 }
 
 
-
-
-def pollen_forecast_for_allergen(data, allergen_german):
+def pollen_forecast_for_allergen(result, allergen_german):
     out = []
-    contamination = data.get("contamination", [])
+    contamination = result.get("contamination", [])
     days = [
         ("contamination_1", "Heute"),
-        ("contamination_2", data.get("contamination_date_2")),
-        ("contamination_3", data.get("contamination_date_3")),
-        ("contamination_4", data.get("contamination_date_4")),
+        ("contamination_2", result.get("contamination_date_2")),
+        ("contamination_3", result.get("contamination_date_3")),
+        ("contamination_4", result.get("contamination_date_4")),
     ]
     for field, date_label in days:
         for item in contamination:
@@ -98,9 +96,9 @@ def pollen_forecast_for_allergen(data, allergen_german):
     return out
 
 
-def air_forecast_for_type(data, air_type):
+def air_forecast_for_type(result, air_type):
     out = []
-    additional = data.get("additionalForecastData", [])
+    additional = result.get("additionalForecastData", [])
     for day in additional:
         date_label = day.get("date", "")
         day_iso = _iso_for_label(date_label)
@@ -135,8 +133,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
         lon = data["longitude"]
         country = data["country"]
         country_id = data["country_id"]
-        lang = data["lang"]
-        lang_id = data["lang_id"]
+        lang = data.get("lang", DEFAULT_LANG)
+        lang_id = data.get("lang_id", DEFAULT_LANG_ID)
     except KeyError as e:
         _LOGGER.error("Polleninformation: Saknar config-fält: %s. Data: %s", e, data)
         return
@@ -155,13 +153,13 @@ async def async_setup_entry(hass, entry, async_add_entities):
         _LOGGER.error("No pollen data found during setup.")
         return
 
+    result = coordinator.data.get("result", {}) if coordinator.data else {}
     location_title = coordinator.full_location or ""
     location_zip, location_city = split_location(location_title)
     location_slug = extract_place_slug(location_title)
 
-    # Skapa pollen- och luft-sensorer som subklasser av basklassen
     entities = []
-    for item in coordinator.data.get("contamination", []):
+    for item in result.get("contamination", []):
         allergen = item.get("poll_title", "<unknown>")
         entities.append(
             PolleninformationSensor(
@@ -174,7 +172,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
             )
         )
 
-    forecast = coordinator.data.get("additionalForecastData", [])
+    forecast = result.get("additionalForecastData", [])
     if forecast:
         today = forecast[0]
         for key in AIR_SENSOR_ICON_MAP:
@@ -237,8 +235,10 @@ class PollenDataCoordinator:
             )
             if DEBUG:
                 _LOGGER.debug("Polleninformation: API response data: %s", self.data)
+            # locationtitle ligger fortfarande på result-nivå
+            result = self.data.get("result", {}) if self.data else {}
             self.full_location = (
-                self.data.get("locationtitle", None) if self.data else None
+                result.get("locationtitle", None) if result else None
             )
             self.location_slug = (
                 extract_place_slug(self.full_location) if self.full_location else None
@@ -355,9 +355,10 @@ class PolleninformationSensor(SensorEntity):
     @property
     def extra_state_attributes(self):
         data = self.coordinator.data or {}
+        result = data.get("result", {}) if data else {}
         attribs = self._attr_extra_state_attributes.copy()
         if self.sensor_type == "pollen":
-            forecast = pollen_forecast_for_allergen(data, self._name_de)
+            forecast = pollen_forecast_for_allergen(result, self._name_de)
             today_raw = forecast[0] if forecast else None
             tomorrow_raw = forecast[1] if len(forecast) > 1 else None
             attribs.update(
@@ -386,7 +387,7 @@ class PolleninformationSensor(SensorEntity):
                 }
             )
         else:
-            forecast = air_forecast_for_type(data, self._air_type)
+            forecast = air_forecast_for_type(result, self._air_type)
             attribs.update(
                 {
                     "forecast": forecast,
@@ -400,7 +401,8 @@ class PolleninformationSensor(SensorEntity):
 
     async def async_update(self):
         data = self.coordinator.data
-        if not data:
+        result = data.get("result", {}) if data else {}
+        if not result:
             self._state = None
             self._attr_extra_state_attributes = {}
             if DEBUG:
@@ -411,7 +413,7 @@ class PolleninformationSensor(SensorEntity):
             return
 
         if self.sensor_type == "pollen":
-            contamination = data.get("contamination", [])
+            contamination = result.get("contamination", [])
             found = None
             for item in contamination:
                 if item.get("poll_title") == self._allergen:
@@ -436,8 +438,7 @@ class PolleninformationSensor(SensorEntity):
                 "level_index": raw_val,
             }
         else:
-            # Luftsensor: ta nuvärde för dagen
-            additional = data.get("additionalForecastData", [])
+            additional = result.get("additionalForecastData", [])
             val = None
             if additional:
                 val = additional[0].get(self._air_type)
@@ -451,3 +452,4 @@ class PolleninformationSensor(SensorEntity):
                 self._state,
                 self._attr_extra_state_attributes,
             )
+
