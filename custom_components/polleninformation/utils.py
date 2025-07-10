@@ -1,7 +1,9 @@
+""" custom_components/polleninformation/utils.py """
 import re
-
+import unicodedata
 
 def slugify(text: str) -> str:
+    """Konverterar text till slug: gemener, ASCII, inga parenteser, endast a-z0-9_."""
     try:
         from unidecode import unidecode
         text = unidecode(text)
@@ -22,7 +24,7 @@ def slugify(text: str) -> str:
         .replace("ä", "a")
         .replace("å", "a")
         .replace("ß", "ss")
-        .replace("'", "")   # <- tar bort t.ex. apostrof från translit
+        .replace("'", "")   # Tar bort apostrofer från translit
     )
 
     # Ersätt alla icke-alfanumeriska tecken med _
@@ -34,6 +36,7 @@ def slugify(text: str) -> str:
     return text
 
 def extract_place_slug(full_location: str) -> str:
+    """Returnerar slugifierat platsnamn utan ev. postnummer/kod före första mellanslag."""
     full_location = full_location.strip()
     parts = full_location.split(maxsplit=1)
     if parts and re.match(r"^[A-Za-z0-9\-]+$", parts[0]) and len(parts) == 2:
@@ -42,10 +45,11 @@ def extract_place_slug(full_location: str) -> str:
         place_name = full_location
     return slugify(place_name)
 
-
 def split_location(locationtitle):
+    """Dela locationtitle till (postnummer/kod, namn) – annars ('', locationtitle)."""
     locationtitle = locationtitle.strip()
     parts = locationtitle.split(maxsplit=1)
     if parts and re.match(r"^[A-Za-z0-9\-]+$", parts[0]) and len(parts) == 2:
         return parts[0], parts[1]
     return "", locationtitle
+

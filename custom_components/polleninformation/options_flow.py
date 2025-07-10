@@ -1,22 +1,27 @@
+""" custom_components/polleninformation/options_flow.py """
+
+"""Options flow för polleninformation.at-integration."""
+
 import json
 import os
 
 import voluptuous as vol
 from homeassistant import config_entries
 
-DOMAIN = "polleninformation"
+from .const import DEFAULT_LANG, DEFAULT_LANG_ID, DOMAIN
+
 AVAILABLE_COUNTRIES_FILE = os.path.join(
     os.path.dirname(__file__), "available_countries.json"
 )
 
-DEFAULT_LANG = "de"
-DEFAULT_LANG_ID = 0
-
 
 def load_available_countries():
-    with open(AVAILABLE_COUNTRIES_FILE, encoding="utf-8") as f:
-        data = json.load(f)
-    return data["countries"]
+    try:
+        with open(AVAILABLE_COUNTRIES_FILE, encoding="utf-8") as f:
+            data = json.load(f)
+        return data.get("countries", [])
+    except Exception:
+        return []
 
 
 def get_country_options():
@@ -27,11 +32,14 @@ def get_country_options():
 def get_country_id(code):
     countries = load_available_countries()
     for c in countries:
-        if c["code"] == code:
+        if c.get("code") == code:
             cid = c.get("country_id")
-            if isinstance(cid, list):
-                return cid[0]
-            return cid
+            if isinstance(cid, list) and cid:
+                cid = cid[0]
+            try:
+                return int(cid)
+            except Exception:
+                continue
     return 1  # fallback
 
 
@@ -42,7 +50,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_init(self, user_input=None):
         errors = {}
         country_options = get_country_options()
-        defaults = self.config_entry.options or self.config_entry.data
+        defaults = self.config_entry.options or self.config_entry.data or {}
 
         if user_input is not None:
             country_code = user_input["country"]
