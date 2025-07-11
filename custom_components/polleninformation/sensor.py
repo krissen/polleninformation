@@ -294,7 +294,11 @@ class PolleninformationSensor(SensorEntity):
             self._name_en = english_part
             self._name_la = latin_part
             self._allergen_slug = slugify(english_part)
-            self._attr_name = english_part
+            if getattr(coordinator, "lang", "de") == "de":
+                self._attr_name = german_part
+            else:
+                self._attr_name = english_part
+
             self._attr_unique_id = (
                 f"polleninformation_{location_slug}_{self._allergen_slug}"
             )
