@@ -1,0 +1,2258 @@
+{
+  "0": {
+    "contamination_date_1": "Heute",
+    "poll_titles": [
+      {
+        "name": "Pilzsporen",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Gräser",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Zypressengewächse",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Nessel- und Glaskraut",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Beifuß",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Erle",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Hasel",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Birke",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platane",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Roggen",
+        "latin": "Secale"
+      },
+      {
+        "name": "Ölbaum",
+        "latin": "Olea"
+      },
+      {
+        "name": "Ragweed",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "1": {
+    "contamination_date_1": "Today",
+    "poll_titles": [
+      {
+        "name": "Fungal spores",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Grasses",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Cypress family",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Nettle family",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Mugwort",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Alder",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Hazel",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Birch",
+        "latin": "Betula"
+      },
+      {
+        "name": "Plane tree",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Rye",
+        "latin": "Secale"
+      },
+      {
+        "name": "Olive",
+        "latin": "Olea"
+      },
+      {
+        "name": "Ragweed",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "2": {
+    "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  "3": {
+    "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  "4": {
+    "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  "5": {
+    "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  "6": {
+    "contamination_date_1": "Tänään",
+    "poll_titles": [
+      {
+        "name": "Sieni-itiöt",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Heinät",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Sypressit",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Nokkoskasvit",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Pujo",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Leppä",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Pähkinäpensas",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Koivu",
+        "latin": "Betula"
+      },
+      {
+        "name": "Plataani",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Ruis",
+        "latin": "Secale"
+      },
+      {
+        "name": "Oliivipuu",
+        "latin": "Olea"
+      },
+      {
+        "name": "Tuoksukki",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "7": {
+    "contamination_date_1": "Idag",
+    "poll_titles": [
+      {
+        "name": "Svampsporer",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Gräs",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Cypressfamiljen",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Nässelfamiljen",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Gråbo",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Al",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Hassel",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Björk",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platan",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Råg",
+        "latin": "Secale"
+      },
+      {
+        "name": "Oliv",
+        "latin": "Olea"
+      },
+      {
+        "name": "Malörtsambrosia",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "8": {
+    "contamination_date_1": "Aujourd'hui",
+    "poll_titles": [
+      {
+        "name": "Spores fongiques",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Graminées",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Famille des cyprès",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Famille des orties",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Armoise",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Aulne",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Noisetier",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Bouleau",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platane",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Seigle",
+        "latin": "Secale"
+      },
+      {
+        "name": "Olivier",
+        "latin": "Olea"
+      },
+      {
+        "name": "Ambroisie",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "9": {
+    "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  "10": {
+    "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  "11": {
+    "contamination_date_1": "Oggi",
+    "poll_titles": [
+      {
+        "name": "Spore fungine",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Graminacee",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Cupressacee",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Urticacee",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Assenzio",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Ontano",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Nocciolo",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Betulla",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platano",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Segale",
+        "latin": "Secale"
+      },
+      {
+        "name": "Olivo",
+        "latin": "Olea"
+      },
+      {
+        "name": "Ambrosia",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "12": {
+    "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  "13": {
+    "contamination_date_1": "Šodien",
+    "poll_titles": [
+      {
+        "name": "Sēnīšu sporas",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Graudzāles",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Cipresu ģimene",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Nātre",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Vībotne",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Alksnis",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Lazda",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Bērzs",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platāna",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Rudzi",
+        "latin": "Secale"
+      },
+      {
+        "name": "Olīve",
+        "latin": "Olea"
+      },
+      {
+        "name": "Ambrozija",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "14": {
+    "contamination_date_1": "Šiandien",
+    "poll_titles": [
+      {
+        "name": "Grybų sporos",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Migliniai",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Kiparisinių šeima",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Dilgėlinių šeima",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Kietis",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Alksnis",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Lazdynas",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Beržas",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platanas",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Rugių",
+        "latin": "Secale"
+      },
+      {
+        "name": "Alyvmedis",
+        "latin": "Olea"
+      },
+      {
+        "name": "Ambrozija",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "15": {
+    "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  "16": {
+    "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  "17": {
+    "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  "18": {
+    "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  "19": {
+    "contamination_date_1": "Dzisiaj",
+    "poll_titles": [
+      {
+        "name": "Zarodniki grzybów",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Trawy",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Cypryśnikowate",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Pokrzywowate",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Bylica",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Olsza",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Leszczyna",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Brzoza",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platan",
+        "latin": "Platanus"
+      },
+      {
+        "name": "żyto",
+        "latin": "Secale"
+      },
+      {
+        "name": "Oliwka",
+        "latin": "Olea"
+      },
+      {
+        "name": "Ambrozja",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "20": {
+    "contamination_date_1": "Hoje",
+    "poll_titles": [
+      {
+        "name": "Esporos fúngicos",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Gramíneas",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Família de ciprestes",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Família das urtigas",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Artemísia",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Amieiro",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Aveleira",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Vidoeiro",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platano",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Centeio",
+        "latin": "Secale"
+      },
+      {
+        "name": "Oliveira",
+        "latin": "Olea"
+      },
+      {
+        "name": "Tasna, ambrosia",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "21": {
+    "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  "22": {
+    "contamination_date_1": "Сегодня",
+    "poll_titles": [
+      {
+        "name": "споры грибов",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "злаки",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "семейство Кипарисовые",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "семейство Крапивные",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "полынь",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "ольха",
+        "latin": "Alnus"
+      },
+      {
+        "name": "орешник, лещина",
+        "latin": "Corylus"
+      },
+      {
+        "name": "береза",
+        "latin": "Betula"
+      },
+      {
+        "name": "платан",
+        "latin": "Platanus"
+      },
+      {
+        "name": "рожь",
+        "latin": "Secale"
+      },
+      {
+        "name": "олива",
+        "latin": "Olea"
+      },
+      {
+        "name": "амброзия",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "23": {
+    "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  "24": {
+    "contamination_date_1": "Dnes",
+    "poll_titles": [
+      {
+        "name": "Spóry húb",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Trávy",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Čeľaď cyprusovité",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Žihľava a pŕhľava",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Pŕhľava",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Jelša",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Lieska",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Breza",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platan",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Žito",
+        "latin": "Secale"
+      },
+      {
+        "name": "Olivovník",
+        "latin": "Olea"
+      },
+      {
+        "name": "Ragweed",
+        "latin": "ambrózia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "25": {
+    "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  "26": {
+    "contamination_date_1": "Hoy",
+    "poll_titles": [
+      {
+        "name": "Esporas de hongos",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Gramíneas",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Familia de cipreses",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Ortiga y parietaria",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Artemisia",
+        "latin": ""
+      },
+      {
+        "name": "Aliso",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Avellano",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Abedul",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platanero",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Centeno",
+        "latin": "Secale"
+      },
+      {
+        "name": "Olivo",
+        "latin": "Olea"
+      },
+      {
+        "name": "Ambrosías",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "27": {
+    "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  "28": {
+    "contamination_date_1": "Bugün",
+    "poll_titles": [
+      {
+        "name": "Mantar sporları",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Otlar",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Servigiller",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "ısırgangiller",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Pelin otu",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Kızıl ağaç",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Fındık ağacı",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Huş ağacı",
+        "latin": "Betula"
+      },
+      {
+        "name": "Çınar ağacı",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Çavdar",
+        "latin": "Secale"
+      },
+      {
+        "name": "Zeytin ağacı",
+        "latin": "Olea"
+      },
+      {
+        "name": "üzüm otu",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "29": {
+    "contamination_date_1": "Сьогодні",
+    "poll_titles": [
+      {
+        "name": "Спори грибів",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "злаки",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Родина Кипарисових",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Родина Кропивових",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "полин",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "вільха",
+        "latin": "Alnus"
+      },
+      {
+        "name": "ліщина",
+        "latin": "Corylus"
+      },
+      {
+        "name": "береза",
+        "latin": "Betula"
+      },
+      {
+        "name": "платан",
+        "latin": "Platanus"
+      },
+      {
+        "name": "жито",
+        "latin": "Secale"
+      },
+      {
+        "name": "олива",
+        "latin": "Olea"
+      },
+      {
+        "name": "амброзія",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "30": {
+    "contamination_date_1": "Ma",
+    "poll_titles": [
+      {
+        "name": "Gombaspórák",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Pázsitfûfélék",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Ciprusfélék",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Csalánfélék",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "üröm",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "éger",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Mogyoró",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Nyír",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platán",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Rozs",
+        "latin": "Secale"
+      },
+      {
+        "name": "Olajfa",
+        "latin": "Olea"
+      },
+      {
+        "name": "Parlagfû",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "31": {
+    "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  "32": {
+    "contamination_date_1": "Heute",
+    "poll_titles": [
+      {
+        "name": "Pilzsporen",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Gräser",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Zypressengewächse",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Nessel- und Glaskraut",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Beifuß",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Erle",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Hasel",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Birke",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platane",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Roggen",
+        "latin": "Secale"
+      },
+      {
+        "name": "Ölbaum",
+        "latin": "Olea"
+      },
+      {
+        "name": "Ragweed",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "33": {
+    "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  "34": {
+    "contamination_date_1": "Heute",
+    "poll_titles": [
+      {
+        "name": "Pilzsporen",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Gräser",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Zypressengewächse",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Nessel- und Glaskraut",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Beifuß",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Erle",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Hasel",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Birke",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platane",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Roggen",
+        "latin": "Secale"
+      },
+      {
+        "name": "Ölbaum",
+        "latin": "Olea"
+      },
+      {
+        "name": "Ragweed",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "35": {
+    "contamination_date_1": "Heute",
+    "poll_titles": [
+      {
+        "name": "Pilzsporen",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Gräser",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Zypressengewächse",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Nessel- und Glaskraut",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Beifuß",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Erle",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Hasel",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Birke",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platane",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Roggen",
+        "latin": "Secale"
+      },
+      {
+        "name": "Ölbaum",
+        "latin": "Olea"
+      },
+      {
+        "name": "Ragweed",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "36": {
+    "contamination_date_1": "Heute",
+    "poll_titles": [
+      {
+        "name": "Pilzsporen",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Gräser",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Zypressengewächse",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Nessel- und Glaskraut",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Beifuß",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Erle",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Hasel",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Birke",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platane",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Roggen",
+        "latin": "Secale"
+      },
+      {
+        "name": "Ölbaum",
+        "latin": "Olea"
+      },
+      {
+        "name": "Ragweed",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "37": {
+    "contamination_date_1": "Heute",
+    "poll_titles": [
+      {
+        "name": "Pilzsporen",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Gräser",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Zypressengewächse",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Nessel- und Glaskraut",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Beifuß",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Erle",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Hasel",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Birke",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platane",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Roggen",
+        "latin": "Secale"
+      },
+      {
+        "name": "Ölbaum",
+        "latin": "Olea"
+      },
+      {
+        "name": "Ragweed",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "38": {
+    "contamination_date_1": "Heute",
+    "poll_titles": [
+      {
+        "name": "Pilzsporen",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Gräser",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Zypressengewächse",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Nessel- und Glaskraut",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Beifuß",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Erle",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Hasel",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Birke",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platane",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Roggen",
+        "latin": "Secale"
+      },
+      {
+        "name": "Ölbaum",
+        "latin": "Olea"
+      },
+      {
+        "name": "Ragweed",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "39": {
+    "contamination_date_1": "Heute",
+    "poll_titles": [
+      {
+        "name": "Pilzsporen",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Gräser",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Zypressengewächse",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Nessel- und Glaskraut",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Beifuß",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Erle",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Hasel",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Birke",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platane",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Roggen",
+        "latin": "Secale"
+      },
+      {
+        "name": "Ölbaum",
+        "latin": "Olea"
+      },
+      {
+        "name": "Ragweed",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "40": {
+    "contamination_date_1": "Heute",
+    "poll_titles": [
+      {
+        "name": "Pilzsporen",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Gräser",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Zypressengewächse",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Nessel- und Glaskraut",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Beifuß",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Erle",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Hasel",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Birke",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platane",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Roggen",
+        "latin": "Secale"
+      },
+      {
+        "name": "Ölbaum",
+        "latin": "Olea"
+      },
+      {
+        "name": "Ragweed",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "41": {
+    "contamination_date_1": "Heute",
+    "poll_titles": [
+      {
+        "name": "Pilzsporen",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Gräser",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Zypressengewächse",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Nessel- und Glaskraut",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Beifuß",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Erle",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Hasel",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Birke",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platane",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Roggen",
+        "latin": "Secale"
+      },
+      {
+        "name": "Ölbaum",
+        "latin": "Olea"
+      },
+      {
+        "name": "Ragweed",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "42": {
+    "contamination_date_1": "Heute",
+    "poll_titles": [
+      {
+        "name": "Pilzsporen",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Gräser",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Zypressengewächse",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Nessel- und Glaskraut",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Beifuß",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Erle",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Hasel",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Birke",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platane",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Roggen",
+        "latin": "Secale"
+      },
+      {
+        "name": "Ölbaum",
+        "latin": "Olea"
+      },
+      {
+        "name": "Ragweed",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "43": {
+    "contamination_date_1": "Heute",
+    "poll_titles": [
+      {
+        "name": "Pilzsporen",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Gräser",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Zypressengewächse",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Nessel- und Glaskraut",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Beifuß",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Erle",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Hasel",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Birke",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platane",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Roggen",
+        "latin": "Secale"
+      },
+      {
+        "name": "Ölbaum",
+        "latin": "Olea"
+      },
+      {
+        "name": "Ragweed",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "44": {
+    "contamination_date_1": "Heute",
+    "poll_titles": [
+      {
+        "name": "Pilzsporen",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Gräser",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Zypressengewächse",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Nessel- und Glaskraut",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Beifuß",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Erle",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Hasel",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Birke",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platane",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Roggen",
+        "latin": "Secale"
+      },
+      {
+        "name": "Ölbaum",
+        "latin": "Olea"
+      },
+      {
+        "name": "Ragweed",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "45": {
+    "contamination_date_1": "Heute",
+    "poll_titles": [
+      {
+        "name": "Pilzsporen",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Gräser",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Zypressengewächse",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Nessel- und Glaskraut",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Beifuß",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Erle",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Hasel",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Birke",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platane",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Roggen",
+        "latin": "Secale"
+      },
+      {
+        "name": "Ölbaum",
+        "latin": "Olea"
+      },
+      {
+        "name": "Ragweed",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "46": {
+    "contamination_date_1": "Heute",
+    "poll_titles": [
+      {
+        "name": "Pilzsporen",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Gräser",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Zypressengewächse",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Nessel- und Glaskraut",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Beifuß",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Erle",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Hasel",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Birke",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platane",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Roggen",
+        "latin": "Secale"
+      },
+      {
+        "name": "Ölbaum",
+        "latin": "Olea"
+      },
+      {
+        "name": "Ragweed",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "47": {
+    "contamination_date_1": "Heute",
+    "poll_titles": [
+      {
+        "name": "Pilzsporen",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Gräser",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Zypressengewächse",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Nessel- und Glaskraut",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Beifuß",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Erle",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Hasel",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Birke",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platane",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Roggen",
+        "latin": "Secale"
+      },
+      {
+        "name": "Ölbaum",
+        "latin": "Olea"
+      },
+      {
+        "name": "Ragweed",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "48": {
+    "contamination_date_1": "Heute",
+    "poll_titles": [
+      {
+        "name": "Pilzsporen",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Gräser",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Zypressengewächse",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Nessel- und Glaskraut",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Beifuß",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Erle",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Hasel",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Birke",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platane",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Roggen",
+        "latin": "Secale"
+      },
+      {
+        "name": "Ölbaum",
+        "latin": "Olea"
+      },
+      {
+        "name": "Ragweed",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "49": {
+    "contamination_date_1": "Heute",
+    "poll_titles": [
+      {
+        "name": "Pilzsporen",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Gräser",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Zypressengewächse",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Nessel- und Glaskraut",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Beifuß",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Erle",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Hasel",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Birke",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platane",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Roggen",
+        "latin": "Secale"
+      },
+      {
+        "name": "Ölbaum",
+        "latin": "Olea"
+      },
+      {
+        "name": "Ragweed",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "50": {
+    "contamination_date_1": "Heute",
+    "poll_titles": [
+      {
+        "name": "Pilzsporen",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Gräser",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Zypressengewächse",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Nessel- und Glaskraut",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Beifuß",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Erle",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Hasel",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Birke",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platane",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Roggen",
+        "latin": "Secale"
+      },
+      {
+        "name": "Ölbaum",
+        "latin": "Olea"
+      },
+      {
+        "name": "Ragweed",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  },
+  "51": {
+    "contamination_date_1": "Heute",
+    "poll_titles": [
+      {
+        "name": "Pilzsporen",
+        "latin": "Alternaria"
+      },
+      {
+        "name": "Gräser",
+        "latin": "Poaceae"
+      },
+      {
+        "name": "Zypressengewächse",
+        "latin": "Cupressaceae"
+      },
+      {
+        "name": "Nessel- und Glaskraut",
+        "latin": "Urticaceae"
+      },
+      {
+        "name": "Beifuß",
+        "latin": "Artemisia"
+      },
+      {
+        "name": "Erle",
+        "latin": "Alnus"
+      },
+      {
+        "name": "Hasel",
+        "latin": "Corylus"
+      },
+      {
+        "name": "Birke",
+        "latin": "Betula"
+      },
+      {
+        "name": "Platane",
+        "latin": "Platanus"
+      },
+      {
+        "name": "Roggen",
+        "latin": "Secale"
+      },
+      {
+        "name": "Ölbaum",
+        "latin": "Olea"
+      },
+      {
+        "name": "Ragweed",
+        "latin": "Ambrosia"
+      }
+    ],
+    "additional_forecast_keys": [
+      "air_quality",
+      "asthma_weather",
+      "dayrisk",
+      "nitrogen_dioxide",
+      "ozone",
+      "particulate_matter",
+      "sulphur_dioxide",
+      "temperature"
+    ]
+  }
+}
