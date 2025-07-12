@@ -11,7 +11,7 @@ We appreciate all kinds of contributions, including code, documentation, transla
 
 - **Fork** the repository and create your own feature branch from the latest `master`.
 - **Do _not_ create pull requests (PRs) directly against `master`.**
-  - Instead, open your PR against a development or feature branch (e.g., `development`, `dev`, or your own feature branch).
+  - Instead, open your PR against a development or feature branch (e.g., `dev`, or your own feature branch).
   - Pull requests targeting `master` will be closed.
 - **Describe your changes clearly** in your pull request. Include motivation and context where helpful.
 - **Follow the existing code style** and try to keep your changes focused (one thing per PR).
