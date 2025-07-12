@@ -7,7 +7,7 @@ import async_timeout
 
 from .const import (DEFAULT_ID, DEFAULT_L, DEFAULT_LANG, DEFAULT_LANG_ID,
                     DEFAULT_PASYFO, DEFAULT_PERSONAL_CONTAMINATION,
-                    DEFAULT_SENSITIVITY, DEFAULT_SESSIONID, DEFAULT_SHOW_POLLS,
+                    DEFAULT_SENSITIVITY, DEFAULT_SESSIONID, 
                     DEFAULT_TX_ACTION, DEFAULT_TYPE, POLLENAT_API_URL)
 
 _LOGGER = logging.getLogger(__name__)
@@ -20,7 +20,6 @@ async def async_get_pollenat_data(
     country_id,
     lang=DEFAULT_LANG,
     lang_id=DEFAULT_LANG_ID,
-    show_polls=DEFAULT_SHOW_POLLS,
     sessionid=DEFAULT_SESSIONID,
     personal_contamination=DEFAULT_PERSONAL_CONTAMINATION,
     sensitivity=DEFAULT_SENSITIVITY,
@@ -41,7 +40,6 @@ async def async_get_pollenat_data(
     :param country_id: Numeriskt country-id (t.ex. 26 för SE)
     :param lang: Språkkod, t.ex. "sv"
     :param lang_id: Språk-id, t.ex. "7" för svenska
-    :param show_polls: Kommaseparerad lista över pollen-id
     :param sessionid: Sessionid, vanligtvis tom
     :param personal_contamination: "true" eller "false"
     :param sensitivity: "0"
@@ -62,7 +60,6 @@ async def async_get_pollenat_data(
         "L": L,
         "tx_scapp_appapi[action]": tx_action,
         "locationType": "gps",
-        "show_polls": show_polls,
         "C": str(C if C is not None else country_id),
         "personal_contamination": personal_contamination,
         "sensitivity": sensitivity,
@@ -80,7 +77,6 @@ async def async_get_pollenat_data(
         lang_id=params["lang_id"],
         L=params["L"],
         tx_action=params["tx_scapp_appapi[action]"],
-        show_polls=params["show_polls"],
         country_id=params["C"],
         personal_contamination=params["personal_contamination"],
         sensitivity=params["sensitivity"],
