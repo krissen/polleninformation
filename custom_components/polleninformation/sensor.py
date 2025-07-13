@@ -348,6 +348,14 @@ class PolleninformationSensor(SensorEntity):
         return self._attr_unique_id
 
     @property
+    def suggested_object_id(self):
+        if self.sensor_type == "pollen":
+            return self._allergen_slug
+        elif self.sensor_type == "air":
+            return self._air_type
+        return None
+
+    @property
     def icon(self):
         return self._icon
 
