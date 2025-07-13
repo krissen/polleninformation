@@ -1,3 +1,4 @@
+""" custom_components/polleninformation/config_flow.py """
 """Config flow for polleninformation.at integration."""
 
 import json
@@ -11,7 +12,9 @@ from homeassistant.config_entries import SOURCE_USER
 
 from .api import async_get_pollenat_data
 from .const import DEFAULT_LANG, DEFAULT_LANG_ID, DOMAIN
-from .utils import extract_place_slug, slugify, split_location
+from .utils import (extract_place_slug, find_best_lang_key_for_locale,
+                    get_language_options, load_available_languages, slugify,
+                    split_location)
 
 _LOGGER = logging.getLogger(__name__)
 DEBUG = True
@@ -71,7 +74,6 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if ha_country and ha_country in country_options:
             default_country = ha_country
         else:
-            # Prova omvänd geokodning med lat/lon
             country_code = await async_get_country_code_from_latlon(
                 self.hass, default_lat, default_lon
             )
@@ -82,8 +84,22 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 default_country = next(iter(country_options))
 
+        # Hämta HA:s språk (locale/language)
+        ha_locale = getattr(self.hass.config, "language", None)
+        if not ha_locale and hasattr(self.hass, "locale"):
+            ha_locale = getattr(self.hass.locale, "language", None)
+        if not ha_locale:
+            ha_locale = "en"  # fallback till engelska
+
+        lang_options = get_language_options()
+        default_lang_key = find_best_lang_key_for_locale(ha_locale)
+        # Om default_lang_key inte finns, fallback till engelska ("1") eller första i listan
+        if default_lang_key not in lang_options:
+            default_lang_key = "1" if "1" in lang_options else next(iter(lang_options.keys()))
+
         if user_input is not None:
             country_code = user_input.get("country")
+            lang_key = user_input.get("language")
             try:
                 latitude = float(user_input.get("latitude"))
                 longitude = float(user_input.get("longitude"))
@@ -94,8 +110,10 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             if country_code not in country_options:
                 errors["country"] = "invalid_country"
-            elif not errors:
-                # Hitta rätt country_id
+            if lang_key not in lang_options:
+                errors["language"] = "invalid_language"
+
+            if not errors:
                 countries = await async_load_available_countries(self.hass)
                 countries_by_code = {c["code"]: c for c in countries}
                 country_obj = countries_by_code.get(country_code)
@@ -106,16 +124,20 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     errors["country"] = "invalid_country"
                     country_id = None
 
+                langs = load_available_languages()
+                selected_lang = next((l for l in langs if l["key"] == lang_key), None)
+                if not selected_lang:
+                    errors["language"] = "invalid_language"
+
                 if not errors:
-                    # Gör API-anrop för att få platsnamn (nya API:t tar nu C/country_id separat)
                     _LOGGER.debug(
                         "Kallar async_get_pollenat_data med: lat=%r, lon=%r, country=%r, country_id=%r, lang=%r, lang_id=%r",
                         latitude,
                         longitude,
                         country_code,
                         country_id,
-                        DEFAULT_LANG,
-                        DEFAULT_LANG_ID,
+                        selected_lang["lang_code"],
+                        lang_key,
                     )
 
                     pollen_data = await async_get_pollenat_data(
@@ -124,8 +146,8 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         longitude,
                         country_code,
                         country_id,
-                        DEFAULT_LANG,
-                        DEFAULT_LANG_ID,
+                        selected_lang["lang_code"],
+                        lang_key,
                     )
 
                     _LOGGER.debug("API-svar: %r", pollen_data)
@@ -135,13 +157,11 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     elif not pollen_data.get("contamination"):
                         _LOGGER.debug("Ingen 'contamination'-lista: %r", pollen_data)
 
-                    # Kontroll: Finns något att visa?
                     result = None
                     if pollen_data and pollen_data.get("result"):
                         result = pollen_data["result"]
                     if not result or not result.get("contamination"):
                         _LOGGER.debug("Ingen 'contamination'-lista på rätt nivå: %r", pollen_data)
-                        # error
                     else:
                         contamination = result.get("contamination")
                         if not contamination:
@@ -155,8 +175,8 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                                 "country_id": country_id,
                                 "latitude": latitude,
                                 "longitude": longitude,
-                                "lang": DEFAULT_LANG,
-                                "lang_id": DEFAULT_LANG_ID,
+                                "lang": selected_lang["lang_code"],
+                                "lang_id": lang_key,
                             }
                             existing_entries = self._async_current_entries()
                             already_exists = any(
@@ -180,11 +200,10 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         data_schema = vol.Schema(
             {
-                vol.Required("country", default=default_country): vol.In(
-                    country_options
-                ),
+                vol.Required("country", default=default_country): vol.In(country_options),
                 vol.Required("latitude", default=default_lat): float,
                 vol.Required("longitude", default=default_lon): float,
+                vol.Required("language", default=default_lang_key): vol.In(lang_options),
             }
         )
 
