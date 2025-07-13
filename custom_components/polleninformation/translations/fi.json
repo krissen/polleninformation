@@ -1,0 +1,28 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Lisää siitepölytiedot",
+        "description": "Valitse maa ja sijainti, joista haluat seurata siitepölyennustetta, sekä kieli, jolla sensorit näytetään.",
+        "data": {
+          "country": "Maa",
+          "latitude": "Leveysaste",
+          "longitude": "Pituusaste",
+          "language": "Kieli"
+        }
+      }
+    },
+    "error": {
+      "invalid_latitude": "Virheellinen leveysaste",
+      "invalid_longitude": "Virheellinen pituusaste",
+      "invalid_language": "Virheellinen kieli",
+      "invalid_country": "Virheellinen maa",
+      "suggested_country": "Valitulle maalle ja sijainnille ei löytynyt tietoja. Kokeile toista maata tai sijaintia.",
+      "no_sensors_for_country": "Valitulle maalle ja sijainnille ei löytynyt sensoreita."
+    },
+    "abort": {
+      "already_configured": "Tämä sijainti on jo määritetty."
+    }
+  }
+}
+

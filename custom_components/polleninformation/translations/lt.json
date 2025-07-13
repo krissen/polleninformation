@@ -1,0 +1,28 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Pridėti žiedadulkių informaciją",
+        "description": "Pasirinkite šalį ir vietą, kurioje norite stebėti žiedadulkių prognozę, ir kalbą, kuria bus konfigūruoti jūsų jutikliai.",
+        "data": {
+          "country": "Šalis",
+          "latitude": "Platuma",
+          "longitude": "Ilguma",
+          "language": "Kalba"
+        }
+      }
+    },
+    "error": {
+      "invalid_latitude": "Neteisinga platuma",
+      "invalid_longitude": "Neteisinga ilguma",
+      "invalid_language": "Neteisinga kalba",
+      "invalid_country": "Neteisinga šalis",
+      "suggested_country": "Šioje vietoje pasirinktoje šalyje duomenų nerasta. Pabandykite pakeisti šalį arba vietą.",
+      "no_sensors_for_country": "Šioje vietoje pasirinktoje šalyje jutiklių nerasta."
+    },
+    "abort": {
+      "already_configured": "Ši vieta jau sukonfigūruota."
+    }
+  }
+}
+

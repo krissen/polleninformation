@@ -1,0 +1,28 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Ajouter les informations sur le pollen",
+        "description": "Sélectionnez le pays et l’emplacement pour lesquels vous souhaitez surveiller la prévision du pollen ainsi que la langue dans laquelle vos capteurs seront configurés.",
+        "data": {
+          "country": "Pays",
+          "latitude": "Latitude",
+          "longitude": "Longitude",
+          "language": "Langue"
+        }
+      }
+    },
+    "error": {
+      "invalid_latitude": "Latitude invalide",
+      "invalid_longitude": "Longitude invalide",
+      "invalid_language": "Langue invalide",
+      "invalid_country": "Pays invalide",
+      "suggested_country": "Aucune donnée trouvée pour le pays sélectionné à cet emplacement. Essayez de changer de pays ou d’emplacement.",
+      "no_sensors_for_country": "Aucun capteur trouvé pour le pays sélectionné à cet emplacement."
+    },
+    "abort": {
+      "already_configured": "Cet emplacement est déjà configuré."
+    }
+  }
+}
+

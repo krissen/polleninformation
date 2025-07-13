@@ -1,0 +1,28 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Pridať informácie o peľoch",
+        "description": "Vyberte krajinu a miesto, pre ktoré chcete sledovať predpoveď peľov, a jazyk, v ktorom chcete mať svoje senzory nastavené.",
+        "data": {
+          "country": "Krajina",
+          "latitude": "Zemepisná šírka",
+          "longitude": "Zemepisná dĺžka",
+          "language": "Jazyk"
+        }
+      }
+    },
+    "error": {
+      "invalid_latitude": "Neplatná zemepisná šírka",
+      "invalid_longitude": "Neplatná zemepisná dĺžka",
+      "invalid_language": "Neplatný jazyk",
+      "invalid_country": "Neplatná krajina",
+      "suggested_country": "Pre vybranú krajinu na tomto mieste neboli nájdené žiadne údaje. Skúste zmeniť krajinu alebo miesto.",
+      "no_sensors_for_country": "Pre vybranú krajinu na tomto mieste neboli nájdené žiadne senzory."
+    },
+    "abort": {
+      "already_configured": "Toto miesto je už nakonfigurované."
+    }
+  }
+}
+

@@ -1,0 +1,28 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Polen Bilgisi Ekle",
+        "description": "Polen tahminini izlemek istediğiniz ülkeyi ve konumu ile sensörlerinizin hangi dilde yapılandırılacağını seçin.",
+        "data": {
+          "country": "Ülke",
+          "latitude": "Enlem",
+          "longitude": "Boylam",
+          "language": "Dil"
+        }
+      }
+    },
+    "error": {
+      "invalid_latitude": "Geçersiz enlem",
+      "invalid_longitude": "Geçersiz boylam",
+      "invalid_language": "Geçersiz dil",
+      "invalid_country": "Geçersiz ülke",
+      "suggested_country": "Seçilen ülke ve konum için veri bulunamadı. Lütfen ülkeyi veya konumu değiştirin.",
+      "no_sensors_for_country": "Seçilen ülke ve konum için sensör bulunamadı."
+    },
+    "abort": {
+      "already_configured": "Bu konum zaten yapılandırılmış."
+    }
+  }
+}
+

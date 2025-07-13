@@ -1,0 +1,28 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Aggiungi informazioni sul polline",
+        "description": "Seleziona il paese e la posizione per cui vuoi monitorare le previsioni dei pollini e la lingua in cui desideri che i sensori siano configurati.",
+        "data": {
+          "country": "Paese",
+          "latitude": "Latitudine",
+          "longitude": "Longitudine",
+          "language": "Lingua"
+        }
+      }
+    },
+    "error": {
+      "invalid_latitude": "Latitudine non valida",
+      "invalid_longitude": "Longitudine non valida",
+      "invalid_language": "Lingua non valida",
+      "invalid_country": "Paese non valido",
+      "suggested_country": "Nessun dato trovato per il paese selezionato in questa posizione. Prova a cambiare paese o posizione.",
+      "no_sensors_for_country": "Nessun sensore trovato per il paese selezionato in questa posizione."
+    },
+    "abort": {
+      "already_configured": "Questa posizione è già configurata."
+    }
+  }
+}
+

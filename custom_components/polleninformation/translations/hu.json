@@ -1,0 +1,28 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Polleninformáció hozzáadása",
+        "description": "Válassza ki az országot és a helyet, ahol a pollenek előrejelzését szeretné figyelni, valamint a nyelvet, amelyen a szenzorokat be szeretné állítani.",
+        "data": {
+          "country": "Ország",
+          "latitude": "Szélesség",
+          "longitude": "Hosszúság",
+          "language": "Nyelv"
+        }
+      }
+    },
+    "error": {
+      "invalid_latitude": "Érvénytelen szélesség",
+      "invalid_longitude": "Érvénytelen hosszúság",
+      "invalid_language": "Érvénytelen nyelv",
+      "invalid_country": "Érvénytelen ország",
+      "suggested_country": "A kiválasztott országra és helyre nem találhatók adatok. Próbálja meg módosítani az országot vagy a helyet.",
+      "no_sensors_for_country": "A kiválasztott országra és helyre nem találhatók szenzorok."
+    },
+    "abort": {
+      "already_configured": "Ez a hely már konfigurálva van."
+    }
+  }
+}
+

@@ -1,0 +1,28 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Dodaj informacje o pyłkach",
+        "description": "Wybierz kraj i lokalizację, dla których chcesz monitorować prognozę pyłków oraz język, w jakim mają być skonfigurowane Twoje sensory.",
+        "data": {
+          "country": "Kraj",
+          "latitude": "Szerokość geograficzna",
+          "longitude": "Długość geograficzna",
+          "language": "Język"
+        }
+      }
+    },
+    "error": {
+      "invalid_latitude": "Nieprawidłowa szerokość geograficzna",
+      "invalid_longitude": "Nieprawidłowa długość geograficzna",
+      "invalid_language": "Nieprawidłowy język",
+      "invalid_country": "Nieprawidłowy kraj",
+      "suggested_country": "Nie znaleziono danych dla wybranego kraju w tej lokalizacji. Spróbuj zmienić kraj lub lokalizację.",
+      "no_sensors_for_country": "Nie znaleziono sensorów dla wybranego kraju w tej lokalizacji."
+    },
+    "abort": {
+      "already_configured": "Ta lokalizacja jest już skonfigurowana."
+    }
+  }
+}
+
