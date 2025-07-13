@@ -9,7 +9,7 @@ from homeassistant.helpers.event import async_track_time_interval
 
 from .api import async_get_pollenat_data
 from .const import DEFAULT_LANG, DEFAULT_LANG_ID, DOMAIN
-from .const_levels import LEVELS  # LEVELS[L] = ["none", "low", ...]
+from .const_levels import LEVELS
 from .utils import (async_get_language_block, extract_place_slug,
                     get_allergen_info_by_latin, slugify, split_location)
 
@@ -49,8 +49,8 @@ AIR_SENSOR_ICON_MAP = {
     "temperature": "mdi:thermometer",
 }
 
+
 def pollen_forecast_for_allergen(result, allergen_name, levels):
-    # Lägg till defensiv fallback för levels
     if not levels or not isinstance(levels, list):
         levels = ["none", "low", "moderate", "high", "very high"]
     out = []
@@ -63,7 +63,8 @@ def pollen_forecast_for_allergen(result, allergen_name, levels):
     ]
     for idx, (field, date_label) in enumerate(days):
         for item in contamination:
-            if item.get("poll_title", "").startswith(allergen_name):
+            # Jämför mot det lokaliserade namnet (poll_title) utan parentes
+            if item.get("poll_title", "").split("(", 1)[0].strip() == allergen_name:
                 val = item.get(field, 0)
                 level_name = levels[val] if isinstance(val, int) and val < len(levels) else str(val)
                 out.append(
@@ -76,6 +77,7 @@ def pollen_forecast_for_allergen(result, allergen_name, levels):
                 break
     return out
 
+
 def air_forecast_for_type(result, air_type):
     out = []
     additional = result.get("additionalForecastData", [])
@@ -86,6 +88,7 @@ def air_forecast_for_type(result, air_type):
             value = day[air_type]
             out.append({"time": day_iso, "level": value, "level_name": str(value)})
     return out
+
 
 def _iso_for_label(label):
     from datetime import date
@@ -101,6 +104,7 @@ def _iso_for_label(label):
         except Exception:
             return ""
     return d.strftime("%Y-%m-%dT00:00:00")
+
 
 async def async_setup_entry(hass, entry, async_add_entities):
     data = entry.data
@@ -136,33 +140,48 @@ async def async_setup_entry(hass, entry, async_add_entities):
     location_zip, location_city = split_location(location_title)
     location_slug = extract_place_slug(location_title)
 
-    # Hämta språkinställning från konfigurationen
-    levels_current = LEVELS.get(lang_id, LEVELS.get("1"))
+    levels_current = LEVELS.get(int(lang_id), LEVELS.get("1"))
+
+    if not levels_current or not isinstance(levels_current, list):
+        levels_current = LEVELS.get("1", ["none", "low", "moderate", "high", "very high"])
     levels_en = LEVELS.get("1", ["none", "low", "moderate", "high", "very high"])
     language_block_current = await async_get_language_block(hass, lang_id)
     language_block_en = await async_get_language_block(hass, "1")
 
     entities = []
     for item in result.get("contamination", []):
-        poll_title = item.get("poll_title", "<unknown>")
+        poll_title_full = item.get("poll_title", "<unknown>")
+        poll_title = poll_title_full.split("(", 1)[0].strip()
+
         latin = None
         for allergen in language_block_current.get("poll_titles", []):
             if allergen.get("name") == poll_title:
                 latin = allergen.get("latin")
                 break
-        allergen_en = get_allergen_info_by_latin(latin, language_block_en) if latin else None
-        name_en = allergen_en["name"] if allergen_en else poll_title
-        slug_en = slugify(name_en)
-        name_la = latin or (allergen_en.get("latin") if allergen_en else "")
+
+        allergen_en_obj = get_allergen_info_by_latin(latin, language_block_en) if latin else None
+        allergen_en = allergen_en_obj["name"] if allergen_en_obj else None
+        allergen_la = latin if latin else (allergen_en_obj["latin"] if allergen_en_obj and "latin" in allergen_en_obj else "")
+
+        slug_en = slugify(allergen_en) if allergen_en else slugify(poll_title)
+
+        _LOGGER.debug(
+            f"DEBUG pollen-sensor: poll_title_full='{poll_title_full}', "
+            f"poll_title(localized)='{poll_title}', "
+            f"latin='{latin}', "
+            f"allergen_en='{allergen_en}', "
+            f"allergen_la='{allergen_la}', "
+            f"slug_en='{slug_en}'"
+        )
 
         entities.append(
             PolleninformationSensor(
                 coordinator=coordinator,
                 sensor_type="pollen",
                 allergen_name=poll_title,
-                allergen_en=name_en,
+                allergen_en=allergen_en if allergen_en else poll_title,
                 allergen_slug=slug_en,
-                allergen_latin=name_la,
+                allergen_latin=allergen_la,
                 levels_current=levels_current,
                 levels_en=levels_en,
                 location_slug=location_slug,
@@ -196,6 +215,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
             await entity.async_update_ha_state(force_refresh=True)
 
     async_track_time_interval(hass, scheduled_refresh, SCAN_INTERVAL)
+
 
 class PollenDataCoordinator:
     def __init__(self, hass, lat, lon, country, country_id, lang, lang_id):
@@ -235,9 +255,7 @@ class PollenDataCoordinator:
             if DEBUG:
                 _LOGGER.debug("Polleninformation: API response data: %s", self.data)
             result = self.data.get("result", {}) if self.data else {}
-            self.full_location = (
-                result.get("locationtitle", None) if result else None
-            )
+            self.full_location = result.get("locationtitle", None) if result else None
             self.location_slug = (
                 extract_place_slug(self.full_location) if self.full_location else None
             )
@@ -251,6 +269,7 @@ class PollenDataCoordinator:
             _LOGGER.error("Failed to fetch pollen data: %s", e)
             self.data = None
             self.location_slug = None
+
 
 class PolleninformationSensor(SensorEntity):
     """Generisk sensor för både pollen och luft (enligt DRY, KISS, best practice)."""
@@ -286,12 +305,19 @@ class PolleninformationSensor(SensorEntity):
             self._allergen = allergen_name
             self._name_current = allergen_name
             self._name_en = allergen_en
-            self._name_la = allergen_latin
+            self._name_la = allergen_latin if allergen_latin else ""
             self._allergen_slug = allergen_slug
-            self._attr_name = allergen_name
+            self._attr_name = allergen_name  # Visningsnamn ska vara svensk!
             self._attr_unique_id = (
                 f"polleninformation_{location_slug}_{self._allergen_slug}"
             )
+
+            _LOGGER.debug(
+                f"DEBUG pollen-entity: _attr_name='{self._attr_name}', "
+                f"_allergen_slug='{self._allergen_slug}', "
+                f"_attr_unique_id='{self._attr_unique_id}'"
+            )
+
             self._attr_device_info = {
                 "identifiers": {(DOMAIN, f"{location_slug}")},
                 "name": f"Polleninformation ({location_title})",
@@ -372,9 +398,9 @@ class PolleninformationSensor(SensorEntity):
                     ),
                     "update_success": self.coordinator.data is not None,
                     "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "name_current": self._name_current,
-                    "name_en": self._name_en,
-                    "name_la": self._name_la,
+                    "friendly_name": self._name_current,
+                    "name_en": self._name_en if self._name_en else self._name_current,
+                    "name_la": self._name_la if self._name_la else "",
                     "allergen_slug": self._allergen_slug,
                     "location_title": self._location_title,
                     "location_zip": self._location_zip,
@@ -406,7 +432,7 @@ class PolleninformationSensor(SensorEntity):
             if DEBUG:
                 _LOGGER.debug(
                     "Polleninformation: Ingen data för %s",
-                    getattr(self, "_name_en", self._air_type),
+                    getattr(self, "_name_current", self._air_type),
                 )
             return
 
@@ -414,7 +440,8 @@ class PolleninformationSensor(SensorEntity):
             contamination = result.get("contamination", [])
             found = None
             for item in contamination:
-                if item.get("poll_title") == self._name_current:
+                # Jämför mot lokaliserat namn utan parentes
+                if item.get("poll_title", "").split("(", 1)[0].strip() == self._name_current:
                     found = item
                     break
             if not found:
@@ -430,7 +457,7 @@ class PolleninformationSensor(SensorEntity):
                 level_text_en = self._levels_en[raw_val]
             except (IndexError, TypeError):
                 level_text_en = "unavailable"
-            self._state = level_text_en
+            self._state = level_text_current  # Statusen = lokaliserad nivå!
             self._attr_extra_state_attributes = {
                 "level_current": level_text_current,
                 "level_en": level_text_en,
@@ -447,7 +474,7 @@ class PolleninformationSensor(SensorEntity):
         if DEBUG:
             _LOGGER.debug(
                 "Polleninformation: Sensor '%s' uppdaterad – state: %s, attribs: %s",
-                getattr(self, "_name_en", self._air_type),
+                getattr(self, "_name_current", self._air_type),
                 self._state,
                 self._attr_extra_state_attributes,
             )
