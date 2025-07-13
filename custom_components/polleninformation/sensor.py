@@ -9,35 +9,18 @@ from homeassistant.helpers.event import async_track_time_interval
 
 from .api import async_get_pollenat_data
 from .const import DEFAULT_LANG, DEFAULT_LANG_ID, DOMAIN
-from .utils import extract_place_slug, slugify, split_location
+from .const_levels import LEVELS  # LEVELS[L] = ["none", "low", ...]
+from .utils import (
+    extract_place_slug,
+    slugify,
+    split_location,
+    get_language_block,
+    get_allergen_info_by_latin,
+)
 
 DEBUG = True
 _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(hours=8)
-
-LEVELS_DE = ["keine Belastung", "gering", "mäßig", "hoch", "sehr hoch"]
-LEVELS_EN = ["none", "low", "moderate", "high", "very high"]
-
-GERMAN_TO_ENGLISH = {
-    "Ambrosia": "Ragweed",
-    "Beifuß": "Mugwort",
-    "Birke": "Birch",
-    "Buche": "Beech",
-    "Eiche": "Oak",
-    "Erle": "Alder",
-    "Esche": "Ash",
-    "Gräser": "Grass",
-    "Hasel": "Hazel",
-    "Linde": "Lime",
-    "Nessel- und Glaskraut": "Nettle and pellitory",
-    "Pilzsporen": "Mold spores",
-    "Platane": "Plane",
-    "Roggen": "Rye",
-    "Ulme": "Elm",
-    "Weide": "Willow",
-    "Zypressengewächse": "Cypress",
-    "Ölbaum": "Olive",
-}
 
 ALLERGEN_ICON_MAP = {
     "alder": "mdi:tree-outline",
@@ -71,30 +54,29 @@ AIR_SENSOR_ICON_MAP = {
     "temperature": "mdi:thermometer",
 }
 
-
-def pollen_forecast_for_allergen(result, allergen_german):
+def pollen_forecast_for_allergen(result, allergen_name, levels):
     out = []
     contamination = result.get("contamination", [])
     days = [
-        ("contamination_1", "Heute"),
+        ("contamination_1", result.get("contamination_date_1")),
         ("contamination_2", result.get("contamination_date_2")),
         ("contamination_3", result.get("contamination_date_3")),
         ("contamination_4", result.get("contamination_date_4")),
     ]
-    for field, date_label in days:
+    for idx, (field, date_label) in enumerate(days):
         for item in contamination:
-            if item.get("poll_title", "").startswith(allergen_german):
+            if item.get("poll_title", "").startswith(allergen_name):
                 val = item.get(field, 0)
+                level_name = levels[val] if val < len(levels) else str(val)
                 out.append(
                     {
                         "time": _iso_for_label(date_label),
-                        "level_name": LEVELS_EN[val],
+                        "level_name": level_name,
                         "level": val,
                     }
                 )
                 break
     return out
-
 
 def air_forecast_for_type(result, air_type):
     out = []
@@ -107,22 +89,20 @@ def air_forecast_for_type(result, air_type):
             out.append({"time": day_iso, "level": value, "level_name": str(value)})
     return out
 
-
 def _iso_for_label(label):
     from datetime import date
 
     now = datetime.now()
-    if label == "Heute":
+    if not label:
+        return ""
+    if label.lower() in ["heute", "idag", "today"]:
         d = date.today()
-    elif label:
+    else:
         try:
             d = datetime.strptime(label, "%d.%m").replace(year=now.year)
         except Exception:
             return ""
-    else:
-        return ""
     return d.strftime("%Y-%m-%dT00:00:00")
-
 
 async def async_setup_entry(hass, entry, async_add_entities):
     data = entry.data
@@ -134,7 +114,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         country = data["country"]
         country_id = data["country_id"]
         lang = data.get("lang", DEFAULT_LANG)
-        lang_id = data.get("lang_id", DEFAULT_LANG_ID)
+        lang_id = str(data.get("lang_id", DEFAULT_LANG_ID))
     except KeyError as e:
         _LOGGER.error("Polleninformation: Saknar config-fält: %s. Data: %s", e, data)
         return
@@ -158,14 +138,37 @@ async def async_setup_entry(hass, entry, async_add_entities):
     location_zip, location_city = split_location(location_title)
     location_slug = extract_place_slug(location_title)
 
+    # Hämta språkinställning från konfigurationen
+    levels_current = LEVELS.get(lang_id, LEVELS.get("1"))
+    levels_en = LEVELS.get("1", ["none", "low", "moderate", "high", "very high"])
+    language_block_current = get_language_block(lang_id)
+    language_block_en = get_language_block("1")
+
     entities = []
     for item in result.get("contamination", []):
-        allergen = item.get("poll_title", "<unknown>")
+        poll_title = item.get("poll_title", "<unknown>")
+        latin = None
+        # Hitta latin-namn från aktuellt språkblock
+        for allergen in language_block_current.get("poll_titles", []):
+            if allergen.get("name") == poll_title:
+                latin = allergen.get("latin")
+                break
+        # Hämta engelsk allergen, fallback till originalnamn
+        allergen_en = get_allergen_info_by_latin(latin, language_block_en) if latin else None
+        name_en = allergen_en["name"] if allergen_en else poll_title
+        slug_en = slugify(name_en)
+        name_la = latin or (allergen_en.get("latin") if allergen_en else "")
+
         entities.append(
             PolleninformationSensor(
                 coordinator=coordinator,
                 sensor_type="pollen",
-                allergen=allergen,
+                allergen_name=poll_title,
+                allergen_en=name_en,
+                allergen_slug=slug_en,
+                allergen_latin=name_la,
+                levels_current=levels_current,
+                levels_en=levels_en,
                 location_slug=location_slug,
                 location_title=location_city,
                 location_zip=location_zip,
@@ -197,7 +200,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
             await entity.async_update_ha_state(force_refresh=True)
 
     async_track_time_interval(hass, scheduled_refresh, SCAN_INTERVAL)
-
 
 class PollenDataCoordinator:
     def __init__(self, hass, lat, lon, country, country_id, lang, lang_id):
@@ -235,7 +237,6 @@ class PollenDataCoordinator:
             )
             if DEBUG:
                 _LOGGER.debug("Polleninformation: API response data: %s", self.data)
-            # locationtitle ligger fortfarande på result-nivå
             result = self.data.get("result", {}) if self.data else {}
             self.full_location = (
                 result.get("locationtitle", None) if result else None
@@ -254,7 +255,6 @@ class PollenDataCoordinator:
             self.data = None
             self.location_slug = None
 
-
 class PolleninformationSensor(SensorEntity):
     """Generisk sensor för både pollen och luft (enligt DRY, KISS, best practice)."""
 
@@ -264,7 +264,12 @@ class PolleninformationSensor(SensorEntity):
         self,
         coordinator,
         sensor_type,
-        allergen=None,
+        allergen_name=None,
+        allergen_en=None,
+        allergen_slug=None,
+        allergen_latin=None,
+        levels_current=None,
+        levels_en=None,
         air_type=None,
         value=None,
         location_slug=None,
@@ -272,7 +277,7 @@ class PolleninformationSensor(SensorEntity):
         location_zip=None,
     ):
         self.coordinator = coordinator
-        self.sensor_type = sensor_type  # "pollen" eller "air"
+        self.sensor_type = sensor_type
         self._location_slug = location_slug
         self._location_title = location_title
         self._location_zip = location_zip
@@ -281,24 +286,13 @@ class PolleninformationSensor(SensorEntity):
         self._value = None
 
         if sensor_type == "pollen":
-            raw_title = allergen
-            self._allergen = allergen
-            if "(" in raw_title and ")" in raw_title:
-                german_part = raw_title.split("(", 1)[0].strip()
-                latin_part = raw_title.split("(", 1)[1].split(")", 1)[0].strip()
-            else:
-                german_part = raw_title.strip()
-                latin_part = ""
-            english_part = GERMAN_TO_ENGLISH.get(german_part, latin_part or german_part)
-            self._name_de = german_part
-            self._name_en = english_part
-            self._name_la = latin_part
-            self._allergen_slug = slugify(english_part)
-            if getattr(coordinator, "lang", "de") == "de":
-                self._attr_name = german_part
-            else:
-                self._attr_name = english_part
-
+            # Namn på aktuellt språk
+            self._allergen = allergen_name
+            self._name_current = allergen_name
+            self._name_en = allergen_en
+            self._name_la = allergen_latin
+            self._allergen_slug = allergen_slug
+            self._attr_name = allergen_name
             self._attr_unique_id = (
                 f"polleninformation_{location_slug}_{self._allergen_slug}"
             )
@@ -310,6 +304,8 @@ class PolleninformationSensor(SensorEntity):
             self._icon = ALLERGEN_ICON_MAP.get(
                 self._allergen_slug, ALLERGEN_ICON_MAP["default"]
             )
+            self._levels_current = levels_current
+            self._levels_en = levels_en
         else:
             self._air_type = air_type
             self._value = value
@@ -362,7 +358,7 @@ class PolleninformationSensor(SensorEntity):
         result = data.get("result", {}) if data else {}
         attribs = self._attr_extra_state_attributes.copy()
         if self.sensor_type == "pollen":
-            forecast = pollen_forecast_for_allergen(result, self._name_de)
+            forecast = pollen_forecast_for_allergen(result, self._name_current, self._levels_current)
             today_raw = forecast[0] if forecast else None
             tomorrow_raw = forecast[1] if len(forecast) > 1 else None
             attribs.update(
@@ -380,13 +376,15 @@ class PolleninformationSensor(SensorEntity):
                     ),
                     "update_success": self.coordinator.data is not None,
                     "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "name_de": self._name_de,
+                    "name_current": self._name_current,
                     "name_en": self._name_en,
                     "name_la": self._name_la,
                     "allergen_slug": self._allergen_slug,
                     "location_title": self._location_title,
                     "location_zip": self._location_zip,
                     "location_slug": self._location_slug,
+                    "levels_current": self._levels_current,
+                    "levels_en": self._levels_en,
                     "attribution": "Austrian Pollen Information Service",
                 }
             )
@@ -420,7 +418,7 @@ class PolleninformationSensor(SensorEntity):
             contamination = result.get("contamination", [])
             found = None
             for item in contamination:
-                if item.get("poll_title") == self._allergen:
+                if item.get("poll_title") == self._name_current:
                     found = item
                     break
             if not found:
@@ -429,15 +427,16 @@ class PolleninformationSensor(SensorEntity):
                 return
             raw_val = found.get("contamination_1", 0)
             try:
-                level_text_de = LEVELS_DE[raw_val]
+                level_text_current = self._levels_current[raw_val]
             except (IndexError, TypeError):
-                level_text_de = "unavailable"
-            level_text_en = (
-                LEVELS_EN[raw_val] if 0 <= raw_val < len(LEVELS_EN) else "unavailable"
-            )
+                level_text_current = "unavailable"
+            try:
+                level_text_en = self._levels_en[raw_val]
+            except (IndexError, TypeError):
+                level_text_en = "unavailable"
             self._state = level_text_en
             self._attr_extra_state_attributes = {
-                "level_de": level_text_de,
+                "level_current": level_text_current,
                 "level_en": level_text_en,
                 "level_index": raw_val,
             }
@@ -456,4 +455,3 @@ class PolleninformationSensor(SensorEntity):
                 self._state,
                 self._attr_extra_state_attributes,
             )
-
