@@ -1,5 +1,6 @@
 {
   "0": {
+    "lang_code": "de", "lang": "German",
     "contamination_date_1": "Heute",
     "poll_titles": [
       {
@@ -63,6 +64,7 @@
     ]
   },
   "1": {
+    "lang_code": "en", "lang": "English",
     "contamination_date_1": "Today",
     "poll_titles": [
       {
@@ -138,6 +140,7 @@
     "error": "Expecting value: line 1 column 1 (char 0)"
   },
   "6": {
+    "lang_code": "fi", "lang": "Finnish",
     "contamination_date_1": "Tänään",
     "poll_titles": [
       {
@@ -201,6 +204,7 @@
     ]
   },
   "7": {
+    "lang_code": "sv", "lang": "Swedish",
     "contamination_date_1": "Idag",
     "poll_titles": [
       {
@@ -264,6 +268,7 @@
     ]
   },
   "8": {
+    "lang_code": "fr", "lang": "French",
     "contamination_date_1": "Aujourd'hui",
     "poll_titles": [
       {
@@ -333,6 +338,7 @@
     "error": "Expecting value: line 1 column 1 (char 0)"
   },
   "11": {
+    "lang_code": "it", "lang": "Italian",
     "contamination_date_1": "Oggi",
     "poll_titles": [
       {
@@ -399,6 +405,7 @@
     "error": "Expecting value: line 1 column 1 (char 0)"
   },
   "13": {
+    "lang_code": "lv", "lang": "Latvian",
     "contamination_date_1": "Šodien",
     "poll_titles": [
       {
@@ -462,6 +469,7 @@
     ]
   },
   "14": {
+    "lang_code": "lt", "lang": "Lithuanian",
     "contamination_date_1": "Šiandien",
     "poll_titles": [
       {
@@ -537,6 +545,7 @@
     "error": "Expecting value: line 1 column 1 (char 0)"
   },
   "19": {
+    "lang_code": "pl", "lang": "Polish",
     "contamination_date_1": "Dzisiaj",
     "poll_titles": [
       {
@@ -600,6 +609,7 @@
     ]
   },
   "20": {
+    "lang_code": "pt", "lang": "Portuguese",
     "contamination_date_1": "Hoje",
     "poll_titles": [
       {
@@ -666,6 +676,7 @@
     "error": "Expecting value: line 1 column 1 (char 0)"
   },
   "22": {
+    "lang_code": "ru", "lang": "Russian",
     "contamination_date_1": "Сегодня",
     "poll_titles": [
       {
@@ -732,6 +743,7 @@
     "error": "Expecting value: line 1 column 1 (char 0)"
   },
   "24": {
+    "lang_code": "sk", "lang": "Slovak",
     "contamination_date_1": "Dnes",
     "poll_titles": [
       {
@@ -798,6 +810,7 @@
     "error": "Expecting value: line 1 column 1 (char 0)"
   },
   "26": {
+    "lang_code": "es", "lang": "Spanish",
     "contamination_date_1": "Hoy",
     "poll_titles": [
       {
@@ -864,6 +877,7 @@
     "error": "Expecting value: line 1 column 1 (char 0)"
   },
   "28": {
+    "lang_code": "tr", "lang": "Turkish",
     "contamination_date_1": "Bugün",
     "poll_titles": [
       {
@@ -927,6 +941,7 @@
     ]
   },
   "29": {
+    "lang_code": "uk", "lang": "Ukrainian",
     "contamination_date_1": "Сьогодні",
     "poll_titles": [
       {
@@ -990,6 +1005,7 @@
     ]
   },
   "30": {
+    "lang_code": "hu", "lang": "Hungarian",
     "contamination_date_1": "Ma",
     "poll_titles": [
       {
