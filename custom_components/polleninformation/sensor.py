@@ -10,13 +10,8 @@ from homeassistant.helpers.event import async_track_time_interval
 from .api import async_get_pollenat_data
 from .const import DEFAULT_LANG, DEFAULT_LANG_ID, DOMAIN
 from .const_levels import LEVELS  # LEVELS[L] = ["none", "low", ...]
-from .utils import (
-    extract_place_slug,
-    slugify,
-    split_location,
-    get_language_block,
-    get_allergen_info_by_latin,
-)
+from .utils import (async_get_language_block, extract_place_slug,
+                    get_allergen_info_by_latin, slugify, split_location)
 
 DEBUG = True
 _LOGGER = logging.getLogger(__name__)
@@ -55,6 +50,9 @@ AIR_SENSOR_ICON_MAP = {
 }
 
 def pollen_forecast_for_allergen(result, allergen_name, levels):
+    # Lägg till defensiv fallback för levels
+    if not levels or not isinstance(levels, list):
+        levels = ["none", "low", "moderate", "high", "very high"]
     out = []
     contamination = result.get("contamination", [])
     days = [
@@ -67,7 +65,7 @@ def pollen_forecast_for_allergen(result, allergen_name, levels):
         for item in contamination:
             if item.get("poll_title", "").startswith(allergen_name):
                 val = item.get(field, 0)
-                level_name = levels[val] if val < len(levels) else str(val)
+                level_name = levels[val] if isinstance(val, int) and val < len(levels) else str(val)
                 out.append(
                     {
                         "time": _iso_for_label(date_label),
@@ -141,19 +139,17 @@ async def async_setup_entry(hass, entry, async_add_entities):
     # Hämta språkinställning från konfigurationen
     levels_current = LEVELS.get(lang_id, LEVELS.get("1"))
     levels_en = LEVELS.get("1", ["none", "low", "moderate", "high", "very high"])
-    language_block_current = get_language_block(lang_id)
-    language_block_en = get_language_block("1")
+    language_block_current = await async_get_language_block(hass, lang_id)
+    language_block_en = await async_get_language_block(hass, "1")
 
     entities = []
     for item in result.get("contamination", []):
         poll_title = item.get("poll_title", "<unknown>")
         latin = None
-        # Hitta latin-namn från aktuellt språkblock
         for allergen in language_block_current.get("poll_titles", []):
             if allergen.get("name") == poll_title:
                 latin = allergen.get("latin")
                 break
-        # Hämta engelsk allergen, fallback till originalnamn
         allergen_en = get_allergen_info_by_latin(latin, language_block_en) if latin else None
         name_en = allergen_en["name"] if allergen_en else poll_title
         slug_en = slugify(name_en)
@@ -234,6 +230,7 @@ class PollenDataCoordinator:
                 self.country_id,
                 self.lang,
                 self.lang_id,
+                L=self.lang_id,
             )
             if DEBUG:
                 _LOGGER.debug("Polleninformation: API response data: %s", self.data)
@@ -286,7 +283,6 @@ class PolleninformationSensor(SensorEntity):
         self._value = None
 
         if sensor_type == "pollen":
-            # Namn på aktuellt språk
             self._allergen = allergen_name
             self._name_current = allergen_name
             self._name_en = allergen_en

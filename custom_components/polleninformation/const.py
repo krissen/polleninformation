@@ -27,7 +27,7 @@ DEFAULT_LANG = "de"
 DEFAULT_LANG_ID = "0"
 
 # Parametrar som krävs enligt nya API:t
-DEFAULT_ID = "0"
+DEFAULT_ID = "536"
 DEFAULT_TYPE = "15976824"
 DEFAULT_L = "0"
 DEFAULT_TX_ACTION = "getFullContaminationData"

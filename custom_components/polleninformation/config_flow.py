@@ -12,9 +12,9 @@ from homeassistant.config_entries import SOURCE_USER
 
 from .api import async_get_pollenat_data
 from .const import DEFAULT_LANG, DEFAULT_LANG_ID, DOMAIN
-from .utils import (extract_place_slug, find_best_lang_key_for_locale,
-                    get_language_options, load_available_languages, slugify,
-                    split_location)
+from .utils import (async_find_best_lang_key_for_locale,
+                    async_get_language_options, async_load_available_languages,
+                    extract_place_slug, slugify, split_location)
 
 _LOGGER = logging.getLogger(__name__)
 DEBUG = True
@@ -23,14 +23,12 @@ AVAILABLE_COUNTRIES_FILE = os.path.join(
     os.path.dirname(__file__), "available_countries.json"
 )
 
+def _sync_load_available_countries():
+    with open(AVAILABLE_COUNTRIES_FILE, encoding="utf-8") as f:
+        return json.load(f)["countries"]
 
 async def async_load_available_countries(hass):
-    def _load_sync():
-        with open(AVAILABLE_COUNTRIES_FILE, encoding="utf-8") as f:
-            return json.load(f)["countries"]
-
-    return await hass.async_add_executor_job(_load_sync)
-
+    return await hass.async_add_executor_job(_sync_load_available_countries)
 
 async def async_get_country_code_from_latlon(hass, lat, lon):
     url = f"https://nominatim.openstreetmap.org/reverse"
@@ -49,13 +47,11 @@ async def async_get_country_code_from_latlon(hass, lat, lon):
                 return result.get("address", {}).get("country_code", "").upper()
     return None
 
-
 async def async_get_country_options(hass):
     countries = await async_load_available_countries(hass)
     return {
         c["code"]: c["name"] for c in sorted(countries, key=lambda c: c["name"].lower())
     }
-
 
 class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
@@ -67,7 +63,6 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         default_lat = round(self.hass.config.latitude, 5)
         default_lon = round(self.hass.config.longitude, 5)
 
-        # Försök hämta land från HA-konfig
         ha_country = getattr(self.hass.config, "country", None)
         default_country = None
 
@@ -84,16 +79,14 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 default_country = next(iter(country_options))
 
-        # Hämta HA:s språk (locale/language)
         ha_locale = getattr(self.hass.config, "language", None)
         if not ha_locale and hasattr(self.hass, "locale"):
             ha_locale = getattr(self.hass.locale, "language", None)
         if not ha_locale:
-            ha_locale = "en"  # fallback till engelska
+            ha_locale = "en"
 
-        lang_options = get_language_options()
-        default_lang_key = find_best_lang_key_for_locale(ha_locale)
-        # Om default_lang_key inte finns, fallback till engelska ("1") eller första i listan
+        lang_options = await async_get_language_options(self.hass)
+        default_lang_key = await async_find_best_lang_key_for_locale(self.hass, ha_locale)
         if default_lang_key not in lang_options:
             default_lang_key = "1" if "1" in lang_options else next(iter(lang_options.keys()))
 
@@ -124,7 +117,7 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     errors["country"] = "invalid_country"
                     country_id = None
 
-                langs = load_available_languages()
+                langs = await async_load_available_languages(self.hass)
                 selected_lang = next((l for l in langs if l["key"] == lang_key), None)
                 if not selected_lang:
                     errors["language"] = "invalid_language"

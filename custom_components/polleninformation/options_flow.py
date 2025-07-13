@@ -1,5 +1,4 @@
 """ custom_components/polleninformation/options_flow.py """
-
 """Options flow för polleninformation.at-integration."""
 
 import json
@@ -9,18 +8,14 @@ import voluptuous as vol
 from homeassistant import config_entries
 
 from .const import DEFAULT_LANG, DEFAULT_LANG_ID, DOMAIN
-from .utils import (
-    find_best_lang_key_for_locale,
-    get_language_options,
-    load_available_languages,
-)
+from .utils import (async_find_best_lang_key_for_locale,
+                    async_get_language_options, async_load_available_languages)
 
 AVAILABLE_COUNTRIES_FILE = os.path.join(
     os.path.dirname(__file__), "available_countries.json"
 )
 
-
-def load_available_countries():
+def _sync_load_available_countries():
     try:
         with open(AVAILABLE_COUNTRIES_FILE, encoding="utf-8") as f:
             data = json.load(f)
@@ -28,14 +23,19 @@ def load_available_countries():
     except Exception:
         return []
 
+async def async_load_available_countries(hass):
+    return await hass.async_add_executor_job(_sync_load_available_countries)
 
-def get_country_options():
-    countries = load_available_countries()
+def get_country_options_sync():
+    countries = _sync_load_available_countries()
     return {c["code"]: c["name"] for c in countries}
 
+async def async_get_country_options(hass):
+    countries = await async_load_available_countries(hass)
+    return {c["code"]: c["name"] for c in countries}
 
-def get_country_id(code):
-    countries = load_available_countries()
+def get_country_id_sync(code):
+    countries = _sync_load_available_countries()
     for c in countries:
         if c.get("code") == code:
             cid = c.get("country_id")
@@ -47,6 +47,18 @@ def get_country_id(code):
                 continue
     return 1  # fallback
 
+async def async_get_country_id(hass, code):
+    countries = await async_load_available_countries(hass)
+    for c in countries:
+        if c.get("code") == code:
+            cid = c.get("country_id")
+            if isinstance(cid, list) and cid:
+                cid = cid[0]
+            try:
+                return int(cid)
+            except Exception:
+                continue
+    return 1  # fallback
 
 class OptionsFlowHandler(config_entries.OptionsFlow):
     def __init__(self, config_entry):
@@ -54,8 +66,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_init(self, user_input=None):
         errors = {}
-        country_options = get_country_options()
-        lang_options = get_language_options()
+
+        hass = getattr(self.config_entry, "hass", None)
+        country_options = await async_get_country_options(hass)
+        lang_options = await async_get_language_options(hass)
         defaults = self.config_entry.options or self.config_entry.data or {}
 
         # Sätt default språk från Home Assistant locale, annars engelska
@@ -72,13 +86,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             ha_lang = getattr(self.config_entry.hass.locale, "language", None)
         if not ha_lang:
             ha_lang = "en"
-        default_lang_key = find_best_lang_key_for_locale(ha_lang)
+        default_lang_key = await async_find_best_lang_key_for_locale(hass, ha_lang)
         if default_lang_key not in lang_options:
             default_lang_key = (
                 "1" if "1" in lang_options else next(iter(lang_options.keys()))
             )
 
-        # Fyll defaultvärden från befintliga inställningar om de finns
         default_country = defaults.get(
             "country", next(iter(country_options.keys())) if country_options else None
         )
@@ -103,8 +116,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 errors["language"] = "invalid_language"
 
             if not errors:
-                country_id = get_country_id(country_code)
-                langs = load_available_languages()
+                country_id = await async_get_country_id(hass, country_code)
+                langs = await async_load_available_languages(hass)
                 selected_lang = next((l for l in langs if l["key"] == lang_key), None)
                 if not selected_lang:
                     errors["language"] = "invalid_language"
