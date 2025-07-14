@@ -1,5 +1,15 @@
 """ custom_components/polleninformation/sensor.py """
-"""Sensorer för polleninformation.at-integration."""
+"""Sensors for polleninformation.at integration (new API version).
+
+Supports:
+- Allergen sensors with localized and English names, latin name, object_id based on English, icon mapping, levels per language.
+- One sensor for allergy risk (daily), one for allergy risk (hourly), with scaled values and forecast attributes.
+- All attributes and device info as previously.
+- DRY/KISS principles.
+- All comments and docstrings in English.
+
+See official API documentation: https://www.polleninformation.at/en/data-interface
+"""
 
 import logging
 from datetime import datetime, timedelta
@@ -8,7 +18,7 @@ from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers.event import async_track_time_interval
 
 from .api import async_get_pollenat_data
-from .const import DEFAULT_LANG, DEFAULT_LANG_ID, DOMAIN
+from .const import DEFAULT_LANG, DOMAIN
 from .const_levels import LEVELS
 from .utils import (async_get_language_block, extract_place_slug,
                     get_allergen_info_by_latin, slugify, split_location)
@@ -17,6 +27,7 @@ DEBUG = True
 _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(hours=8)
 
+# Icon maps for allergens and air sensors
 ALLERGEN_ICON_MAP = {
     "alder": "mdi:tree-outline",
     "ash": "mdi:tree",
@@ -49,64 +60,42 @@ AIR_SENSOR_ICON_MAP = {
     "temperature": "mdi:thermometer",
 }
 
+def capitalize_first(s):
+    """Capitalize the first letter of the given string."""
+    if not s:
+        return s
+    return s[0].upper() + s[1:]
 
-def pollen_forecast_for_allergen(result, allergen_name, levels):
-    if not levels or not isinstance(levels, list):
-        levels = ["none", "low", "moderate", "high", "very high"]
+def pollen_forecast_for_allergen(contamination, allergen_name, levels):
+    """Return forecast for one allergen for 4 days."""
+    """Always compare allergen names in lower-case to avoid mismatch due to casing."""
     out = []
-    contamination = result.get("contamination", [])
-    days = [
-        ("contamination_1", result.get("contamination_date_1")),
-        ("contamination_2", result.get("contamination_date_2")),
-        ("contamination_3", result.get("contamination_date_3")),
-        ("contamination_4", result.get("contamination_date_4")),
-    ]
-    for idx, (field, date_label) in enumerate(days):
-        for item in contamination:
-            # Jämför mot det lokaliserade namnet (poll_title) utan parentes
-            if item.get("poll_title", "").split("(", 1)[0].strip() == allergen_name:
-                val = item.get(field, 0)
+    allergen_name_lower = allergen_name.lower()
+    for item in contamination:
+        poll_title = item.get("poll_title", "").split("(", 1)[0].strip().lower()
+        if poll_title == allergen_name_lower:
+            for day in range(1, 5):
+                val = item.get(f"contamination_{day}", 0)
                 level_name = levels[val] if isinstance(val, int) and val < len(levels) else str(val)
                 out.append(
                     {
-                        "time": _iso_for_label(date_label),
+                        "day": day,
                         "level_name": level_name,
                         "level": val,
                     }
                 )
-                break
+            break
     return out
 
-
-def air_forecast_for_type(result, air_type):
-    out = []
-    additional = result.get("additionalForecastData", [])
-    for day in additional:
-        date_label = day.get("date", "")
-        day_iso = _iso_for_label(date_label)
-        if air_type in day:
-            value = day[air_type]
-            out.append({"time": day_iso, "level": value, "level_name": str(value)})
-    return out
-
-
-def _iso_for_label(label):
-    from datetime import date
-
-    now = datetime.now()
-    if not label:
-        return ""
-    if label.lower() in ["heute", "idag", "today"]:
-        d = date.today()
-    else:
-        try:
-            d = datetime.strptime(label, "%d.%m").replace(year=now.year)
-        except Exception:
-            return ""
-    return d.strftime("%Y-%m-%dT00:00:00")
-
+def scale_allergy_risk(value):
+    """Scale allergy risk to 0-4 for uniform state."""
+    try:
+        return int(round(value / 2.5))
+    except Exception:
+        return None
 
 async def async_setup_entry(hass, entry, async_add_entities):
+    """Set up polleninformation sensors from a config entry."""
     data = entry.data
     if DEBUG:
         _LOGGER.debug("Polleninformation: async_setup_entry data: %s", data)
@@ -114,98 +103,98 @@ async def async_setup_entry(hass, entry, async_add_entities):
         lat = data["latitude"]
         lon = data["longitude"]
         country = data["country"]
-        country_id = data["country_id"]
         lang = data.get("lang", DEFAULT_LANG)
-        lang_id = str(data.get("lang_id", DEFAULT_LANG_ID))
+        apikey = data.get("apikey")
+        location_title = data.get("location", "Unknown location")
+        location_slug = slugify(location_title)
     except KeyError as e:
-        _LOGGER.error("Polleninformation: Saknar config-fält: %s. Data: %s", e, data)
+        _LOGGER.error("Missing config field: %s. Data: %s", e, data)
         return
 
     coordinator = PollenDataCoordinator(
-        hass,
-        lat=lat,
-        lon=lon,
+        hass=hass,
+        latitude=lat,
+        longitude=lon,
         country=country,
-        country_id=country_id,
         lang=lang,
-        lang_id=lang_id,
+        apikey=apikey,
     )
     await coordinator.async_refresh()
     if not coordinator.data:
         _LOGGER.error("No pollen data found during setup.")
         return
 
-    result = coordinator.data.get("result", {}) if coordinator.data else {}
-    location_title = coordinator.full_location or ""
-    location_zip, location_city = split_location(location_title)
-    location_slug = extract_place_slug(location_title)
+    contamination = coordinator.data.get("contamination", [])
 
-    levels_current = LEVELS.get(int(lang_id), LEVELS.get("1"))
-
-    if not levels_current or not isinstance(levels_current, list):
-        levels_current = LEVELS.get("1", ["none", "low", "moderate", "high", "very high"])
-    levels_en = LEVELS.get("1", ["none", "low", "moderate", "high", "very high"])
-    language_block_current = await async_get_language_block(hass, lang_id)
-    language_block_en = await async_get_language_block(hass, "1")
+    # Language/levels handling
+    language_block_current = await async_get_language_block(hass, lang)
+    language_block_en = await async_get_language_block(hass, "en")
+    levels_current = LEVELS.get(lang, LEVELS.get("en", ["none", "low", "moderate", "high", "very high"]))
+    levels_en = LEVELS.get("en", ["none", "low", "moderate", "high", "very high"])
 
     entities = []
-    for item in result.get("contamination", []):
+
+    # Allergen sensors (one per item in contamination)
+    for item in contamination:
         poll_title_full = item.get("poll_title", "<unknown>")
-        poll_title = poll_title_full.split("(", 1)[0].strip()
-
+        poll_title_local = capitalize_first(poll_title_full.split("(", 1)[0].strip())
         latin = None
-        for allergen in language_block_current.get("poll_titles", []):
-            if allergen.get("name") == poll_title:
-                latin = allergen.get("latin")
-                break
-
+        # Extract latin name from parenthesis if present
+        if "(" in poll_title_full and ")" in poll_title_full:
+            latin = poll_title_full.split("(", 1)[1].split(")", 1)[0].strip()
+        # Try to map via language block as previously
+        if not latin:
+            for allergen in language_block_current.get("poll_titles", []):
+                if allergen.get("name") == poll_title_local:
+                    latin = allergen.get("latin")
+                    break
         allergen_en_obj = get_allergen_info_by_latin(latin, language_block_en) if latin else None
-        allergen_en = allergen_en_obj["name"] if allergen_en_obj else None
-        allergen_la = latin if latin else (allergen_en_obj["latin"] if allergen_en_obj and "latin" in allergen_en_obj else "")
-
-        slug_en = slugify(allergen_en) if allergen_en else slugify(poll_title)
-
-        _LOGGER.debug(
-            f"DEBUG pollen-sensor: poll_title_full='{poll_title_full}', "
-            f"poll_title(localized)='{poll_title}', "
-            f"latin='{latin}', "
-            f"allergen_en='{allergen_en}', "
-            f"allergen_la='{allergen_la}', "
-            f"slug_en='{slug_en}'"
-        )
+        allergen_en = allergen_en_obj["name"] if allergen_en_obj else poll_title_local
+        allergen_la = latin if latin else ""
+        slug_en = slugify(allergen_en) if allergen_en else slugify(poll_title_local)
+        icon = ALLERGEN_ICON_MAP.get(slug_en, ALLERGEN_ICON_MAP["default"])
 
         entities.append(
             PolleninformationSensor(
                 coordinator=coordinator,
                 sensor_type="pollen",
-                allergen_name=poll_title,
-                allergen_en=allergen_en if allergen_en else poll_title,
+                allergen_name=poll_title_local,
+                allergen_en=allergen_en,
                 allergen_slug=slug_en,
                 allergen_latin=allergen_la,
                 levels_current=levels_current,
                 levels_en=levels_en,
                 location_slug=location_slug,
-                location_title=location_city,
-                location_zip=location_zip,
+                location_title=location_title,
+                icon=icon,
             )
         )
 
-    forecast = result.get("additionalForecastData", [])
-    if forecast:
-        today = forecast[0]
-        for key in AIR_SENSOR_ICON_MAP:
-            if key in today:
-                entities.append(
-                    PolleninformationSensor(
-                        coordinator=coordinator,
-                        sensor_type="air",
-                        air_type=key,
-                        value=today[key],
-                        location_slug=location_slug,
-                        location_title=location_city,
-                        location_zip=location_zip,
-                    )
-                )
+    # Allergy risk daily sensor (one sensor, state is day 1, forecast is days 2-4)
+    allergyrisk = coordinator.data.get("allergyrisk", {})
+    if allergyrisk:
+        entities.append(
+            AllergyRiskSensor(
+                coordinator=coordinator,
+                allergyrisk=allergyrisk,
+                levels_current=levels_current,
+                location_slug=location_slug,
+                location_title=location_title,
+            )
+        )
+
+    # Allergy risk hourly sensor (one sensor, state is hour 0 of day 1, forecast is hours/days 2-4)
+    allergyrisk_hourly = coordinator.data.get("allergyrisk_hourly", {})
+    if allergyrisk_hourly:
+        entities.append(
+            AllergyRiskHourlySensor(
+                coordinator=coordinator,
+                allergyrisk_hourly=allergyrisk_hourly,
+                levels_current=levels_current,
+                location_slug=location_slug,
+                location_title=location_title,
+            )
+        )
 
     async_add_entities(entities, update_before_add=True)
 
@@ -216,63 +205,36 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     async_track_time_interval(hass, scheduled_refresh, SCAN_INTERVAL)
 
-
 class PollenDataCoordinator:
-    def __init__(self, hass, lat, lon, country, country_id, lang, lang_id):
+    """Coordinator to fetch and cache polleninformation.at API data."""
+    def __init__(self, hass, latitude, longitude, country, lang, apikey):
         self.hass = hass
-        self.lat = lat
-        self.lon = lon
+        self.latitude = latitude
+        self.longitude = longitude
         self.country = country
-        self.country_id = country_id
         self.lang = lang
-        self.lang_id = lang_id
+        self.apikey = apikey
         self.data = None
-        self.location_slug = None
-        self.full_location = None
 
     async def async_refresh(self):
-        if DEBUG:
-            _LOGGER.debug(
-                "Polleninformation: Anropar API med: lat=%s lon=%s country=%s country_id=%s lang=%s lang_id=%s",
-                self.lat,
-                self.lon,
-                self.country,
-                self.country_id,
-                self.lang,
-                self.lang_id,
-            )
+        """Fetch latest pollen data from API."""
         try:
             self.data = await async_get_pollenat_data(
                 self.hass,
-                self.lat,
-                self.lon,
+                self.latitude,
+                self.longitude,
                 self.country,
-                self.country_id,
                 self.lang,
-                self.lang_id,
-                L=self.lang_id,
+                self.apikey,
             )
             if DEBUG:
-                _LOGGER.debug("Polleninformation: API response data: %s", self.data)
-            result = self.data.get("result", {}) if self.data else {}
-            self.full_location = result.get("locationtitle", None) if result else None
-            self.location_slug = (
-                extract_place_slug(self.full_location) if self.full_location else None
-            )
-            if DEBUG:
-                _LOGGER.debug(
-                    "Polleninformation: full_location: %s, location_slug: %s",
-                    self.full_location,
-                    self.location_slug,
-                )
+                _LOGGER.debug("API response data: %s", self.data)
         except Exception as e:
             _LOGGER.error("Failed to fetch pollen data: %s", e)
             self.data = None
-            self.location_slug = None
-
 
 class PolleninformationSensor(SensorEntity):
-    """Generisk sensor för både pollen och luft (enligt DRY, KISS, best practice)."""
+    """Generic sensor for pollen allergen."""
 
     _attr_has_entity_name = True
 
@@ -280,68 +242,34 @@ class PolleninformationSensor(SensorEntity):
         self,
         coordinator,
         sensor_type,
-        allergen_name=None,
-        allergen_en=None,
-        allergen_slug=None,
-        allergen_latin=None,
-        levels_current=None,
-        levels_en=None,
-        air_type=None,
-        value=None,
-        location_slug=None,
-        location_title=None,
-        location_zip=None,
+        allergen_name,
+        allergen_en,
+        allergen_slug,
+        allergen_latin,
+        levels_current,
+        levels_en,
+        location_slug,
+        location_title,
+        icon,
     ):
         self.coordinator = coordinator
         self.sensor_type = sensor_type
+        self._allergen_name = allergen_name
+        self._allergen_en = allergen_en
+        self._allergen_slug = allergen_slug
+        self._allergen_latin = allergen_latin
+        self._levels_current = levels_current
+        self._levels_en = levels_en
         self._location_slug = location_slug
         self._location_title = location_title
-        self._location_zip = location_zip
-        self._allergen = None
-        self._air_type = None
-        self._value = None
-
-        if sensor_type == "pollen":
-            self._allergen = allergen_name
-            self._name_current = allergen_name
-            self._name_en = allergen_en
-            self._name_la = allergen_latin if allergen_latin else ""
-            self._allergen_slug = allergen_slug
-            self._attr_name = allergen_name  # Visningsnamn ska vara svensk!
-            self._attr_unique_id = (
-                f"polleninformation_{location_slug}_{self._allergen_slug}"
-            )
-
-            _LOGGER.debug(
-                f"DEBUG pollen-entity: _attr_name='{self._attr_name}', "
-                f"_allergen_slug='{self._allergen_slug}', "
-                f"_attr_unique_id='{self._attr_unique_id}'"
-            )
-
-            self._attr_device_info = {
-                "identifiers": {(DOMAIN, f"{location_slug}")},
-                "name": f"Polleninformation ({location_title})",
-                "manufacturer": "Austrian Pollen Information Service",
-            }
-            self._icon = ALLERGEN_ICON_MAP.get(
-                self._allergen_slug, ALLERGEN_ICON_MAP["default"]
-            )
-            self._levels_current = levels_current
-            self._levels_en = levels_en
-        else:
-            self._air_type = air_type
-            self._value = value
-            self._attr_name = air_type.replace("_", " ").capitalize()
-            self._attr_unique_id = f"polleninformation_{location_slug}_{air_type}"
-            self._attr_device_info = {
-                "identifiers": {(DOMAIN, f"{location_slug}")},
-                "name": f"Polleninformation ({location_title})",
-                "manufacturer": "Austrian Pollen Information Service",
-            }
-            self._icon = AIR_SENSOR_ICON_MAP.get(air_type, "mdi:cloud")
-
-        self._state = None
-        self._attr_extra_state_attributes = {}
+        self._icon = icon
+        self._attr_name = allergen_name
+        self._attr_unique_id = f"polleninformation_{location_slug}_{allergen_slug}"
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, f"{location_slug}")},
+            "name": f"Polleninformation ({location_title})",
+            "manufacturer": "Austrian Pollen Information Service",
+        }
 
     @property
     def unique_id(self):
@@ -349,140 +277,203 @@ class PolleninformationSensor(SensorEntity):
 
     @property
     def suggested_object_id(self):
-        if self.sensor_type == "pollen":
-            return self._allergen_slug
-        elif self.sensor_type == "air":
-            return self._air_type
-        return None
+        return self._allergen_slug
 
     @property
     def icon(self):
         return self._icon
 
     @property
-    def device_class(self):
-        if self.sensor_type == "air" and self._air_type == "temperature":
-            return "temperature"
-        if self.sensor_type == "air" and self._air_type in [
-            "ozone",
-            "particulate_matter",
-            "sulphur_dioxide",
-            "nitrogen_dioxide",
-        ]:
-            return "aqi"
-        return None
-
-    @property
-    def unit_of_measurement(self):
-        if self.sensor_type == "air" and self._air_type == "temperature":
-            return "°C"
-        return None
-
-    @property
     def state(self):
-        return self._state
+        """Return today's contamination level as localized string."""
+        contamination = self.coordinator.data.get("contamination", [])
+        found = None
+        for item in contamination:
+            poll_title = item.get("poll_title", "").split("(", 1)[0].strip()
+            if poll_title.lower() == self._allergen_name.lower():
+                found = item
+                break
+        if not found:
+            return None
+        raw_val = found.get("contamination_1", 0)
+        try:
+            return self._levels_current[raw_val]
+        except (IndexError, TypeError):
+            return "unavailable"
 
     @property
     def extra_state_attributes(self):
-        data = self.coordinator.data or {}
-        result = data.get("result", {}) if data else {}
-        attribs = self._attr_extra_state_attributes.copy()
-        if self.sensor_type == "pollen":
-            forecast = pollen_forecast_for_allergen(result, self._name_current, self._levels_current)
-            today_raw = forecast[0] if forecast else None
-            tomorrow_raw = forecast[1] if len(forecast) > 1 else None
-            attribs.update(
-                {
-                    "forecast": forecast,
-                    "raw": today_raw,
-                    "numeric_state": today_raw["level"] if today_raw else None,
-                    "named_state": today_raw["level_name"] if today_raw else None,
-                    "tomorrow_raw": tomorrow_raw,
-                    "tomorrow_numeric_state": (
-                        tomorrow_raw["level"] if tomorrow_raw else None
-                    ),
-                    "tomorrow_named_state": (
-                        tomorrow_raw["level_name"] if tomorrow_raw else None
-                    ),
-                    "update_success": self.coordinator.data is not None,
-                    "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "friendly_name": self._name_current,
-                    "name_en": self._name_en if self._name_en else self._name_current,
-                    "name_la": self._name_la if self._name_la else "",
-                    "allergen_slug": self._allergen_slug,
-                    "location_title": self._location_title,
-                    "location_zip": self._location_zip,
-                    "location_slug": self._location_slug,
-                    "levels_current": self._levels_current,
-                    "levels_en": self._levels_en,
-                    "attribution": "Austrian Pollen Information Service",
-                }
-            )
-        else:
-            forecast = air_forecast_for_type(result, self._air_type)
-            attribs.update(
-                {
-                    "forecast": forecast,
-                    "location_slug": self._location_slug,
-                    "location_title": self._location_title,
-                    "type": self._air_type,
-                    "attribution": "Austrian Pollen Information Service",
-                }
-            )
-        return attribs
+        """Return attributes including forecasts and names."""
+        contamination = self.coordinator.data.get("contamination", [])
+        forecast = pollen_forecast_for_allergen(contamination, self._allergen_name, self._levels_current)
+        today_raw = forecast[0] if forecast else None
+        tomorrow_raw = forecast[1] if len(forecast) > 1 else None
+        return {
+            "forecast": forecast,
+            "numeric_state": today_raw["level"] if today_raw else None,
+            "named_state": today_raw["level_name"] if today_raw else None,
+            "tomorrow_numeric_state": tomorrow_raw["level"] if tomorrow_raw else None,
+            "tomorrow_named_state": tomorrow_raw["level_name"] if tomorrow_raw else None,
+            "friendly_name": self._allergen_name,
+            "name_en": self._allergen_en,
+            "name_la": self._allergen_latin,
+            "allergen_slug": self._allergen_slug,
+            "location_title": self._location_title,
+            "location_slug": self._location_slug,
+            "levels_current": self._levels_current,
+            "levels_en": self._levels_en,
+            "attribution": "Austrian Pollen Information Service",
+            "update_success": self.coordinator.data is not None,
+            "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        }
 
     async def async_update(self):
-        data = self.coordinator.data
-        result = data.get("result", {}) if data else {}
-        if not result:
-            self._state = None
-            self._attr_extra_state_attributes = {}
-            if DEBUG:
-                _LOGGER.debug(
-                    "Polleninformation: Ingen data för %s",
-                    getattr(self, "_name_current", self._air_type),
-                )
-            return
+        """Update state and attributes (property-based, so nothing to store)."""
+        pass
 
-        if self.sensor_type == "pollen":
-            contamination = result.get("contamination", [])
-            found = None
-            for item in contamination:
-                # Jämför mot lokaliserat namn utan parentes
-                if item.get("poll_title", "").split("(", 1)[0].strip() == self._name_current:
-                    found = item
-                    break
-            if not found:
-                self._state = None
-                self._attr_extra_state_attributes = {}
-                return
-            raw_val = found.get("contamination_1", 0)
-            try:
-                level_text_current = self._levels_current[raw_val]
-            except (IndexError, TypeError):
-                level_text_current = "unavailable"
-            try:
-                level_text_en = self._levels_en[raw_val]
-            except (IndexError, TypeError):
-                level_text_en = "unavailable"
-            self._state = level_text_current  # Statusen = lokaliserad nivå!
-            self._attr_extra_state_attributes = {
-                "level_current": level_text_current,
-                "level_en": level_text_en,
-                "level_index": raw_val,
-            }
-        else:
-            additional = result.get("additionalForecastData", [])
-            val = None
-            if additional:
-                val = additional[0].get(self._air_type)
-            self._state = val
-            self._attr_extra_state_attributes = {}
+class AllergyRiskSensor(SensorEntity):
+    """Sensor for daily allergy risk (one sensor, with forecast)."""
 
-        if DEBUG:
-            _LOGGER.debug(
-                "Polleninformation: Sensor '%s' uppdaterad – state: %s, attribs: %s",
-                getattr(self, "_name_current", self._air_type),
-                self._state,
-                self._attr_extra_state_attributes,
-            )
+    _attr_has_entity_name = True
+
+    def __init__(self, coordinator, allergyrisk, levels_current, location_slug, location_title):
+        self.coordinator = coordinator
+        self._allergyrisk = allergyrisk
+        self._levels_current = levels_current
+        self._location_slug = location_slug
+        self._location_title = location_title
+        self._attr_name = "Allergy risk"
+        self._attr_unique_id = f"polleninformation_{location_slug}_allergy_risk"
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, f"{location_slug}")},
+            "name": f"Polleninformation ({location_title})",
+            "manufacturer": "Austrian Pollen Information Service",
+        }
+        self._icon = "mdi:alert"
+
+    @property
+    def unique_id(self):
+        return self._attr_unique_id
+
+    @property
+    def icon(self):
+        return self._icon
+
+    @property
+    def state(self):
+        """Return allergy risk value for day 1, scaled to 0-4."""
+        value = self._allergyrisk.get("allergyrisk_1", None)
+        return scale_allergy_risk(value) if value is not None else None
+
+    @property
+    def extra_state_attributes(self):
+        """Return attributes including forecast for days 2-4, named/numeric states."""
+        forecast = []
+        for day in range(2, 5):
+            value = self._allergyrisk.get(f"allergyrisk_{day}", None)
+            scaled = scale_allergy_risk(value) if value is not None else None
+            named = self._levels_current[scaled] if scaled is not None and scaled < len(self._levels_current) else None
+            forecast.append({
+                "day": day,
+                "value": scaled,
+                "named_state": named,
+            })
+        named_state = self._levels_current[self.state] if self.state is not None and self.state < len(self._levels_current) else None
+        return {
+            "named_state": named_state,
+            "numeric_state": self.state,
+            "forecast": forecast,
+            "location_title": self._location_title,
+            "location_slug": self._location_slug,
+            "attribution": "Austrian Pollen Information Service",
+            "update_success": self.coordinator.data is not None,
+            "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        }
+
+    async def async_update(self):
+        pass
+
+class AllergyRiskHourlySensor(SensorEntity):
+    """Sensor for hourly allergy risk (one sensor, with forecast)."""
+
+    _attr_has_entity_name = True
+
+    def __init__(self, coordinator, allergyrisk_hourly, levels_current, location_slug, location_title):
+        self.coordinator = coordinator
+        self._allergyrisk_hourly = allergyrisk_hourly
+        self._levels_current = levels_current
+        self._location_slug = location_slug
+        self._location_title = location_title
+        self._attr_name = "Allergy risk hourly"
+        self._attr_unique_id = f"polleninformation_{location_slug}_allergy_risk_hourly"
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, f"{location_slug}")},
+            "name": f"Polleninformation ({location_title})",
+            "manufacturer": "Austrian Pollen Information Service",
+        }
+        self._icon = "mdi:timeline-clock"
+
+    @property
+    def unique_id(self):
+        return self._attr_unique_id
+
+    @property
+    def icon(self):
+        return self._icon
+
+    @property
+    def state(self):
+        """Return allergy risk value for current hour of day 1, scaled to 0-4."""
+        now_hour = datetime.now().hour
+        values = self._allergyrisk_hourly.get("allergyrisk_hourly_1", [])
+        if 0 <= now_hour < len(values):
+            value = values[now_hour]
+            return scale_allergy_risk(value)
+        return None
+
+    @property
+    def extra_state_attributes(self):
+        """Return attributes including forecast for future hours and days."""
+        # Forecast for hours of day 1
+        hourly_forecast = []
+        values = self._allergyrisk_hourly.get("allergyrisk_hourly_1", [])
+        for hour, value in enumerate(values):
+            scaled = scale_allergy_risk(value)
+            named = self._levels_current[scaled] if scaled is not None and scaled < len(self._levels_current) else None
+            hourly_forecast.append({
+                "hour": hour,
+                "value": scaled,
+                "named_state": named,
+            })
+        # Forecast for days 2-4
+        day_forecast = []
+        for day in range(2, 5):
+            values_day = self._allergyrisk_hourly.get(f"allergyrisk_hourly_{day}", [])
+            forecast_day = []
+            for hour, value in enumerate(values_day):
+                scaled = scale_allergy_risk(value)
+                named = self._levels_current[scaled] if scaled is not None and scaled < len(self._levels_current) else None
+                forecast_day.append({
+                    "hour": hour,
+                    "value": scaled,
+                    "named_state": named,
+                })
+            day_forecast.append({
+                "day": day,
+                "hourly_forecast": forecast_day,
+            })
+        named_state = self._levels_current[self.state] if self.state is not None and self.state < len(self._levels_current) else None
+        return {
+            "named_state": named_state,
+            "numeric_state": self.state,
+            "hourly_forecast": hourly_forecast,
+            "day_forecast": day_forecast,
+            "location_title": self._location_title,
+            "location_slug": self._location_slug,
+            "attribution": "Austrian Pollen Information Service",
+            "update_success": self.coordinator.data is not None,
+            "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        }
+
+    async def async_update(self):
+        pass
