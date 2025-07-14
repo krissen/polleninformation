@@ -3,17 +3,19 @@
     "step": {
       "user": {
         "title": "Add Pollen Information",
-        "description": "Select the country and location where you want to monitor the pollen forecast.",
+        "description": "Select the country and location where you want to monitor the pollen forecast and the language you want your sensors configured as.",
         "data": {
           "country": "Country",
           "latitude": "Latitude",
-          "longitude": "Longitude"
+          "longitude": "Longitude",
+          "language": "Language"
         }
       }
     },
     "error": {
       "invalid_latitude": "Invalid latitude",
       "invalid_longitude": "Invalid longitude",
+      "invalid_language": "Invalid language",
       "invalid_country": "Invalid country",
       "suggested_country": "No data found for selected country at this location. Try changing country or location.",
       "no_sensors_for_country": "No sensors found for selected country at this location."

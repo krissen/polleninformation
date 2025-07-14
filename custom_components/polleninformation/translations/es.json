@@ -1,0 +1,28 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Agregar información del polen",
+        "description": "Seleccione el país y la ubicación donde desea monitorizar la previsión del polen, así como el idioma en el que desea que se configuren sus sensores.",
+        "data": {
+          "country": "País",
+          "latitude": "Latitud",
+          "longitude": "Longitud",
+          "language": "Idioma"
+        }
+      }
+    },
+    "error": {
+      "invalid_latitude": "Latitud no válida",
+      "invalid_longitude": "Longitud no válida",
+      "invalid_language": "Idioma no válido",
+      "invalid_country": "País no válido",
+      "suggested_country": "No se encontraron datos para el país seleccionado en esta ubicación. Intente cambiar el país o la ubicación.",
+      "no_sensors_for_country": "No se encontraron sensores para el país seleccionado en esta ubicación."
+    },
+    "abort": {
+      "already_configured": "Esta ubicación ya está configurada."
+    }
+  }
+}
+

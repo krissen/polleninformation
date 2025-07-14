@@ -1,0 +1,28 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Polleninformationen hinzufügen",
+        "description": "Wählen Sie das Land und den Ort, für die Sie die Pollenprognose überwachen möchten, sowie die Sprache, in der die Sensoren angezeigt werden sollen.",
+        "data": {
+          "country": "Land",
+          "latitude": "Breitengrad",
+          "longitude": "Längengrad",
+          "language": "Sprache"
+        }
+      }
+    },
+    "error": {
+      "invalid_latitude": "Ungültiger Breitengrad",
+      "invalid_longitude": "Ungültiger Längengrad",
+      "invalid_language": "Ungültige Sprache",
+      "invalid_country": "Ungültiges Land",
+      "suggested_country": "Für das ausgewählte Land an diesem Standort wurden keine Daten gefunden. Versuchen Sie, das Land oder den Standort zu ändern.",
+      "no_sensors_for_country": "Für das ausgewählte Land an diesem Standort wurden keine Sensoren gefunden."
+    },
+    "abort": {
+      "already_configured": "Dieser Standort ist bereits konfiguriert."
+    }
+  }
+}
+

@@ -1,0 +1,28 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Pievienot ziedputekšņu informāciju",
+        "description": "Izvēlieties valsti un vietu, kurā vēlaties uzraudzīt ziedputekšņu prognozi, kā arī valodu, kādā jūsu sensori tiks konfigurēti.",
+        "data": {
+          "country": "Valsts",
+          "latitude": "Platums",
+          "longitude": "Garums",
+          "language": "Valoda"
+        }
+      }
+    },
+    "error": {
+      "invalid_latitude": "Nederīgs platums",
+      "invalid_longitude": "Nederīgs garums",
+      "invalid_language": "Nederīga valoda",
+      "invalid_country": "Nederīga valsts",
+      "suggested_country": "Atlasītajā valstī šajā vietā dati nav atrasti. Mēģiniet mainīt valsti vai vietu.",
+      "no_sensors_for_country": "Atlasītajā valstī šajā vietā sensori nav atrasti."
+    },
+    "abort": {
+      "already_configured": "Šī vieta jau ir konfigurēta."
+    }
+  }
+}
+
