@@ -67,8 +67,8 @@ def capitalize_first(s):
     return s[0].upper() + s[1:]
 
 def pollen_forecast_for_allergen(contamination, allergen_name, levels):
-    """Return forecast for one allergen for 4 days."""
-    """Always compare allergen names in lower-case to avoid mismatch due to casing."""
+    """Return forecast for one allergen for 4 days.
+    Always compare allergen names in lower-case to avoid mismatch due to casing."""
     out = []
     allergen_name_lower = allergen_name.lower()
     for item in contamination:
@@ -305,7 +305,23 @@ class PolleninformationSensor(SensorEntity):
     def extra_state_attributes(self):
         """Return attributes including forecasts and names."""
         contamination = self.coordinator.data.get("contamination", [])
-        forecast = pollen_forecast_for_allergen(contamination, self._allergen_name, self._levels_current)
+        # Build forecast with time, level, level_name
+        forecast = []
+        base_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        for item in contamination:
+            poll_title = item.get("poll_title", "").split("(", 1)[0].strip()
+            if poll_title.lower() == self._allergen_name.lower():
+                for day in range(1, 5):
+                    val = item.get(f"contamination_{day}", 0)
+                    # Use localized level name
+                    level_name = self._levels_current[val] if isinstance(val, int) and val < len(self._levels_current) else str(val)
+                    forecast.append({
+                        "time": (base_date + timedelta(days=day-1)).strftime("%Y-%m-%dT%H:%M:%S"),
+                        "level": val,
+                        "level_name": level_name,
+                    })
+                break
+
         today_raw = forecast[0] if forecast else None
         tomorrow_raw = forecast[1] if len(forecast) > 1 else None
         return {
@@ -320,9 +336,11 @@ class PolleninformationSensor(SensorEntity):
             "allergen_slug": self._allergen_slug,
             "location_title": self._location_title,
             "location_slug": self._location_slug,
+            "type": self.sensor_type,
+            "attribution": "Austrian Pollen Information Service",
+            "icon": self._icon,
             "levels_current": self._levels_current,
             "levels_en": self._levels_en,
-            "attribution": "Austrian Pollen Information Service",
             "update_success": self.coordinator.data is not None,
             "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
