@@ -2,18 +2,17 @@
 
 """Options flow for polleninformation.at integration (new API version).
 
-Allows updating country, language, location, and API key.
-Mentions that an API key is required and provides a link for requesting one.
+Allows updating country, language, coordinates, API key, and location name.
+API key information and request link are included in the form description.
 
 See official API documentation: https://www.polleninformation.at/en/data-interface
 """
 
-import json
 import logging
-import os
 
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.helpers.selector import LocationSelector, LocationSelectorConfig
 
 from .const import DEFAULT_LANG, DOMAIN
 from .utils import async_get_country_options, async_get_language_options
@@ -38,7 +37,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         _LOGGER.debug("lang_options: %r", lang_options)
         defaults = self.config_entry.options or self.config_entry.data or {}
 
-        # Default language from HA config (two-letter ISO code)
         ha_lang = None
         ha_config = getattr(hass, "config", None)
         if ha_config:
@@ -54,30 +52,50 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         default_country = defaults.get(
             "country", next(iter(country_options.keys())) if country_options else None
         )
-        default_latitude = defaults.get("latitude", None)
-        default_longitude = defaults.get("longitude", None)
+        default_latitude = defaults.get(
+            "latitude", hass.config.latitude if hass else None
+        )
+        default_longitude = defaults.get(
+            "longitude", hass.config.longitude if hass else None
+        )
         default_language = defaults.get("lang", default_lang_code)
         default_apikey = defaults.get("apikey", "")
+        default_location_name = defaults.get("location", "")
+
+        data_schema = vol.Schema(
+            {
+                vol.Required("country", default=default_country): vol.In(
+                    country_options
+                ),
+                vol.Required(
+                    "location",
+                    default={
+                        "latitude": default_latitude,
+                        "longitude": default_longitude,
+                        "radius": 5000,
+                    },
+                ): LocationSelector(LocationSelectorConfig(radius=True)),
+                vol.Required("language", default=default_language): vol.In(
+                    lang_options
+                ),
+                vol.Required("apikey", default=default_apikey): str,
+                vol.Optional("location_name", default=default_location_name): str,
+            }
+        )
+
+        api_key_info = (
+            "An API key is required for polleninformation.at. "
+            "You can request an API key at: https://www.polleninformation.at/en/data-interface/request-an-api-key"
+        )
 
         if user_input is not None:
-            _LOGGER.debug("User input: %r", user_input)
             country_code = user_input.get("country")
             lang_code = user_input.get("language")
             apikey = user_input.get("apikey", "").strip()
-            try:
-                latitude = float(user_input.get("latitude"))
-                longitude = float(user_input.get("longitude"))
-            except Exception:
-                errors["latitude"] = "invalid_latitude"
-                errors["longitude"] = "invalid_longitude"
-                latitude = longitude = None
-            _LOGGER.debug(
-                "country_code: %r, lang_code: %r, latitude: %r, longitude: %r",
-                country_code,
-                lang_code,
-                latitude,
-                longitude,
-            )
+            location = user_input.get("location", {})
+            latitude = location.get("latitude")
+            longitude = location.get("longitude")
+            location_name = user_input.get("location_name", "").strip()
 
             if not apikey:
                 errors["apikey"] = "missing_apikey"
@@ -98,7 +116,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 )
 
             if not errors:
-                # Save updated options
                 return self.async_create_entry(
                     title=country_options[country_code],
                     data={
@@ -107,27 +124,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         "longitude": longitude,
                         "lang": lang_code,
                         "apikey": apikey,
+                        "location": location_name,
                     },
                 )
-
-        data_schema = vol.Schema(
-            {
-                vol.Required("country", default=default_country): vol.In(
-                    country_options
-                ),
-                vol.Required("latitude", default=default_latitude): float,
-                vol.Required("longitude", default=default_longitude): float,
-                vol.Required("language", default=default_language): vol.In(
-                    lang_options
-                ),
-                vol.Required("apikey", default=default_apikey): str,
-            }
-        )
-
-        api_key_info = (
-            "An API key is required for polleninformation.at. "
-            "You can request an API key at: https://www.polleninformation.at/en/data-interface/request-an-api-key"
-        )
 
         return self.async_show_form(
             step_id="init",
