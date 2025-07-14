@@ -8,7 +8,10 @@
           "country": "Ülke",
           "latitude": "Enlem",
           "longitude": "Boylam",
-          "language": "Dil"
+          "language": "Dil",
+          "location": "Konum (haritadan seçin)",
+          "location_name": "Konum adı (isteğe bağlı)",
+          "apikey": "API anahtarı"
         }
       }
     },
@@ -18,11 +21,15 @@
       "invalid_language": "Geçersiz dil",
       "invalid_country": "Geçersiz ülke",
       "suggested_country": "Seçilen ülke ve konum için veri bulunamadı. Lütfen ülkeyi veya konumu değiştirin.",
-      "no_sensors_for_country": "Seçilen ülke ve konum için sensör bulunamadı."
+      "no_sensors_for_country": "Seçilen ülke ve konum için sensör bulunamadı.",
+      "missing_apikey": "API anahtarı eksik",
+      "no_pollen_data": "Bu konum için polen verisi döndürülmedi."
     },
     "abort": {
       "already_configured": "Bu konum zaten yapılandırılmış."
+    },
+    "description": {
+      "api_key_info": "polleninformation.at için bir API anahtarına ihtiyacınız var. Şuradan talep edin: https://www.polleninformation.at/en/data-interface/request-an-api-key"
     }
   }
 }
-

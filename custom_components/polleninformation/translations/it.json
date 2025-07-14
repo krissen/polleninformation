@@ -8,7 +8,10 @@
           "country": "Paese",
           "latitude": "Latitudine",
           "longitude": "Longitudine",
-          "language": "Lingua"
+          "language": "Lingua",
+          "location": "Posizione (seleziona sulla mappa)",
+          "location_name": "Nome posizione (opzionale)",
+          "apikey": "Chiave API"
         }
       }
     },
@@ -18,11 +21,15 @@
       "invalid_language": "Lingua non valida",
       "invalid_country": "Paese non valido",
       "suggested_country": "Nessun dato trovato per il paese selezionato in questa posizione. Prova a cambiare paese o posizione.",
-      "no_sensors_for_country": "Nessun sensore trovato per il paese selezionato in questa posizione."
+      "no_sensors_for_country": "Nessun sensore trovato per il paese selezionato in questa posizione.",
+      "missing_apikey": "Chiave API mancante",
+      "no_pollen_data": "Nessun dato sul polline restituito per questa posizione."
     },
     "abort": {
       "already_configured": "Questa posizione è già configurata."
+    },
+    "description": {
+      "api_key_info": "È necessaria una chiave API per polleninformation.at. Richiedila su: https://www.polleninformation.at/en/data-interface/request-an-api-key"
     }
   }
 }
-

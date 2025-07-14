@@ -8,7 +8,10 @@
           "country": "Šalis",
           "latitude": "Platuma",
           "longitude": "Ilguma",
-          "language": "Kalba"
+          "language": "Kalba",
+          "location": "Vieta (pasirinkite žemėlapyje)",
+          "location_name": "Vietos pavadinimas (neprivaloma)",
+          "apikey": "API raktas"
         }
       }
     },
@@ -18,11 +21,15 @@
       "invalid_language": "Neteisinga kalba",
       "invalid_country": "Neteisinga šalis",
       "suggested_country": "Šioje vietoje pasirinktoje šalyje duomenų nerasta. Pabandykite pakeisti šalį arba vietą.",
-      "no_sensors_for_country": "Šioje vietoje pasirinktoje šalyje jutiklių nerasta."
+      "no_sensors_for_country": "Šioje vietoje pasirinktoje šalyje jutiklių nerasta.",
+      "missing_apikey": "Trūksta API rakto",
+      "no_pollen_data": "Šiai vietai nepateikti jokie žiedadulkių duomenys."
     },
     "abort": {
       "already_configured": "Ši vieta jau sukonfigūruota."
+    },
+    "description": {
+      "api_key_info": "Jums reikia API rakto polleninformation.at svetainei. Užsisakykite čia: https://www.polleninformation.at/en/data-interface/request-an-api-key"
     }
   }
 }
-

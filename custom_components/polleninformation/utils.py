@@ -5,15 +5,35 @@ import os
 import re
 import unicodedata
 
-from .const import (
-    COUNTRY_DISPLAY_NAMES,
-    LANGUAGE_DISPLAY_NAMES,
-    SUPPORTED_COUNTRIES,
-    SUPPORTED_LANGUAGES,
-)
+import aiohttp
+
+from .const import (COUNTRY_DISPLAY_NAMES, LANGUAGE_DISPLAY_NAMES,
+                    SUPPORTED_COUNTRIES, SUPPORTED_LANGUAGES)
 
 LANGUAGE_MAP_FILE = os.path.join(os.path.dirname(__file__), "language_map.json")
 
+
+
+async def async_get_country_code_from_latlon(hass, lat, lon):
+    """
+    Get ISO 3166-1 alpha-2 country code from latitude/longitude using Nominatim API (OpenStreetMap).
+    Returns country code in upper case, e.g. 'SE' for Sweden, or None if not found.
+    """
+    url = "https://nominatim.openstreetmap.org/reverse"
+    params = {
+        "lat": lat,
+        "lon": lon,
+        "format": "json",
+        "zoom": 3,
+        "addressdetails": 1,
+    }
+    headers = {"User-Agent": "Home Assistant Polleninformation Integration"}
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, params=params, headers=headers, timeout=5) as resp:
+            if resp.status == 200:
+                result = await resp.json()
+                return result.get("address", {}).get("country_code", "").upper()
+    return None
 
 async def async_load_available_languages(hass):
     """

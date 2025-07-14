@@ -8,7 +8,10 @@
           "country": "Pays",
           "latitude": "Latitude",
           "longitude": "Longitude",
-          "language": "Langue"
+          "language": "Langue",
+          "location": "Emplacement (sélectionner sur la carte)",
+          "location_name": "Nom de l'emplacement (optionnel)",
+          "apikey": "Clé API"
         }
       }
     },
@@ -18,11 +21,15 @@
       "invalid_language": "Langue invalide",
       "invalid_country": "Pays invalide",
       "suggested_country": "Aucune donnée trouvée pour le pays sélectionné à cet emplacement. Essayez de changer de pays ou d’emplacement.",
-      "no_sensors_for_country": "Aucun capteur trouvé pour le pays sélectionné à cet emplacement."
+      "no_sensors_for_country": "Aucun capteur trouvé pour le pays sélectionné à cet emplacement.",
+      "missing_apikey": "Clé API manquante",
+      "no_pollen_data": "Aucune donnée de pollen n'a été retournée pour cet emplacement."
     },
     "abort": {
       "already_configured": "Cet emplacement est déjà configuré."
+    },
+    "description": {
+      "api_key_info": "Vous avez besoin d'une clé API pour polleninformation.at. Demandez-la ici : https://www.polleninformation.at/en/data-interface/request-an-api-key"
     }
   }
 }
-

@@ -8,7 +8,10 @@
           "country": "Країна",
           "latitude": "Широта",
           "longitude": "Довгота",
-          "language": "Мова"
+          "language": "Мова",
+          "location": "Місцезнаходження (виберіть на карті)",
+          "location_name": "Назва місця (необов’язково)",
+          "apikey": "API-ключ"
         }
       }
     },
@@ -18,11 +21,15 @@
       "invalid_language": "Неприпустима мова",
       "invalid_country": "Неприпустима країна",
       "suggested_country": "Для вибраної країни за цією адресою дані не знайдено. Спробуйте змінити країну або місце.",
-      "no_sensors_for_country": "Для вибраної країни за цією адресою не знайдено жодних датчиків."
+      "no_sensors_for_country": "Для вибраної країни за цією адресою не знайдено жодних датчиків.",
+      "missing_apikey": "API-ключ відсутній",
+      "no_pollen_data": "Для цієї локації не повернуто даних про пилок."
     },
     "abort": {
       "already_configured": "Це місце вже налаштовано."
+    },
+    "description": {
+      "api_key_info": "Вам потрібен API-ключ для polleninformation.at. Запитайте його тут: https://www.polleninformation.at/en/data-interface/request-an-api-key"
     }
   }
 }
-

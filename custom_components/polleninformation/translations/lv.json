@@ -8,7 +8,10 @@
           "country": "Valsts",
           "latitude": "Platums",
           "longitude": "Garums",
-          "language": "Valoda"
+          "language": "Valoda",
+          "location": "Atrašanās vieta (izvēlieties kartē)",
+          "location_name": "Vietas nosaukums (nav obligāts)",
+          "apikey": "API atslēga"
         }
       }
     },
@@ -18,11 +21,15 @@
       "invalid_language": "Nederīga valoda",
       "invalid_country": "Nederīga valsts",
       "suggested_country": "Atlasītajā valstī šajā vietā dati nav atrasti. Mēģiniet mainīt valsti vai vietu.",
-      "no_sensors_for_country": "Atlasītajā valstī šajā vietā sensori nav atrasti."
+      "no_sensors_for_country": "Atlasītajā valstī šajā vietā sensori nav atrasti.",
+      "missing_apikey": "Trūkst API atslēgas",
+      "no_pollen_data": "Šai vietai nav atgriezti ziedputekšņu dati."
     },
     "abort": {
       "already_configured": "Šī vieta jau ir konfigurēta."
+    },
+    "description": {
+      "api_key_info": "Jums nepieciešama API atslēga polleninformation.at. Pieprasiet to šeit: https://www.polleninformation.at/en/data-interface/request-an-api-key"
     }
   }
 }
-

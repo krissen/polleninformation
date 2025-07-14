@@ -8,7 +8,10 @@
           "country": "Land",
           "latitude": "Latitud",
           "longitude": "Longitud",
-          "language": "Språk"
+          "language": "Språk",
+          "location": "Plats (välj på karta)",
+          "location_name": "Platsnamn (valfritt)",
+          "apikey": "API-nyckel"
         }
       }
     },
@@ -18,11 +21,15 @@
       "invalid_language": "Ogiltigt språk",
       "invalid_country": "Ogiltigt land",
       "suggested_country": "Inga data hittades för valt land på denna plats. Prova att byta land eller plats.",
-      "no_sensors_for_country": "Inga sensorer hittades för valt land på denna plats."
+      "no_sensors_for_country": "Inga sensorer hittades för valt land på denna plats.",
+      "missing_apikey": "API-nyckel saknas",
+      "no_pollen_data": "Inga pollendata returnerades för denna plats."
     },
     "abort": {
       "already_configured": "Denna plats är redan konfigurerad."
+    },
+    "description": {
+      "api_key_info": "Du behöver en API-nyckel för polleninformation.at. Begär den på: https://www.polleninformation.at/en/data-interface/request-an-api-key"
     }
   }
 }
-

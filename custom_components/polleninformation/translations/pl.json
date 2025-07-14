@@ -8,7 +8,10 @@
           "country": "Kraj",
           "latitude": "Szerokość geograficzna",
           "longitude": "Długość geograficzna",
-          "language": "Język"
+          "language": "Język",
+          "location": "Lokalizacja (wybierz na mapie)",
+          "location_name": "Nazwa lokalizacji (opcjonalnie)",
+          "apikey": "Klucz API"
         }
       }
     },
@@ -18,11 +21,15 @@
       "invalid_language": "Nieprawidłowy język",
       "invalid_country": "Nieprawidłowy kraj",
       "suggested_country": "Nie znaleziono danych dla wybranego kraju w tej lokalizacji. Spróbuj zmienić kraj lub lokalizację.",
-      "no_sensors_for_country": "Nie znaleziono sensorów dla wybranego kraju w tej lokalizacji."
+      "no_sensors_for_country": "Nie znaleziono sensorów dla wybranego kraju w tej lokalizacji.",
+      "missing_apikey": "Brak klucza API",
+      "no_pollen_data": "Brak danych o pyłkach dla tej lokalizacji."
     },
     "abort": {
       "already_configured": "Ta lokalizacja jest już skonfigurowana."
+    },
+    "description": {
+      "api_key_info": "Potrzebujesz klucza API do polleninformation.at. Poproś o niego tutaj: https://www.polleninformation.at/en/data-interface/request-an-api-key"
     }
   }
 }
-

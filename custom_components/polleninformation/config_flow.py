@@ -8,16 +8,39 @@ import logging
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.helpers.selector import (LocationSelector,
-                                            LocationSelectorConfig)
+from homeassistant.helpers.selector import LocationSelector, LocationSelectorConfig
 
 from .api import async_get_pollenat_data
 from .const import DEFAULT_LANG, DOMAIN
-from .utils import (async_get_country_options, async_get_language_options,
-                    async_load_available_languages)
+from .utils import (
+    async_get_country_options, 
+    async_get_language_options,
+    async_load_available_languages,
+    async_get_country_code_from_latlon,
+)
 
 _LOGGER = logging.getLogger(__name__)
 DEBUG = True
+
+# Mapping from country code to central coordinates and radius for map zoom
+COUNTRY_CENTER = {
+    "AT": {"latitude": 47.5, "longitude": 14.0, "radius": 150000},      # Austria
+    "CH": {"latitude": 47.0, "longitude": 8.0, "radius": 120000},       # Switzerland
+    "DE": {"latitude": 51.0, "longitude": 10.0, "radius": 300000},      # Germany
+    "ES": {"latitude": 40.0, "longitude": -4.0, "radius": 350000},      # Spain
+    "FR": {"latitude": 46.6, "longitude": 2.2, "radius": 350000},       # France
+    "GB": {"latitude": 54.0, "longitude": -2.0, "radius": 300000},      # United Kingdom
+    "IT": {"latitude": 42.8, "longitude": 12.8, "radius": 250000},      # Italy
+    "LV": {"latitude": 56.9, "longitude": 24.6, "radius": 100000},      # Latvia
+    "LT": {"latitude": 55.2, "longitude": 23.8, "radius": 100000},      # Lithuania
+    "PL": {"latitude": 52.0, "longitude": 19.0, "radius": 200000},      # Poland
+    "SE": {"latitude": 62.0, "longitude": 16.0, "radius": 400000},      # Sweden
+    "FI": {"latitude": 64.0, "longitude": 26.0, "radius": 400000},      # Finland
+    "NO": {"latitude": 61.0, "longitude": 8.0, "radius": 400000},       # Norway
+    "DK": {"latitude": 56.0, "longitude": 10.0, "radius": 200000},      # Denmark
+    "TR": {"latitude": 39.0, "longitude": 35.0, "radius": 400000},      # Turkey
+    "UA": {"latitude": 49.0, "longitude": 32.0, "radius": 400000},      # Ukraine
+}
 
 class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for polleninformation.at integration."""
@@ -34,23 +57,48 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         _LOGGER.debug("country_options: %r", country_options)
         _LOGGER.debug("lang_options: %r", lang_options)
 
-        # Default values from Home Assistant config
-        default_country = next(iter(country_options.keys())) if country_options else None
-        default_lang_code = DEFAULT_LANG if DEFAULT_LANG in lang_options else "en"
-        default_latitude = self.hass.config.latitude
-        default_longitude = self.hass.config.longitude
+        # Autodetect defaults from Home Assistant config
+        default_latitude = round(self.hass.config.latitude, 5)
+        default_longitude = round(self.hass.config.longitude, 5)
+        ha_country = getattr(self.hass.config, "country", None)
+        if not ha_country:
+            ha_country = await async_get_country_code_from_latlon(self.hass, default_latitude, default_longitude)
+        default_country = ha_country if ha_country in country_options else next(iter(country_options.keys()))
+        ha_lang = getattr(self.hass.config, "language", DEFAULT_LANG)
+        default_lang_code = ha_lang if ha_lang in lang_options else "en"
 
-        # Build config flow schema with map selector for coordinates
-        data_schema = vol.Schema({
-            vol.Required("country", default=default_country): vol.In(country_options),
-            vol.Required("location", default={
+        # Determine selected country (from user input if present)
+        selected_country = default_country
+        if user_input is not None and "country" in user_input and user_input["country"] in country_options:
+            selected_country = user_input["country"]
+
+        # Determine location default:
+        # - If user just started (user_input is None), use autodetected HA lat/lon
+        # - If user changed country (selected_country != default_country), use country center for location defaults
+        # - Otherwise, preserve user's previous selection if present, else autodetected
+        if (
+            user_input is not None
+            and "country" in user_input
+            and user_input["country"] != default_country
+            and user_input["country"] in COUNTRY_CENTER
+        ):
+            location_default = COUNTRY_CENTER[user_input["country"]]
+        elif user_input is not None and "location" in user_input:
+            location_default = user_input["location"]
+        else:
+            location_default = {
                 "latitude": default_latitude,
                 "longitude": default_longitude,
                 "radius": 5000,
-            }): LocationSelector(LocationSelectorConfig(radius=True)),
+            }
+
+        # Build config flow schema with map selector for coordinates
+        data_schema = vol.Schema({
+            vol.Required("country", default=selected_country): vol.In(country_options),
+            vol.Optional("location_name", default=""): str,
+            vol.Required("location", default=location_default): LocationSelector(LocationSelectorConfig(radius=True)),
             vol.Required("language", default=default_lang_code): vol.In(lang_options),
             vol.Required("apikey", default=""): str,
-            vol.Optional("location_name", default=""): str,
         })
 
         if user_input is not None:
