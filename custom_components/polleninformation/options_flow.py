@@ -1,5 +1,4 @@
 """ custom_components/polleninformation/options_flow.py """
-
 """Options flow for polleninformation.at integration (new API version).
 
 Allows updating country, language, coordinates, API key, and location name.
@@ -12,14 +11,14 @@ import logging
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.helpers.selector import LocationSelector, LocationSelectorConfig
+from homeassistant.helpers.selector import (LocationSelector,
+                                            LocationSelectorConfig)
 
 from .const import DEFAULT_LANG, DOMAIN
 from .utils import async_get_country_options, async_get_language_options
 
 _LOGGER = logging.getLogger(__name__)
 DEBUG = True
-
 
 class OptionsFlowHandler(config_entries.OptionsFlow):
     """Options flow handler for polleninformation.at integration."""
@@ -64,9 +63,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         data_schema = vol.Schema(
             {
-                vol.Required("country", default=default_country): vol.In(
-                    country_options
-                ),
+                vol.Required("country", default=default_country): vol.In(country_options),
                 vol.Required(
                     "location",
                     default={
@@ -75,9 +72,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         "radius": 5000,
                     },
                 ): LocationSelector(LocationSelectorConfig(radius=True)),
-                vol.Required("language", default=default_language): vol.In(
-                    lang_options
-                ),
+                vol.Required("language", default=default_language): vol.In(lang_options),
                 vol.Required("apikey", default=default_apikey): str,
                 vol.Optional("location_name", default=default_location_name): str,
             }
@@ -96,6 +91,34 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             latitude = location.get("latitude")
             longitude = location.get("longitude")
             location_name = user_input.get("location_name", "").strip()
+
+            # Compose a user-facing integration title:
+            # If location_name is set, use it.
+            # Otherwise, fallback to "Polleninformation <country> (<lat>, <lon>)"
+            # where <country> is the full country name from country_options.
+            country_name = country_options.get(country_code, country_code)
+            if location_name:
+                entry_title = location_name
+                location_title = location_name
+                location_slug = (
+                    location_name.lower()
+                    .replace(" ", "_")
+                    .replace("(", "")
+                    .replace(")", "")
+                    .replace(",", "")
+                )
+            else:
+                lat_str = f"{latitude:.4f}" if latitude is not None else "?"
+                lon_str = f"{longitude:.4f}" if longitude is not None else "?"
+                entry_title = f"Polleninformation {country_name} ({lat_str}, {lon_str})"
+                location_title = entry_title
+                location_slug = (
+                    f"{country_name}_{lat_str}_{lon_str}".lower()
+                    .replace(" ", "_")
+                    .replace("(", "")
+                    .replace(")", "")
+                    .replace(",", "")
+                )
 
             if not apikey:
                 errors["apikey"] = "missing_apikey"
@@ -117,7 +140,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
             if not errors:
                 return self.async_create_entry(
-                    title=country_options[country_code],
+                    title=entry_title,
                     data={
                         "country": country_code,
                         "latitude": latitude,
@@ -125,9 +148,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         "lang": lang_code,
                         "apikey": apikey,
                         "location": location_name,
+                        "location_title": location_title,
+                        "location_slug": location_slug,
                     },
                 )
-
         return self.async_show_form(
             step_id="init",
             data_schema=data_schema,

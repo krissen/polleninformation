@@ -13,10 +13,10 @@ from homeassistant.helpers.selector import LocationSelector, LocationSelectorCon
 from .api import async_get_pollenat_data
 from .const import DEFAULT_LANG, DOMAIN
 from .utils import (
-    async_get_country_options, 
+    async_get_country_code_from_latlon,
+    async_get_country_options,
     async_get_language_options,
     async_load_available_languages,
-    async_get_country_code_from_latlon,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -24,23 +24,21 @@ DEBUG = True
 
 # Mapping from country code to central coordinates and radius for map zoom
 COUNTRY_CENTER = {
-    "AT": {"latitude": 47.5, "longitude": 14.0, "radius": 150000},      # Austria
-    "CH": {"latitude": 47.0, "longitude": 8.0, "radius": 120000},       # Switzerland
-    "DE": {"latitude": 51.0, "longitude": 10.0, "radius": 300000},      # Germany
-    "ES": {"latitude": 40.0, "longitude": -4.0, "radius": 350000},      # Spain
-    "FR": {"latitude": 46.6, "longitude": 2.2, "radius": 350000},       # France
-    "GB": {"latitude": 54.0, "longitude": -2.0, "radius": 300000},      # United Kingdom
-    "IT": {"latitude": 42.8, "longitude": 12.8, "radius": 250000},      # Italy
-    "LV": {"latitude": 56.9, "longitude": 24.6, "radius": 100000},      # Latvia
-    "LT": {"latitude": 55.2, "longitude": 23.8, "radius": 100000},      # Lithuania
-    "PL": {"latitude": 52.0, "longitude": 19.0, "radius": 200000},      # Poland
-    "SE": {"latitude": 62.0, "longitude": 16.0, "radius": 400000},      # Sweden
-    "FI": {"latitude": 64.0, "longitude": 26.0, "radius": 400000},      # Finland
-    "NO": {"latitude": 61.0, "longitude": 8.0, "radius": 400000},       # Norway
-    "DK": {"latitude": 56.0, "longitude": 10.0, "radius": 200000},      # Denmark
-    "TR": {"latitude": 39.0, "longitude": 35.0, "radius": 400000},      # Turkey
-    "UA": {"latitude": 49.0, "longitude": 32.0, "radius": 400000},      # Ukraine
+    "AT": {"latitude": 47.5, "longitude": 14.0, "radius": 150000},  # Austria
+    "CH": {"latitude": 47.0, "longitude": 8.0, "radius": 120000},  # Switzerland
+    "DE": {"latitude": 51.0, "longitude": 10.0, "radius": 300000},  # Germany
+    "ES": {"latitude": 40.0, "longitude": -4.0, "radius": 350000},  # Spain
+    "FR": {"latitude": 46.6, "longitude": 2.2, "radius": 350000},  # France
+    "GB": {"latitude": 54.0, "longitude": -2.0, "radius": 300000},  # United Kingdom
+    "IT": {"latitude": 42.8, "longitude": 12.8, "radius": 250000},  # Italy
+    "LT": {"latitude": 55.2, "longitude": 23.8, "radius": 100000},  # Lithuania
+    "LV": {"latitude": 56.9, "longitude": 24.6, "radius": 100000},  # Latvia
+    "PL": {"latitude": 52.0, "longitude": 19.0, "radius": 200000},  # Poland
+    "SE": {"latitude": 62.0, "longitude": 16.0, "radius": 400000},  # Sweden
+    "TR": {"latitude": 39.0, "longitude": 35.0, "radius": 400000},  # Turkey
+    "UA": {"latitude": 49.0, "longitude": 32.0, "radius": 400000},  # Ukraine
 }
+
 
 class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for polleninformation.at integration."""
@@ -51,7 +49,6 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Initial step for config flow. User selects country, coordinates via map, language, API key, and location name."""
         errors = {}
 
-        # Load country and language options
         country_options = await async_get_country_options(self.hass)
         lang_options = await async_get_language_options(self.hass)
         _LOGGER.debug("country_options: %r", country_options)
@@ -62,20 +59,27 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         default_longitude = round(self.hass.config.longitude, 5)
         ha_country = getattr(self.hass.config, "country", None)
         if not ha_country:
-            ha_country = await async_get_country_code_from_latlon(self.hass, default_latitude, default_longitude)
-        default_country = ha_country if ha_country in country_options else next(iter(country_options.keys()))
+            ha_country = await async_get_country_code_from_latlon(
+                self.hass, default_latitude, default_longitude
+            )
+        default_country = (
+            ha_country
+            if ha_country in country_options
+            else next(iter(country_options.keys()))
+        )
         ha_lang = getattr(self.hass.config, "language", DEFAULT_LANG)
         default_lang_code = ha_lang if ha_lang in lang_options else "en"
 
         # Determine selected country (from user input if present)
         selected_country = default_country
-        if user_input is not None and "country" in user_input and user_input["country"] in country_options:
+        if (
+            user_input is not None
+            and "country" in user_input
+            and user_input["country"] in country_options
+        ):
             selected_country = user_input["country"]
 
-        # Determine location default:
-        # - If user just started (user_input is None), use autodetected HA lat/lon
-        # - If user changed country (selected_country != default_country), use country center for location defaults
-        # - Otherwise, preserve user's previous selection if present, else autodetected
+        # Determine location default
         if (
             user_input is not None
             and "country" in user_input
@@ -93,13 +97,21 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             }
 
         # Build config flow schema with map selector for coordinates
-        data_schema = vol.Schema({
-            vol.Required("country", default=selected_country): vol.In(country_options),
-            vol.Optional("location_name", default=""): str,
-            vol.Required("location", default=location_default): LocationSelector(LocationSelectorConfig(radius=True)),
-            vol.Required("language", default=default_lang_code): vol.In(lang_options),
-            vol.Required("apikey", default=""): str,
-        })
+        data_schema = vol.Schema(
+            {
+                vol.Required("country", default=selected_country): vol.In(
+                    country_options
+                ),
+                vol.Optional("location_name", default=""): str,
+                vol.Required("location", default=location_default): LocationSelector(
+                    LocationSelectorConfig(radius=True)
+                ),
+                vol.Required("language", default=default_lang_code): vol.In(
+                    lang_options
+                ),
+                vol.Required("apikey", default=""): str,
+            }
+        )
 
         if user_input is not None:
             country_code = user_input["country"]
@@ -177,7 +189,34 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         "No contamination sensors for country: %r", country_code
                     )
                 else:
-                    entry_title = location_name if location_name else f"{country_code} ({latitude},{longitude})"
+                    # Compose a user-facing integration title:
+                    # If location_name is set, use it.
+                    # Otherwise, fallback to "Polleninformation <country> (<lat>, <lon>)"
+                    # where <country> is the full country name from country_options.
+                    country_name = country_options.get(country_code, country_code)
+                    if location_name:
+                        entry_title = location_name
+                        location_title = location_name
+                        location_slug = (
+                            location_name.lower()
+                            .replace(" ", "_")
+                            .replace("(", "")
+                            .replace(")", "")
+                            .replace(",", "")
+                        )
+                    else:
+                        lat_str = f"{latitude:.4f}" if latitude is not None else "?"
+                        lon_str = f"{longitude:.4f}" if longitude is not None else "?"
+                        entry_title = f"{country_name} ({lat_str}, {lon_str})"
+                        location_title = entry_title
+                        location_slug = (
+                            f"{country_name}_{lat_str}_{lon_str}".lower()
+                            .replace(" ", "_")
+                            .replace("(", "")
+                            .replace(")", "")
+                            .replace(",", "")
+                        )
+
                     entry_data = {
                         "country": country_code,
                         "latitude": latitude,
@@ -185,6 +224,8 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         "lang": lang_code,
                         "apikey": apikey,
                         "location": location_name,
+                        "location_title": location_title,
+                        "location_slug": location_slug,
                     }
                     existing_entries = self._async_current_entries()
                     already_exists = any(

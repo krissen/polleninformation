@@ -105,12 +105,29 @@ async def async_setup_entry(hass, entry, async_add_entities):
         country = data["country"]
         lang = data.get("lang", DEFAULT_LANG)
         apikey = data.get("apikey")
-        location_title = data.get("location", "Unknown location")
-        location_slug = slugify(location_title)
+        location_title = data.get("location_title")
+        location_slug = data.get("location_slug")
+        # Fallback if missing or empty
+        if not location_title or location_title.strip() == "":
+            # Use same fallback as integrations-title
+            from .utils import async_get_country_options
+            country_options = await async_get_country_options(hass)
+            country_name = country_options.get(country, country)
+            lat_str = f"{lat:.4f}" if lat is not None else "?"
+            lon_str = f"{lon:.4f}" if lon is not None else "?"
+            location_title = f"{country_name} ({lat_str}, {lon_str})"
+        if not location_slug or location_slug.strip() == "":
+            # Simple slug from title
+            location_slug = (
+                location_title.lower()
+                .replace(" ", "_")
+                .replace("(", "")
+                .replace(")", "")
+                .replace(",", "")
+            )
     except KeyError as e:
         _LOGGER.error("Missing config field: %s. Data: %s", e, data)
         return
-
     coordinator = PollenDataCoordinator(
         hass=hass,
         latitude=lat,
