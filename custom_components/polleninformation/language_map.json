@@ -2,1041 +2,1057 @@
   "de": {
     "lang_code": "de",
     "lang": "German",
-    "contamination_date_1": "Heute",
     "poll_titles": [
       {
         "name": "Pilzsporen",
-        "latin": "Alternaria"
+        "latin": "Alternaria",
+        "poll_id": 23
       },
       {
         "name": "Gräser",
-        "latin": "Poaceae"
+        "latin": "Poaceae",
+        "poll_id": 5
       },
       {
         "name": "Zypressengewächse",
-        "latin": "Cupressaceae"
+        "latin": "Cupressaceae",
+        "poll_id": 17
       },
       {
         "name": "Nessel- und Glaskraut",
-        "latin": "Urticaceae"
+        "latin": "Urticaceae",
+        "poll_id": 15
       },
       {
         "name": "Beifuß",
-        "latin": "Artemisia"
+        "latin": "Artemisia",
+        "poll_id": 7
       },
       {
         "name": "Erle",
-        "latin": "Alnus"
+        "latin": "Alnus",
+        "poll_id": 1
       },
       {
         "name": "Hasel",
-        "latin": "Corylus"
+        "latin": "Corylus",
+        "poll_id": 3
       },
       {
         "name": "Birke",
-        "latin": "Betula"
+        "latin": "Betula",
+        "poll_id": 2
       },
       {
         "name": "Platane",
-        "latin": "Platanus"
+        "latin": "Platanus",
+        "poll_id": 16
       },
       {
         "name": "Roggen",
-        "latin": "Secale"
+        "latin": "Secale",
+        "poll_id": 291
       },
       {
         "name": "Ölbaum",
-        "latin": "Olea"
+        "latin": "Olea",
+        "poll_id": 18
       },
       {
         "name": "Ragweed",
-        "latin": "Ambrosia"
+        "latin": "Ambrosia",
+        "poll_id": 6
       }
-    ],
-    "additional_forecast_keys": [
-      "air_quality",
-      "asthma_weather",
-      "dayrisk",
-      "nitrogen_dioxide",
-      "ozone",
-      "particulate_matter",
-      "sulphur_dioxide",
-      "temperature"
     ]
   },
   "en": {
     "lang_code": "en",
     "lang": "English",
-    "contamination_date_1": "Today",
     "poll_titles": [
       {
-        "name": "Fungal spores",
-        "latin": "Alternaria"
+        "name": "fungal spores",
+        "latin": "Alternaria",
+        "poll_id": 23
       },
       {
-        "name": "Grasses",
-        "latin": "Poaceae"
+        "name": "grasses",
+        "latin": "Poaceae",
+        "poll_id": 5
       },
       {
-        "name": "Cypress family",
-        "latin": "Cupressaceae"
+        "name": "cypress family",
+        "latin": "Cupressaceae",
+        "poll_id": 17
       },
       {
-        "name": "Nettle family",
-        "latin": "Urticaceae"
+        "name": "nettle family",
+        "latin": "Urticaceae",
+        "poll_id": 15
       },
       {
-        "name": "Mugwort",
-        "latin": "Artemisia"
+        "name": "mugwort",
+        "latin": "Artemisia",
+        "poll_id": 7
       },
       {
-        "name": "Alder",
-        "latin": "Alnus"
+        "name": "alder",
+        "latin": "Alnus",
+        "poll_id": 1
       },
       {
-        "name": "Hazel",
-        "latin": "Corylus"
+        "name": "hazel",
+        "latin": "Corylus",
+        "poll_id": 3
       },
       {
-        "name": "Birch",
-        "latin": "Betula"
+        "name": "birch",
+        "latin": "Betula",
+        "poll_id": 2
       },
       {
-        "name": "Plane tree",
-        "latin": "Platanus"
+        "name": "plane tree",
+        "latin": "Platanus",
+        "poll_id": 16
       },
       {
-        "name": "Rye",
-        "latin": "Secale"
+        "name": "rye",
+        "latin": "Secale",
+        "poll_id": 291
       },
       {
-        "name": "Olive",
-        "latin": "Olea"
+        "name": "olive",
+        "latin": "Olea",
+        "poll_id": 18
       },
       {
-        "name": "Ragweed",
-        "latin": "Ambrosia"
+        "name": "ragweed",
+        "latin": "Ambrosia",
+        "poll_id": 6
       }
-    ],
-    "additional_forecast_keys": [
-      "air_quality",
-      "asthma_weather",
-      "dayrisk",
-      "nitrogen_dioxide",
-      "ozone",
-      "particulate_matter",
-      "sulphur_dioxide",
-      "temperature"
     ]
   },
   "fi": {
     "lang_code": "fi",
     "lang": "Finnish",
-    "contamination_date_1": "Tänään",
     "poll_titles": [
       {
-        "name": "Sieni-itiöt",
-        "latin": "Alternaria"
+        "name": "sieni-itiöt",
+        "latin": "Alternaria",
+        "poll_id": 23
       },
       {
-        "name": "Heinät",
-        "latin": "Poaceae"
+        "name": "heinät",
+        "latin": "Poaceae",
+        "poll_id": 5
       },
       {
-        "name": "Sypressit",
-        "latin": "Cupressaceae"
+        "name": "sypressit",
+        "latin": "Cupressaceae",
+        "poll_id": 17
       },
       {
-        "name": "Nokkoskasvit",
-        "latin": "Urticaceae"
+        "name": "nokkoskasvit",
+        "latin": "Urticaceae",
+        "poll_id": 15
       },
       {
-        "name": "Pujo",
-        "latin": "Artemisia"
+        "name": "pujo",
+        "latin": "Artemisia",
+        "poll_id": 7
       },
       {
-        "name": "Leppä",
-        "latin": "Alnus"
+        "name": "leppä",
+        "latin": "Alnus",
+        "poll_id": 1
       },
       {
-        "name": "Pähkinäpensas",
-        "latin": "Corylus"
+        "name": "pähkinäpensas",
+        "latin": "Corylus",
+        "poll_id": 3
       },
       {
-        "name": "Koivu",
-        "latin": "Betula"
+        "name": "koivu",
+        "latin": "Betula",
+        "poll_id": 2
       },
       {
-        "name": "Plataani",
-        "latin": "Platanus"
+        "name": "plataani",
+        "latin": "Platanus",
+        "poll_id": 16
       },
       {
-        "name": "Ruis",
-        "latin": "Secale"
+        "name": "ruis",
+        "latin": "Secale",
+        "poll_id": 291
       },
       {
-        "name": "Oliivipuu",
-        "latin": "Olea"
+        "name": "oliivipuu",
+        "latin": "Olea",
+        "poll_id": 18
       },
       {
-        "name": "Tuoksukki",
-        "latin": "Ambrosia"
+        "name": "tuoksukki",
+        "latin": "Ambrosia",
+        "poll_id": 6
       }
-    ],
-    "additional_forecast_keys": [
-      "air_quality",
-      "asthma_weather",
-      "dayrisk",
-      "nitrogen_dioxide",
-      "ozone",
-      "particulate_matter",
-      "sulphur_dioxide",
-      "temperature"
     ]
   },
   "sv": {
     "lang_code": "sv",
     "lang": "Swedish",
-    "contamination_date_1": "Idag",
     "poll_titles": [
       {
-        "name": "Svampsporer",
-        "latin": "Alternaria"
+        "name": "svampsporer",
+        "latin": "Alternaria",
+        "poll_id": 23
       },
       {
         "name": "Gräs",
-        "latin": "Poaceae"
+        "latin": "Poaceae",
+        "poll_id": 5
       },
       {
-        "name": "Cypressfamiljen",
-        "latin": "Cupressaceae"
+        "name": "cypressfamiljen",
+        "latin": "Cupressaceae",
+        "poll_id": 17
       },
       {
-        "name": "Nässelfamiljen",
-        "latin": "Urticaceae"
+        "name": "nässelfamiljen",
+        "latin": "Urticaceae",
+        "poll_id": 15
       },
       {
         "name": "Gråbo",
-        "latin": "Artemisia"
+        "latin": "Artemisia",
+        "poll_id": 7
       },
       {
         "name": "Al",
-        "latin": "Alnus"
+        "latin": "Alnus",
+        "poll_id": 1
       },
       {
         "name": "Hassel",
-        "latin": "Corylus"
+        "latin": "Corylus",
+        "poll_id": 3
       },
       {
         "name": "Björk",
-        "latin": "Betula"
+        "latin": "Betula",
+        "poll_id": 2
       },
       {
-        "name": "Platan",
-        "latin": "Platanus"
+        "name": "platan",
+        "latin": "Platanus",
+        "poll_id": 16
       },
       {
-        "name": "Råg",
-        "latin": "Secale"
+        "name": "råg",
+        "latin": "Secale",
+        "poll_id": 291
       },
       {
-        "name": "Oliv",
-        "latin": "Olea"
+        "name": "oliv",
+        "latin": "Olea",
+        "poll_id": 18
       },
       {
-        "name": "Malörtsambrosia",
-        "latin": "Ambrosia"
+        "name": "malörtsambrosia",
+        "latin": "Ambrosia",
+        "poll_id": 6
       }
-    ],
-    "additional_forecast_keys": [
-      "air_quality",
-      "asthma_weather",
-      "dayrisk",
-      "nitrogen_dioxide",
-      "ozone",
-      "particulate_matter",
-      "sulphur_dioxide",
-      "temperature"
     ]
   },
   "fr": {
     "lang_code": "fr",
     "lang": "French",
-    "contamination_date_1": "Aujourd'hui",
     "poll_titles": [
       {
         "name": "Spores fongiques",
-        "latin": "Alternaria"
+        "latin": "Alternaria",
+        "poll_id": 23
       },
       {
         "name": "Graminées",
-        "latin": "Poaceae"
+        "latin": "Poaceae",
+        "poll_id": 5
       },
       {
         "name": "Famille des cyprès",
-        "latin": "Cupressaceae"
+        "latin": "Cupressaceae",
+        "poll_id": 17
       },
       {
         "name": "Famille des orties",
-        "latin": "Urticaceae"
+        "latin": "Urticaceae",
+        "poll_id": 15
       },
       {
         "name": "Armoise",
-        "latin": "Artemisia"
+        "latin": "Artemisia",
+        "poll_id": 7
       },
       {
         "name": "Aulne",
-        "latin": "Alnus"
+        "latin": "Alnus",
+        "poll_id": 1
       },
       {
         "name": "Noisetier",
-        "latin": "Corylus"
+        "latin": "Corylus",
+        "poll_id": 3
       },
       {
         "name": "Bouleau",
-        "latin": "Betula"
+        "latin": "Betula",
+        "poll_id": 2
       },
       {
         "name": "Platane",
-        "latin": "Platanus"
+        "latin": "Platanus",
+        "poll_id": 16
       },
       {
         "name": "Seigle",
-        "latin": "Secale"
+        "latin": "Secale",
+        "poll_id": 291
       },
       {
         "name": "Olivier",
-        "latin": "Olea"
+        "latin": "Olea",
+        "poll_id": 18
       },
       {
         "name": "Ambroisie",
-        "latin": "Ambrosia"
+        "latin": "Ambrosia",
+        "poll_id": 6
       }
-    ],
-    "additional_forecast_keys": [
-      "air_quality",
-      "asthma_weather",
-      "dayrisk",
-      "nitrogen_dioxide",
-      "ozone",
-      "particulate_matter",
-      "sulphur_dioxide",
-      "temperature"
     ]
   },
   "it": {
     "lang_code": "it",
     "lang": "Italian",
-    "contamination_date_1": "Oggi",
     "poll_titles": [
       {
         "name": "Spore fungine",
-        "latin": "Alternaria"
+        "latin": "Alternaria",
+        "poll_id": 23
       },
       {
         "name": "Graminacee",
-        "latin": "Poaceae"
+        "latin": "Poaceae",
+        "poll_id": 5
       },
       {
         "name": "Cupressacee",
-        "latin": "Cupressaceae"
+        "latin": "Cupressaceae",
+        "poll_id": 17
       },
       {
         "name": "Urticacee",
-        "latin": "Urticaceae"
+        "latin": "Urticaceae",
+        "poll_id": 15
       },
       {
         "name": "Assenzio",
-        "latin": "Artemisia"
+        "latin": "Artemisia",
+        "poll_id": 7
       },
       {
         "name": "Ontano",
-        "latin": "Alnus"
+        "latin": "Alnus",
+        "poll_id": 1
       },
       {
         "name": "Nocciolo",
-        "latin": "Corylus"
+        "latin": "Corylus",
+        "poll_id": 3
       },
       {
         "name": "Betulla",
-        "latin": "Betula"
+        "latin": "Betula",
+        "poll_id": 2
       },
       {
         "name": "Platano",
-        "latin": "Platanus"
+        "latin": "Platanus",
+        "poll_id": 16
       },
       {
         "name": "Segale",
-        "latin": "Secale"
+        "latin": "Secale",
+        "poll_id": 291
       },
       {
         "name": "Olivo",
-        "latin": "Olea"
+        "latin": "Olea",
+        "poll_id": 18
       },
       {
         "name": "Ambrosia",
-        "latin": "Ambrosia"
+        "latin": "Ambrosia",
+        "poll_id": 6
       }
-    ],
-    "additional_forecast_keys": [
-      "air_quality",
-      "asthma_weather",
-      "dayrisk",
-      "nitrogen_dioxide",
-      "ozone",
-      "particulate_matter",
-      "sulphur_dioxide",
-      "temperature"
     ]
   },
   "lv": {
     "lang_code": "lv",
     "lang": "Latvian",
-    "contamination_date_1": "Šodien",
     "poll_titles": [
       {
-        "name": "Sēnīšu sporas",
-        "latin": "Alternaria"
+        "name": "sēnīšu sporas",
+        "latin": "Alternaria",
+        "poll_id": 23
       },
       {
         "name": "Graudzāles",
-        "latin": "Poaceae"
+        "latin": "Poaceae",
+        "poll_id": 5
       },
       {
         "name": "Cipresu ģimene",
-        "latin": "Cupressaceae"
+        "latin": "Cupressaceae",
+        "poll_id": 17
       },
       {
         "name": "Nātre",
-        "latin": "Urticaceae"
+        "latin": "Urticaceae",
+        "poll_id": 15
       },
       {
         "name": "Vībotne",
-        "latin": "Artemisia"
+        "latin": "Artemisia",
+        "poll_id": 7
       },
       {
         "name": "Alksnis",
-        "latin": "Alnus"
+        "latin": "Alnus",
+        "poll_id": 1
       },
       {
         "name": "Lazda",
-        "latin": "Corylus"
+        "latin": "Corylus",
+        "poll_id": 3
       },
       {
         "name": "Bērzs",
-        "latin": "Betula"
+        "latin": "Betula",
+        "poll_id": 2
       },
       {
         "name": "Platāna",
-        "latin": "Platanus"
+        "latin": "Platanus",
+        "poll_id": 16
       },
       {
-        "name": "Rudzi",
-        "latin": "Secale"
+        "name": "rudzi",
+        "latin": "Secale",
+        "poll_id": 291
       },
       {
         "name": "Olīve",
-        "latin": "Olea"
+        "latin": "Olea",
+        "poll_id": 18
       },
       {
         "name": "Ambrozija",
-        "latin": "Ambrosia"
+        "latin": "Ambrosia",
+        "poll_id": 6
       }
-    ],
-    "additional_forecast_keys": [
-      "air_quality",
-      "asthma_weather",
-      "dayrisk",
-      "nitrogen_dioxide",
-      "ozone",
-      "particulate_matter",
-      "sulphur_dioxide",
-      "temperature"
     ]
   },
   "lt": {
     "lang_code": "lt",
     "lang": "Lithuanian",
-    "contamination_date_1": "Šiandien",
     "poll_titles": [
       {
-        "name": "Grybų sporos",
-        "latin": "Alternaria"
+        "name": "grybų sporos",
+        "latin": "Alternaria",
+        "poll_id": 23
       },
       {
-        "name": "Migliniai",
-        "latin": "Poaceae"
+        "name": "migliniai",
+        "latin": "Poaceae",
+        "poll_id": 5
       },
       {
-        "name": "Kiparisinių šeima",
-        "latin": "Cupressaceae"
+        "name": "kiparisinių šeima",
+        "latin": "Cupressaceae",
+        "poll_id": 17
       },
       {
-        "name": "Dilgėlinių šeima",
-        "latin": "Urticaceae"
+        "name": "dilgėlinių šeima",
+        "latin": "Urticaceae",
+        "poll_id": 15
       },
       {
-        "name": "Kietis",
-        "latin": "Artemisia"
+        "name": "kietis",
+        "latin": "Artemisia",
+        "poll_id": 7
       },
       {
-        "name": "Alksnis",
-        "latin": "Alnus"
+        "name": "alksnis",
+        "latin": "Alnus",
+        "poll_id": 1
       },
       {
-        "name": "Lazdynas",
-        "latin": "Corylus"
+        "name": "lazdynas",
+        "latin": "Corylus",
+        "poll_id": 3
       },
       {
-        "name": "Beržas",
-        "latin": "Betula"
+        "name": "beržas",
+        "latin": "Betula",
+        "poll_id": 2
       },
       {
-        "name": "Platanas",
-        "latin": "Platanus"
+        "name": "platanas",
+        "latin": "Platanus",
+        "poll_id": 16
       },
       {
-        "name": "Rugių",
-        "latin": "Secale"
+        "name": "rugių",
+        "latin": "Secale",
+        "poll_id": 291
       },
       {
-        "name": "Alyvmedis",
-        "latin": "Olea"
+        "name": "alyvmedis",
+        "latin": "Olea",
+        "poll_id": 18
       },
       {
-        "name": "Ambrozija",
-        "latin": "Ambrosia"
+        "name": "ambrozija",
+        "latin": "Ambrosia",
+        "poll_id": 6
       }
-    ],
-    "additional_forecast_keys": [
-      "air_quality",
-      "asthma_weather",
-      "dayrisk",
-      "nitrogen_dioxide",
-      "ozone",
-      "particulate_matter",
-      "sulphur_dioxide",
-      "temperature"
     ]
   },
   "pl": {
     "lang_code": "pl",
     "lang": "Polish",
-    "contamination_date_1": "Dzisiaj",
     "poll_titles": [
       {
-        "name": "Zarodniki grzybów",
-        "latin": "Alternaria"
+        "name": "zarodniki grzybów",
+        "latin": "Alternaria",
+        "poll_id": 23
       },
       {
-        "name": "Trawy",
-        "latin": "Poaceae"
+        "name": "trawy",
+        "latin": "Poaceae",
+        "poll_id": 5
       },
       {
-        "name": "Cypryśnikowate",
-        "latin": "Cupressaceae"
+        "name": "cypryśnikowate",
+        "latin": "Cupressaceae",
+        "poll_id": 17
       },
       {
-        "name": "Pokrzywowate",
-        "latin": "Urticaceae"
+        "name": "pokrzywowate",
+        "latin": "Urticaceae",
+        "poll_id": 15
       },
       {
-        "name": "Bylica",
-        "latin": "Artemisia"
+        "name": "bylica",
+        "latin": "Artemisia",
+        "poll_id": 7
       },
       {
-        "name": "Olsza",
-        "latin": "Alnus"
+        "name": "olsza",
+        "latin": "Alnus",
+        "poll_id": 1
       },
       {
-        "name": "Leszczyna",
-        "latin": "Corylus"
+        "name": "leszczyna",
+        "latin": "Corylus",
+        "poll_id": 3
       },
       {
-        "name": "Brzoza",
-        "latin": "Betula"
+        "name": "brzoza",
+        "latin": "Betula",
+        "poll_id": 2
       },
       {
-        "name": "Platan",
-        "latin": "Platanus"
+        "name": "platan",
+        "latin": "Platanus",
+        "poll_id": 16
       },
       {
         "name": "żyto",
-        "latin": "Secale"
+        "latin": "Secale",
+        "poll_id": 291
       },
       {
-        "name": "Oliwka",
-        "latin": "Olea"
+        "name": "oliwka",
+        "latin": "Olea",
+        "poll_id": 18
       },
       {
-        "name": "Ambrozja",
-        "latin": "Ambrosia"
+        "name": "ambrozja",
+        "latin": "Ambrosia",
+        "poll_id": 6
       }
-    ],
-    "additional_forecast_keys": [
-      "air_quality",
-      "asthma_weather",
-      "dayrisk",
-      "nitrogen_dioxide",
-      "ozone",
-      "particulate_matter",
-      "sulphur_dioxide",
-      "temperature"
     ]
   },
   "pt": {
     "lang_code": "pt",
     "lang": "Portuguese",
-    "contamination_date_1": "Hoje",
     "poll_titles": [
       {
-        "name": "Esporos fúngicos",
-        "latin": "Alternaria"
+        "name": "esporos fúngicos",
+        "latin": "Alternaria",
+        "poll_id": 23
       },
       {
-        "name": "Gramíneas",
-        "latin": "Poaceae"
+        "name": "gramíneas",
+        "latin": "Poaceae",
+        "poll_id": 5
       },
       {
-        "name": "Família de ciprestes",
-        "latin": "Cupressaceae"
+        "name": "família de ciprestes",
+        "latin": "Cupressaceae",
+        "poll_id": 17
       },
       {
-        "name": "Família das urtigas",
-        "latin": "Urticaceae"
+        "name": "família das urtigas",
+        "latin": "Urticaceae",
+        "poll_id": 15
       },
       {
-        "name": "Artemísia",
-        "latin": "Artemisia"
+        "name": "artemísia",
+        "latin": "Artemisia",
+        "poll_id": 7
       },
       {
-        "name": "Amieiro",
-        "latin": "Alnus"
+        "name": "amieiro",
+        "latin": "Alnus",
+        "poll_id": 1
       },
       {
-        "name": "Aveleira",
-        "latin": "Corylus"
+        "name": "aveleira",
+        "latin": "Corylus",
+        "poll_id": 3
       },
       {
-        "name": "Vidoeiro",
-        "latin": "Betula"
+        "name": "vidoeiro",
+        "latin": "Betula",
+        "poll_id": 2
       },
       {
         "name": "Platano",
-        "latin": "Platanus"
+        "latin": "Platanus",
+        "poll_id": 16
       },
       {
-        "name": "Centeio",
-        "latin": "Secale"
+        "name": "centeio",
+        "latin": "Secale",
+        "poll_id": 291
       },
       {
-        "name": "Oliveira",
-        "latin": "Olea"
+        "name": "oliveira",
+        "latin": "Olea",
+        "poll_id": 18
       },
       {
-        "name": "Tasna, ambrosia",
-        "latin": "Ambrosia"
+        "name": "tasna, ambrosia",
+        "latin": "Ambrosia",
+        "poll_id": 6
       }
-    ],
-    "additional_forecast_keys": [
-      "air_quality",
-      "asthma_weather",
-      "dayrisk",
-      "nitrogen_dioxide",
-      "ozone",
-      "particulate_matter",
-      "sulphur_dioxide",
-      "temperature"
     ]
   },
   "ru": {
     "lang_code": "ru",
     "lang": "Russian",
-    "contamination_date_1": "Сегодня",
     "poll_titles": [
       {
         "name": "споры грибов",
-        "latin": "Alternaria"
+        "latin": "Alternaria",
+        "poll_id": 23
       },
       {
         "name": "злаки",
-        "latin": "Poaceae"
+        "latin": "Poaceae",
+        "poll_id": 5
       },
       {
         "name": "семейство Кипарисовые",
-        "latin": "Cupressaceae"
+        "latin": "Cupressaceae",
+        "poll_id": 17
       },
       {
         "name": "семейство Крапивные",
-        "latin": "Urticaceae"
+        "latin": "Urticaceae",
+        "poll_id": 15
       },
       {
         "name": "полынь",
-        "latin": "Artemisia"
+        "latin": "Artemisia",
+        "poll_id": 7
       },
       {
         "name": "ольха",
-        "latin": "Alnus"
+        "latin": "Alnus",
+        "poll_id": 1
       },
       {
         "name": "орешник, лещина",
-        "latin": "Corylus"
+        "latin": "Corylus",
+        "poll_id": 3
       },
       {
         "name": "береза",
-        "latin": "Betula"
+        "latin": "Betula",
+        "poll_id": 2
       },
       {
         "name": "платан",
-        "latin": "Platanus"
+        "latin": "Platanus",
+        "poll_id": 16
       },
       {
         "name": "рожь",
-        "latin": "Secale"
+        "latin": "Secale",
+        "poll_id": 291
       },
       {
         "name": "олива",
-        "latin": "Olea"
+        "latin": "Olea",
+        "poll_id": 18
       },
       {
         "name": "амброзия",
-        "latin": "Ambrosia"
+        "latin": "Ambrosia",
+        "poll_id": 6
       }
-    ],
-    "additional_forecast_keys": [
-      "air_quality",
-      "asthma_weather",
-      "dayrisk",
-      "nitrogen_dioxide",
-      "ozone",
-      "particulate_matter",
-      "sulphur_dioxide",
-      "temperature"
     ]
   },
   "sk": {
     "lang_code": "sk",
     "lang": "Slovak",
-    "contamination_date_1": "Dnes",
     "poll_titles": [
       {
         "name": "Spóry húb",
-        "latin": "Alternaria"
+        "latin": "Alternaria",
+        "poll_id": 23
       },
       {
         "name": "Trávy",
-        "latin": "Poaceae"
+        "latin": "Poaceae",
+        "poll_id": 5
       },
       {
         "name": "Čeľaď cyprusovité",
-        "latin": "Cupressaceae"
+        "latin": "Cupressaceae",
+        "poll_id": 17
       },
       {
         "name": "Žihľava a pŕhľava",
-        "latin": "Urticaceae"
+        "latin": "Urticaceae",
+        "poll_id": 15
       },
       {
         "name": "Pŕhľava",
-        "latin": "Artemisia"
+        "latin": "Artemisia",
+        "poll_id": 7
       },
       {
         "name": "Jelša",
-        "latin": "Alnus"
+        "latin": "Alnus",
+        "poll_id": 1
       },
       {
         "name": "Lieska",
-        "latin": "Corylus"
+        "latin": "Corylus",
+        "poll_id": 3
       },
       {
         "name": "Breza",
-        "latin": "Betula"
+        "latin": "Betula",
+        "poll_id": 2
       },
       {
         "name": "Platan",
-        "latin": "Platanus"
+        "latin": "Platanus",
+        "poll_id": 16
       },
       {
         "name": "Žito",
-        "latin": "Secale"
+        "latin": "Secale",
+        "poll_id": 291
       },
       {
         "name": "Olivovník",
-        "latin": "Olea"
+        "latin": "Olea",
+        "poll_id": 18
       },
       {
         "name": "Ragweed",
-        "latin": "ambrózia"
+        "latin": "ambrózia",
+        "poll_id": 6
       }
-    ],
-    "additional_forecast_keys": [
-      "air_quality",
-      "asthma_weather",
-      "dayrisk",
-      "nitrogen_dioxide",
-      "ozone",
-      "particulate_matter",
-      "sulphur_dioxide",
-      "temperature"
     ]
   },
   "es": {
     "lang_code": "es",
     "lang": "Spanish",
-    "contamination_date_1": "Hoy",
     "poll_titles": [
       {
-        "name": "Esporas de hongos",
-        "latin": "Alternaria"
+        "name": "esporas de hongos",
+        "latin": "Alternaria",
+        "poll_id": 23
       },
       {
         "name": "Gramíneas",
-        "latin": "Poaceae"
+        "latin": "Poaceae",
+        "poll_id": 5
       },
       {
-        "name": "Familia de cipreses",
-        "latin": "Cupressaceae"
+        "name": "familia de cipreses",
+        "latin": "Cupressaceae",
+        "poll_id": 17
       },
       {
         "name": "Ortiga y parietaria",
-        "latin": "Urticaceae"
+        "latin": "Urticaceae",
+        "poll_id": 15
       },
       {
         "name": "Artemisia",
-        "latin": ""
+        "latin": "",
+        "poll_id": 7
       },
       {
         "name": "Aliso",
-        "latin": "Alnus"
+        "latin": "Alnus",
+        "poll_id": 1
       },
       {
         "name": "Avellano",
-        "latin": "Corylus"
+        "latin": "Corylus",
+        "poll_id": 3
       },
       {
         "name": "Abedul",
-        "latin": "Betula"
+        "latin": "Betula",
+        "poll_id": 2
       },
       {
         "name": "Platanero",
-        "latin": "Platanus"
+        "latin": "Platanus",
+        "poll_id": 16
       },
       {
-        "name": "Centeno",
-        "latin": "Secale"
+        "name": "centeno",
+        "latin": "Secale",
+        "poll_id": 291
       },
       {
         "name": "Olivo",
-        "latin": "Olea"
+        "latin": "Olea",
+        "poll_id": 18
       },
       {
         "name": "Ambrosías",
-        "latin": "Ambrosia"
+        "latin": "Ambrosia",
+        "poll_id": 6
       }
-    ],
-    "additional_forecast_keys": [
-      "air_quality",
-      "asthma_weather",
-      "dayrisk",
-      "nitrogen_dioxide",
-      "ozone",
-      "particulate_matter",
-      "sulphur_dioxide",
-      "temperature"
     ]
   },
   "tr": {
     "lang_code": "tr",
     "lang": "Turkish",
-    "contamination_date_1": "Bugün",
     "poll_titles": [
       {
-        "name": "Mantar sporları",
-        "latin": "Alternaria"
+        "name": "mantar sporları",
+        "latin": "Alternaria",
+        "poll_id": 23
       },
       {
-        "name": "Otlar",
-        "latin": "Poaceae"
+        "name": "otlar",
+        "latin": "Poaceae",
+        "poll_id": 5
       },
       {
-        "name": "Servigiller",
-        "latin": "Cupressaceae"
+        "name": "servigiller",
+        "latin": "Cupressaceae",
+        "poll_id": 17
       },
       {
         "name": "ısırgangiller",
-        "latin": "Urticaceae"
+        "latin": "Urticaceae",
+        "poll_id": 15
       },
       {
-        "name": "Pelin otu",
-        "latin": "Artemisia"
+        "name": "pelin otu",
+        "latin": "Artemisia",
+        "poll_id": 7
       },
       {
-        "name": "Kızıl ağaç",
-        "latin": "Alnus"
+        "name": "kızıl ağaç",
+        "latin": "Alnus",
+        "poll_id": 1
       },
       {
-        "name": "Fındık ağacı",
-        "latin": "Corylus"
+        "name": "fındık ağacı",
+        "latin": "Corylus",
+        "poll_id": 3
       },
       {
-        "name": "Huş ağacı",
-        "latin": "Betula"
+        "name": "huş ağacı",
+        "latin": "Betula",
+        "poll_id": 2
       },
       {
         "name": "Çınar ağacı",
-        "latin": "Platanus"
+        "latin": "Platanus",
+        "poll_id": 16
       },
       {
         "name": "Çavdar",
-        "latin": "Secale"
+        "latin": "Secale",
+        "poll_id": 291
       },
       {
-        "name": "Zeytin ağacı",
-        "latin": "Olea"
+        "name": "zeytin ağacı",
+        "latin": "Olea",
+        "poll_id": 18
       },
       {
         "name": "üzüm otu",
-        "latin": "Ambrosia"
+        "latin": "Ambrosia",
+        "poll_id": 6
       }
-    ],
-    "additional_forecast_keys": [
-      "air_quality",
-      "asthma_weather",
-      "dayrisk",
-      "nitrogen_dioxide",
-      "ozone",
-      "particulate_matter",
-      "sulphur_dioxide",
-      "temperature"
     ]
   },
   "uk": {
     "lang_code": "uk",
     "lang": "Ukrainian",
-    "contamination_date_1": "Сьогодні",
     "poll_titles": [
       {
         "name": "Спори грибів",
-        "latin": "Alternaria"
+        "latin": "Alternaria",
+        "poll_id": 23
       },
       {
         "name": "злаки",
-        "latin": "Poaceae"
+        "latin": "Poaceae",
+        "poll_id": 5
       },
       {
         "name": "Родина Кипарисових",
-        "latin": "Cupressaceae"
+        "latin": "Cupressaceae",
+        "poll_id": 17
       },
       {
         "name": "Родина Кропивових",
-        "latin": "Urticaceae"
+        "latin": "Urticaceae",
+        "poll_id": 15
       },
       {
         "name": "полин",
-        "latin": "Artemisia"
+        "latin": "Artemisia",
+        "poll_id": 7
       },
       {
         "name": "вільха",
-        "latin": "Alnus"
+        "latin": "Alnus",
+        "poll_id": 1
       },
       {
         "name": "ліщина",
-        "latin": "Corylus"
+        "latin": "Corylus",
+        "poll_id": 3
       },
       {
         "name": "береза",
-        "latin": "Betula"
+        "latin": "Betula",
+        "poll_id": 2
       },
       {
         "name": "платан",
-        "latin": "Platanus"
+        "latin": "Platanus",
+        "poll_id": 16
       },
       {
         "name": "жито",
-        "latin": "Secale"
+        "latin": "Secale",
+        "poll_id": 291
       },
       {
         "name": "олива",
-        "latin": "Olea"
+        "latin": "Olea",
+        "poll_id": 18
       },
       {
         "name": "амброзія",
-        "latin": "Ambrosia"
+        "latin": "Ambrosia",
+        "poll_id": 6
       }
-    ],
-    "additional_forecast_keys": [
-      "air_quality",
-      "asthma_weather",
-      "dayrisk",
-      "nitrogen_dioxide",
-      "ozone",
-      "particulate_matter",
-      "sulphur_dioxide",
-      "temperature"
     ]
   },
   "hu": {
     "lang_code": "hu",
     "lang": "Hungarian",
-    "contamination_date_1": "Ma",
     "poll_titles": [
       {
-        "name": "Gombaspórák",
-        "latin": "Alternaria"
+        "name": "gombaspórák",
+        "latin": "Alternaria",
+        "poll_id": 23
       },
       {
-        "name": "Pázsitfûfélék",
-        "latin": "Poaceae"
+        "name": "pázsitfûfélék",
+        "latin": "Poaceae",
+        "poll_id": 5
       },
       {
-        "name": "Ciprusfélék",
-        "latin": "Cupressaceae"
+        "name": "ciprusfélék",
+        "latin": "Cupressaceae",
+        "poll_id": 17
       },
       {
-        "name": "Csalánfélék",
-        "latin": "Urticaceae"
+        "name": "csalánfélék",
+        "latin": "Urticaceae",
+        "poll_id": 15
       },
       {
         "name": "üröm",
-        "latin": "Artemisia"
+        "latin": "Artemisia",
+        "poll_id": 7
       },
       {
         "name": "éger",
-        "latin": "Alnus"
+        "latin": "Alnus",
+        "poll_id": 1
       },
       {
-        "name": "Mogyoró",
-        "latin": "Corylus"
+        "name": "mogyoró",
+        "latin": "Corylus",
+        "poll_id": 3
       },
       {
-        "name": "Nyír",
-        "latin": "Betula"
+        "name": "nyír",
+        "latin": "Betula",
+        "poll_id": 2
       },
       {
-        "name": "Platán",
-        "latin": "Platanus"
+        "name": "platán",
+        "latin": "Platanus",
+        "poll_id": 16
       },
       {
-        "name": "Rozs",
-        "latin": "Secale"
+        "name": "rozs",
+        "latin": "Secale",
+        "poll_id": 291
       },
       {
-        "name": "Olajfa",
-        "latin": "Olea"
+        "name": "olajfa",
+        "latin": "Olea",
+        "poll_id": 18
       },
       {
-        "name": "Parlagfû",
-        "latin": "Ambrosia"
+        "name": "parlagfû",
+        "latin": "Ambrosia",
+        "poll_id": 6
       }
-    ],
-    "additional_forecast_keys": [
-      "air_quality",
-      "asthma_weather",
-      "dayrisk",
-      "nitrogen_dioxide",
-      "ozone",
-      "particulate_matter",
-      "sulphur_dioxide",
-      "temperature"
     ]
   }
 }
