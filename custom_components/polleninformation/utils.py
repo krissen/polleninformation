@@ -7,12 +7,8 @@ import unicodedata
 
 import aiohttp
 
-from .const import (
-    COUNTRY_DISPLAY_NAMES,
-    LANGUAGE_DISPLAY_NAMES,
-    SUPPORTED_COUNTRIES,
-    SUPPORTED_LANGUAGES,
-)
+from .const import (COUNTRY_DISPLAY_NAMES, LANGUAGE_DISPLAY_NAMES,
+                    SUPPORTED_COUNTRIES, SUPPORTED_LANGUAGES)
 
 LANGUAGE_MAP_FILE = os.path.join(os.path.dirname(__file__), "language_map.json")
 
@@ -199,14 +195,15 @@ async def async_get_country_options(hass):
 
 # --- MISC UTILS ---
 
-
 def normalize(text: str) -> str:
     """
     Normalize a string for use in entity or object_id.
+    Replaces all sequences of non-alphanumeric characters (including parentheses, commas, dots, spaces, etc.)
+    with a single underscore, merges consecutive underscores, strips leading/trailing underscores, and lowercases the result.
+    Ensures DRY and KISS: never produces double underscores.
     """
     try:
         from unidecode import unidecode
-
         text = unidecode(text)
     except ImportError:
         text = (
@@ -214,9 +211,7 @@ def normalize(text: str) -> str:
             .encode("ascii", "ignore")
             .decode("ascii")
         )
-    # Remove parentheses and commas, replace with underscore
-    text = text.replace("(", "_").replace(")", "_").replace(",", "_").replace(".", "_")
-    text = text.strip().lower()
+    # Replace Swedish and German special characters
     text = (
         text.replace("ö", "o")
         .replace("ä", "a")
@@ -224,10 +219,14 @@ def normalize(text: str) -> str:
         .replace("ß", "ss")
         .replace("'", "")
     )
-    # Replace any sequence of non-word characters with a single underscore
+    # Replace all sequences of non-alphanumeric characters with a single underscore
     text = re.sub(r"[^\w]+", "_", text)
+    # Merge multiple underscores to a single underscore
+    text = re.sub(r"_+", "_", text)
     # Remove leading/trailing underscores
     text = text.strip("_")
+    # Lowercase the result
+    text = text.lower()
     return text
 
 
