@@ -1,0 +1,32 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Pievienot ziedputekšņu informāciju",
+        "data": {
+          "country": "Valsts",
+          "latitude": "Platums",
+          "longitude": "Garums",
+          "language": "Valoda",
+          "location": "Atrašanās vieta (izvēlieties kartē)",
+          "location_name": "Vietas nosaukums (nav obligāts)",
+          "apikey": "API atslēga"
+        },
+        "description": "Izvēlieties valsti un atrašanās vietu, kur vēlaties uzraudzīt ziedputekšņu prognozi, un valodu, kādā konfigurēt sensorus. Jums ir nepieciešama API atslēga no polleninformation.at. Pieprasiet to šeit: https://www.polleninformation.at/en/data-interface/request-an-api-key"
+      }
+    },
+    "error": {
+      "invalid_latitude": "Nederīgs platums",
+      "invalid_longitude": "Nederīgs garums",
+      "invalid_language": "Nederīga valoda",
+      "invalid_country": "Nederīga valsts",
+      "suggested_country": "Atlasītajā valstī šajā vietā dati nav atrasti. Mēģiniet mainīt valsti vai vietu.",
+      "no_sensors_for_country": "Atlasītajā valstī šajā vietā sensori nav atrasti.",
+      "missing_apikey": "Trūkst API atslēgas",
+      "no_pollen_data": "Šai vietai nav atgriezti ziedputekšņu dati."
+    },
+    "abort": {
+      "already_configured": "Šī vieta jau ir konfigurēta."
+    }
+  }
+}

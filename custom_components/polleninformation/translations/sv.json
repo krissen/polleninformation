@@ -3,24 +3,30 @@
     "step": {
       "user": {
         "title": "Lägg till polleninformation",
-        "description": "Välj land och plats där du vill övervaka pollenprognos.",
         "data": {
           "country": "Land",
           "latitude": "Latitud",
-          "longitude": "Longitud"
-        }
+          "longitude": "Longitud",
+          "language": "Språk",
+          "location": "Plats (välj på karta)",
+          "location_name": "Platsnamn (valfritt)",
+          "apikey": "API-nyckel"
+        },
+        "description": "Välj land och plats där du vill övervaka pollenprognosen samt det språk du vill ha dina sensorer på. Du behöver en API-nyckel för polleninformation.at. Begär den på: https://www.polleninformation.at/en/data-interface/request-an-api-key"
       }
     },
     "error": {
-      "invalid_country": "Ogiltigt land",
       "invalid_latitude": "Ogiltig latitud",
       "invalid_longitude": "Ogiltig longitud",
-      "suggested_country_sv": "Inga data hittades för valt land på denna plats. Försök ändra land eller plats.",
-      "no_sensors_for_country": "Inga sensorer hittades för valt land på denna plats."
+      "invalid_language": "Ogiltigt språk",
+      "invalid_country": "Ogiltigt land",
+      "suggested_country": "Inga data hittades för valt land på denna plats. Prova att byta land eller plats.",
+      "no_sensors_for_country": "Inga sensorer hittades för valt land på denna plats.",
+      "missing_apikey": "API-nyckel saknas",
+      "no_pollen_data": "Inga pollendata returnerades för denna plats."
     },
     "abort": {
-      "already_configured": "Den här platsen är redan konfigurerad."
+      "already_configured": "Denna plats är redan konfigurerad."
     }
   }
 }
-

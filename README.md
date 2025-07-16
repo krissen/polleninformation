@@ -7,7 +7,9 @@
 [![Project Maintenance][maintenance-shield]][user_profile]
 [![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
 
-A modern Home Assistant integration for monitoring pollen and air quality across Europe, data provided through [the Austrian Pollen Information Service](https://www.polleninformation.eu).
+A modern Home Assistant integration for monitoring pollen across Europe, data provided through [the Austrian Pollen Information Service](https://www.polleninformation.eu).
+
+> **NOTE:** As of v0.4.0, you must use your own API key. Request it [here](https://www.polleninformation.at/en/data-interface/request-an-api-key).
 
 <table align="center">
   <tr>
@@ -31,10 +33,10 @@ A modern Home Assistant integration for monitoring pollen and air quality across
 
 ## Features
 
-- **Supported countries:** Austria, Switzerland, Germany, Spain, France, United Kingdom, Italy, Lithuania, Latvia, Poland, Sweden, Türkiye, Ukraine, Holy See (Vatican City State)
+- **Supported countries:** Austria, Switzerland, Germany, Spain, France, United Kingdom, Italy, Lithuania, Latvia, Poland, Sweden, Türkiye, and Ukraine.
 - **Multiple allergens:** Individual sensors for each detected allergen. *Different countries have different supported allergens.*
-- **Air quality:** Additional sensors for ozone, particulate matter, nitrogen dioxide, sulphur dioxide, temperature, and more. *Different countries have different supported air quality sensors.*
 - **Multi-day forecast:** Each sensor exposes several days of forecast data.
+- **Allergy risk**, by day and by hour.
 - **Beautiful icons & friendly names:** Instantly recognizable in the Home Assistant UI.
 - **Pair with pollenprognos-card:** Screenshots above have been made with [pollenprognos-card](https://github.com/krissen/pollenprognos-card)
 
@@ -50,9 +52,12 @@ A modern Home Assistant integration for monitoring pollen and air quality across
 ## Configuration
 
 1. Go to **Settings → Devices & Services → Add Integration**.
-2. Search for `Pollen Information EU` and follow the setup flow.
-3. Enter your location (latitude/longitude) and country.
-4. Sensors will be automatically created for each available allergen and air quality metric at your chosen location.
+2. Search for `Pollen Information EU` and follow the setup flow:
+3. Choose a country;
+4. enter a place name (free text);
+5. set location through the map or by entering coordinates;
+6. enter your API key.
+7. Sensors will be automatically created for each available allergen at your chosen location.
 
 ---
 
@@ -66,17 +71,27 @@ The integration will create sensors named like:
 
 Each sensor includes:
 
-- Current pollen or air quality level
+- Current pollen level (numerical and descriptive string)
 - Multi-day forecast as an attribute
 - Human-friendly names and icons for all entities
 
 **The integration updates sensor data every 8 hours.** On the one hand, this could have been user configurable. On the other, we are using undocumented API and I doubt the pollen situation changes drastically within 8 hours. Better be conservative and keep using the API.
 
+### API usage and v0.4.0 changes
+
+As of **v0.4.0**, this integration uses the new official public API provided by the [Austrian Pollen Information Service](https://www.polleninformation.at/en/data-interface).  
+You **must request a personal API key** to use the integration—get your key [here](https://www.polleninformation.at/en/data-interface/request-an-api-key).
+
+The previous versions of the integration used an undocumented, internal API endpoint. That endpoint is now closed for public use, following [the provider’s announcement](https://www.polleninformation.at/en/data-interface).  
+You will need to update to v0.4.0 or later and configure your new API key to continue receiving pollen data.
+
+*For more information about the API and its terms of use, see [Austrian Pollen Information Service - Data Interface](https://www.polleninformation.at/en/data-interface).*
+
 ---
 
 ## Data Source & Attribution
 
-All data is provided by the [Austrian Pollen Information Service](https://www.polleninformation.at/).
+All data is provided by the [Austrian Pollen Information Service](https://www.polleninformation.at/), via their [official public API](https://www.polleninformation.at/en/data-interface).  
 
 ---
 

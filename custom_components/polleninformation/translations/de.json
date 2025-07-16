@@ -1,0 +1,32 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Polleninformationen hinzufügen",
+        "data": {
+          "country": "Land",
+          "latitude": "Breitengrad",
+          "longitude": "Längengrad",
+          "language": "Sprache",
+          "location": "Standort (auf der Karte auswählen)",
+          "location_name": "Standortname (optional)",
+          "apikey": "API-Schlüssel"
+        },
+        "description": "Wählen Sie das Land und den Ort, für den Sie die Pollenprognose überwachen möchten, sowie die Sprache, in der Ihre Sensoren konfiguriert werden sollen. Sie benötigen einen API-Schlüssel für polleninformation.at. Beantragen Sie diesen unter: https://www.polleninformation.at/en/data-interface/request-an-api-key"
+      }
+    },
+    "error": {
+      "invalid_latitude": "Ungültiger Breitengrad",
+      "invalid_longitude": "Ungültiger Längengrad",
+      "invalid_language": "Ungültige Sprache",
+      "invalid_country": "Ungültiges Land",
+      "suggested_country": "Für das ausgewählte Land an diesem Standort wurden keine Daten gefunden. Versuchen Sie, das Land oder den Standort zu ändern.",
+      "no_sensors_for_country": "Für das ausgewählte Land an diesem Standort wurden keine Sensoren gefunden.",
+      "missing_apikey": "API-Schlüssel fehlt",
+      "no_pollen_data": "Für diesen Standort wurden keine Pollendaten zurückgegeben."
+    },
+    "abort": {
+      "already_configured": "Dieser Standort ist bereits konfiguriert."
+    }
+  }
+}

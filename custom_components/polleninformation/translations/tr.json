@@ -1,0 +1,32 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Polen Bilgisi Ekle",
+        "data": {
+          "country": "Ülke",
+          "latitude": "Enlem",
+          "longitude": "Boylam",
+          "language": "Dil",
+          "location": "Konum (haritadan seçin)",
+          "location_name": "Konum adı (isteğe bağlı)",
+          "apikey": "API anahtarı"
+        },
+        "description": "Polen tahminini izlemek istediğiniz ülkeyi ve konumu, ayrıca sensörlerinizi yapılandırmak istediğiniz dili seçin. polleninformation.at için bir API anahtarına ihtiyacınız var. Şuradan talep edin: https://www.polleninformation.at/en/data-interface/request-an-api-key"
+      }
+    },
+    "error": {
+      "invalid_latitude": "Geçersiz enlem",
+      "invalid_longitude": "Geçersiz boylam",
+      "invalid_language": "Geçersiz dil",
+      "invalid_country": "Geçersiz ülke",
+      "suggested_country": "Seçilen ülke ve konum için veri bulunamadı. Lütfen ülkeyi veya konumu değiştirin.",
+      "no_sensors_for_country": "Seçilen ülke ve konum için sensör bulunamadı.",
+      "missing_apikey": "API anahtarı eksik",
+      "no_pollen_data": "Bu konum için polen verisi döndürülmedi."
+    },
+    "abort": {
+      "already_configured": "Bu konum zaten yapılandırılmış."
+    }
+  }
+}

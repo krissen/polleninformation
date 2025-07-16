@@ -3,24 +3,30 @@
     "step": {
       "user": {
         "title": "Add Pollen Information",
-        "description": "Select the country and location where you want to monitor the pollen forecast.",
+        "description": "Select the country and location where you want to monitor the pollen forecast and the language you want your sensors configured as. You need an API key for polleninformation.at. Request it at: https://www.polleninformation.at/en/data-interface/request-an-api-key",
         "data": {
           "country": "Country",
+          "location": "Location (select on map)",
+          "location_name": "Location name (optional)",
           "latitude": "Latitude",
-          "longitude": "Longitude"
+          "longitude": "Longitude",
+          "language": "Language",
+          "apikey": "API key"
         }
       }
     },
     "error": {
       "invalid_latitude": "Invalid latitude",
       "invalid_longitude": "Invalid longitude",
+      "invalid_language": "Invalid language",
       "invalid_country": "Invalid country",
+      "missing_apikey": "Missing API key",
       "suggested_country": "No data found for selected country at this location. Try changing country or location.",
-      "no_sensors_for_country": "No sensors found for selected country at this location."
+      "no_sensors_for_country": "No sensors found for selected country at this location.",
+      "no_pollen_data": "No pollen data returned for this location."
     },
     "abort": {
       "already_configured": "This location is already configured."
     }
   }
 }
-

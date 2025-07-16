@@ -1,0 +1,32 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Adicionar informações de pólen",
+        "data": {
+          "country": "País",
+          "latitude": "Latitude",
+          "longitude": "Longitude",
+          "language": "Idioma",
+          "location": "Localização (selecione no mapa)",
+          "location_name": "Nome da localização (opcional)",
+          "apikey": "Chave API"
+        },
+        "description": "Selecione o país e a localização onde pretende monitorizar a previsão do pólen e o idioma para configurar os sensores. É necessária uma chave API do polleninformation.at. Solicite-a em: https://www.polleninformation.at/en/data-interface/request-an-api-key"
+      }
+    },
+    "error": {
+      "invalid_latitude": "Latitude inválida",
+      "invalid_longitude": "Longitude inválida",
+      "invalid_language": "Idioma inválido",
+      "invalid_country": "País inválido",
+      "suggested_country": "Nenhum dado encontrado para o país selecionado nesta localização. Tente alterar o país ou a localização.",
+      "no_sensors_for_country": "Nenhum sensor encontrado para o país selecionado nesta localização.",
+      "missing_apikey": "Chave API ausente",
+      "no_pollen_data": "Nenhum dado de pólen retornado para este local."
+    },
+    "abort": {
+      "already_configured": "Este local já está configurado."
+    }
+  }
+}

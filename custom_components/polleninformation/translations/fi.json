@@ -1,0 +1,32 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Lisää siitepölytiedot",
+        "data": {
+          "country": "Maa",
+          "latitude": "Leveysaste",
+          "longitude": "Pituusaste",
+          "language": "Kieli",
+          "location": "Sijainti (valitse kartalta)",
+          "location_name": "Sijainnin nimi (valinnainen)",
+          "apikey": "API-avain"
+        },
+        "description": "Valitse maa ja sijainti, josta haluat seurata siitepölyennustetta, sekä kieli, jolla sensorit määritetään. Tarvitset API-avaimen palvelusta polleninformation.at. Pyydä avain täältä: https://www.polleninformation.at/en/data-interface/request-an-api-key"
+      }
+    },
+    "error": {
+      "invalid_latitude": "Virheellinen leveysaste",
+      "invalid_longitude": "Virheellinen pituusaste",
+      "invalid_language": "Virheellinen kieli",
+      "invalid_country": "Virheellinen maa",
+      "suggested_country": "Valitulle maalle ja sijainnille ei löytynyt tietoja. Kokeile toista maata tai sijaintia.",
+      "no_sensors_for_country": "Valitulle maalle ja sijainnille ei löytynyt sensoreita.",
+      "missing_apikey": "API-avain puuttuu",
+      "no_pollen_data": "Tälle sijainnille ei palautettu siitepölytietoja."
+    },
+    "abort": {
+      "already_configured": "Tämä sijainti on jo määritetty."
+    }
+  }
+}

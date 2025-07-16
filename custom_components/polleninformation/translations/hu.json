@@ -1,0 +1,32 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Polleninformáció hozzáadása",
+        "data": {
+          "country": "Ország",
+          "latitude": "Szélesség",
+          "longitude": "Hosszúság",
+          "language": "Nyelv",
+          "location": "Helyszín (válassza ki a térképen)",
+          "location_name": "Helyszín neve (opcionális)",
+          "apikey": "API-kulcs"
+        },
+        "description": "Válassza ki az országot és a helyszínt, ahol figyelni szeretné a pollenjósltat, valamint a szenzorok beállításához kívánt nyelvet. Szüksége van egy API-kulcsra a polleninformation.at-hez. Igényelje itt: https://www.polleninformation.at/en/data-interface/request-an-api-key"
+      }
+    },
+    "error": {
+      "invalid_latitude": "Érvénytelen szélesség",
+      "invalid_longitude": "Érvénytelen hosszúság",
+      "invalid_language": "Érvénytelen nyelv",
+      "invalid_country": "Érvénytelen ország",
+      "suggested_country": "A kiválasztott országra és helyre nem találhatók adatok. Próbálja meg módosítani az országot vagy a helyet.",
+      "no_sensors_for_country": "A kiválasztott országra és helyre nem találhatók szenzorok.",
+      "missing_apikey": "Hiányzó API-kulcs",
+      "no_pollen_data": "Ehhez a helyhez nem érkezett pollenadat."
+    },
+    "abort": {
+      "already_configured": "Ez a hely már konfigurálva van."
+    }
+  }
+}

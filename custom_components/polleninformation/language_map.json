@@ -1,0 +1,1058 @@
+{
+  "de": {
+    "lang_code": "de",
+    "lang": "German",
+    "poll_titles": [
+      {
+        "name": "Pilzsporen",
+        "latin": "Alternaria",
+        "poll_id": 23
+      },
+      {
+        "name": "Gräser",
+        "latin": "Poaceae",
+        "poll_id": 5
+      },
+      {
+        "name": "Zypressengewächse",
+        "latin": "Cupressaceae",
+        "poll_id": 17
+      },
+      {
+        "name": "Nessel- und Glaskraut",
+        "latin": "Urticaceae",
+        "poll_id": 15
+      },
+      {
+        "name": "Beifuß",
+        "latin": "Artemisia",
+        "poll_id": 7
+      },
+      {
+        "name": "Erle",
+        "latin": "Alnus",
+        "poll_id": 1
+      },
+      {
+        "name": "Hasel",
+        "latin": "Corylus",
+        "poll_id": 3
+      },
+      {
+        "name": "Birke",
+        "latin": "Betula",
+        "poll_id": 2
+      },
+      {
+        "name": "Platane",
+        "latin": "Platanus",
+        "poll_id": 16
+      },
+      {
+        "name": "Roggen",
+        "latin": "Secale",
+        "poll_id": 291
+      },
+      {
+        "name": "Ölbaum",
+        "latin": "Olea",
+        "poll_id": 18
+      },
+      {
+        "name": "Ragweed",
+        "latin": "Ambrosia",
+        "poll_id": 6
+      }
+    ]
+  },
+  "en": {
+    "lang_code": "en",
+    "lang": "English",
+    "poll_titles": [
+      {
+        "name": "fungal spores",
+        "latin": "Alternaria",
+        "poll_id": 23
+      },
+      {
+        "name": "grasses",
+        "latin": "Poaceae",
+        "poll_id": 5
+      },
+      {
+        "name": "cypress family",
+        "latin": "Cupressaceae",
+        "poll_id": 17
+      },
+      {
+        "name": "nettle family",
+        "latin": "Urticaceae",
+        "poll_id": 15
+      },
+      {
+        "name": "mugwort",
+        "latin": "Artemisia",
+        "poll_id": 7
+      },
+      {
+        "name": "alder",
+        "latin": "Alnus",
+        "poll_id": 1
+      },
+      {
+        "name": "hazel",
+        "latin": "Corylus",
+        "poll_id": 3
+      },
+      {
+        "name": "birch",
+        "latin": "Betula",
+        "poll_id": 2
+      },
+      {
+        "name": "plane tree",
+        "latin": "Platanus",
+        "poll_id": 16
+      },
+      {
+        "name": "rye",
+        "latin": "Secale",
+        "poll_id": 291
+      },
+      {
+        "name": "olive",
+        "latin": "Olea",
+        "poll_id": 18
+      },
+      {
+        "name": "ragweed",
+        "latin": "Ambrosia",
+        "poll_id": 6
+      }
+    ]
+  },
+  "fi": {
+    "lang_code": "fi",
+    "lang": "Finnish",
+    "poll_titles": [
+      {
+        "name": "sieni-itiöt",
+        "latin": "Alternaria",
+        "poll_id": 23
+      },
+      {
+        "name": "heinät",
+        "latin": "Poaceae",
+        "poll_id": 5
+      },
+      {
+        "name": "sypressit",
+        "latin": "Cupressaceae",
+        "poll_id": 17
+      },
+      {
+        "name": "nokkoskasvit",
+        "latin": "Urticaceae",
+        "poll_id": 15
+      },
+      {
+        "name": "pujo",
+        "latin": "Artemisia",
+        "poll_id": 7
+      },
+      {
+        "name": "leppä",
+        "latin": "Alnus",
+        "poll_id": 1
+      },
+      {
+        "name": "pähkinäpensas",
+        "latin": "Corylus",
+        "poll_id": 3
+      },
+      {
+        "name": "koivu",
+        "latin": "Betula",
+        "poll_id": 2
+      },
+      {
+        "name": "plataani",
+        "latin": "Platanus",
+        "poll_id": 16
+      },
+      {
+        "name": "ruis",
+        "latin": "Secale",
+        "poll_id": 291
+      },
+      {
+        "name": "oliivipuu",
+        "latin": "Olea",
+        "poll_id": 18
+      },
+      {
+        "name": "tuoksukki",
+        "latin": "Ambrosia",
+        "poll_id": 6
+      }
+    ]
+  },
+  "sv": {
+    "lang_code": "sv",
+    "lang": "Swedish",
+    "poll_titles": [
+      {
+        "name": "svampsporer",
+        "latin": "Alternaria",
+        "poll_id": 23
+      },
+      {
+        "name": "Gräs",
+        "latin": "Poaceae",
+        "poll_id": 5
+      },
+      {
+        "name": "cypressfamiljen",
+        "latin": "Cupressaceae",
+        "poll_id": 17
+      },
+      {
+        "name": "nässelfamiljen",
+        "latin": "Urticaceae",
+        "poll_id": 15
+      },
+      {
+        "name": "Gråbo",
+        "latin": "Artemisia",
+        "poll_id": 7
+      },
+      {
+        "name": "Al",
+        "latin": "Alnus",
+        "poll_id": 1
+      },
+      {
+        "name": "Hassel",
+        "latin": "Corylus",
+        "poll_id": 3
+      },
+      {
+        "name": "Björk",
+        "latin": "Betula",
+        "poll_id": 2
+      },
+      {
+        "name": "platan",
+        "latin": "Platanus",
+        "poll_id": 16
+      },
+      {
+        "name": "råg",
+        "latin": "Secale",
+        "poll_id": 291
+      },
+      {
+        "name": "oliv",
+        "latin": "Olea",
+        "poll_id": 18
+      },
+      {
+        "name": "malörtsambrosia",
+        "latin": "Ambrosia",
+        "poll_id": 6
+      }
+    ]
+  },
+  "fr": {
+    "lang_code": "fr",
+    "lang": "French",
+    "poll_titles": [
+      {
+        "name": "Spores fongiques",
+        "latin": "Alternaria",
+        "poll_id": 23
+      },
+      {
+        "name": "Graminées",
+        "latin": "Poaceae",
+        "poll_id": 5
+      },
+      {
+        "name": "Famille des cyprès",
+        "latin": "Cupressaceae",
+        "poll_id": 17
+      },
+      {
+        "name": "Famille des orties",
+        "latin": "Urticaceae",
+        "poll_id": 15
+      },
+      {
+        "name": "Armoise",
+        "latin": "Artemisia",
+        "poll_id": 7
+      },
+      {
+        "name": "Aulne",
+        "latin": "Alnus",
+        "poll_id": 1
+      },
+      {
+        "name": "Noisetier",
+        "latin": "Corylus",
+        "poll_id": 3
+      },
+      {
+        "name": "Bouleau",
+        "latin": "Betula",
+        "poll_id": 2
+      },
+      {
+        "name": "Platane",
+        "latin": "Platanus",
+        "poll_id": 16
+      },
+      {
+        "name": "Seigle",
+        "latin": "Secale",
+        "poll_id": 291
+      },
+      {
+        "name": "Olivier",
+        "latin": "Olea",
+        "poll_id": 18
+      },
+      {
+        "name": "Ambroisie",
+        "latin": "Ambrosia",
+        "poll_id": 6
+      }
+    ]
+  },
+  "it": {
+    "lang_code": "it",
+    "lang": "Italian",
+    "poll_titles": [
+      {
+        "name": "Spore fungine",
+        "latin": "Alternaria",
+        "poll_id": 23
+      },
+      {
+        "name": "Graminacee",
+        "latin": "Poaceae",
+        "poll_id": 5
+      },
+      {
+        "name": "Cupressacee",
+        "latin": "Cupressaceae",
+        "poll_id": 17
+      },
+      {
+        "name": "Urticacee",
+        "latin": "Urticaceae",
+        "poll_id": 15
+      },
+      {
+        "name": "Assenzio",
+        "latin": "Artemisia",
+        "poll_id": 7
+      },
+      {
+        "name": "Ontano",
+        "latin": "Alnus",
+        "poll_id": 1
+      },
+      {
+        "name": "Nocciolo",
+        "latin": "Corylus",
+        "poll_id": 3
+      },
+      {
+        "name": "Betulla",
+        "latin": "Betula",
+        "poll_id": 2
+      },
+      {
+        "name": "Platano",
+        "latin": "Platanus",
+        "poll_id": 16
+      },
+      {
+        "name": "Segale",
+        "latin": "Secale",
+        "poll_id": 291
+      },
+      {
+        "name": "Olivo",
+        "latin": "Olea",
+        "poll_id": 18
+      },
+      {
+        "name": "Ambrosia",
+        "latin": "Ambrosia",
+        "poll_id": 6
+      }
+    ]
+  },
+  "lv": {
+    "lang_code": "lv",
+    "lang": "Latvian",
+    "poll_titles": [
+      {
+        "name": "sēnīšu sporas",
+        "latin": "Alternaria",
+        "poll_id": 23
+      },
+      {
+        "name": "Graudzāles",
+        "latin": "Poaceae",
+        "poll_id": 5
+      },
+      {
+        "name": "Cipresu ģimene",
+        "latin": "Cupressaceae",
+        "poll_id": 17
+      },
+      {
+        "name": "Nātre",
+        "latin": "Urticaceae",
+        "poll_id": 15
+      },
+      {
+        "name": "Vībotne",
+        "latin": "Artemisia",
+        "poll_id": 7
+      },
+      {
+        "name": "Alksnis",
+        "latin": "Alnus",
+        "poll_id": 1
+      },
+      {
+        "name": "Lazda",
+        "latin": "Corylus",
+        "poll_id": 3
+      },
+      {
+        "name": "Bērzs",
+        "latin": "Betula",
+        "poll_id": 2
+      },
+      {
+        "name": "Platāna",
+        "latin": "Platanus",
+        "poll_id": 16
+      },
+      {
+        "name": "rudzi",
+        "latin": "Secale",
+        "poll_id": 291
+      },
+      {
+        "name": "Olīve",
+        "latin": "Olea",
+        "poll_id": 18
+      },
+      {
+        "name": "Ambrozija",
+        "latin": "Ambrosia",
+        "poll_id": 6
+      }
+    ]
+  },
+  "lt": {
+    "lang_code": "lt",
+    "lang": "Lithuanian",
+    "poll_titles": [
+      {
+        "name": "grybų sporos",
+        "latin": "Alternaria",
+        "poll_id": 23
+      },
+      {
+        "name": "migliniai",
+        "latin": "Poaceae",
+        "poll_id": 5
+      },
+      {
+        "name": "kiparisinių šeima",
+        "latin": "Cupressaceae",
+        "poll_id": 17
+      },
+      {
+        "name": "dilgėlinių šeima",
+        "latin": "Urticaceae",
+        "poll_id": 15
+      },
+      {
+        "name": "kietis",
+        "latin": "Artemisia",
+        "poll_id": 7
+      },
+      {
+        "name": "alksnis",
+        "latin": "Alnus",
+        "poll_id": 1
+      },
+      {
+        "name": "lazdynas",
+        "latin": "Corylus",
+        "poll_id": 3
+      },
+      {
+        "name": "beržas",
+        "latin": "Betula",
+        "poll_id": 2
+      },
+      {
+        "name": "platanas",
+        "latin": "Platanus",
+        "poll_id": 16
+      },
+      {
+        "name": "rugių",
+        "latin": "Secale",
+        "poll_id": 291
+      },
+      {
+        "name": "alyvmedis",
+        "latin": "Olea",
+        "poll_id": 18
+      },
+      {
+        "name": "ambrozija",
+        "latin": "Ambrosia",
+        "poll_id": 6
+      }
+    ]
+  },
+  "pl": {
+    "lang_code": "pl",
+    "lang": "Polish",
+    "poll_titles": [
+      {
+        "name": "zarodniki grzybów",
+        "latin": "Alternaria",
+        "poll_id": 23
+      },
+      {
+        "name": "trawy",
+        "latin": "Poaceae",
+        "poll_id": 5
+      },
+      {
+        "name": "cypryśnikowate",
+        "latin": "Cupressaceae",
+        "poll_id": 17
+      },
+      {
+        "name": "pokrzywowate",
+        "latin": "Urticaceae",
+        "poll_id": 15
+      },
+      {
+        "name": "bylica",
+        "latin": "Artemisia",
+        "poll_id": 7
+      },
+      {
+        "name": "olsza",
+        "latin": "Alnus",
+        "poll_id": 1
+      },
+      {
+        "name": "leszczyna",
+        "latin": "Corylus",
+        "poll_id": 3
+      },
+      {
+        "name": "brzoza",
+        "latin": "Betula",
+        "poll_id": 2
+      },
+      {
+        "name": "platan",
+        "latin": "Platanus",
+        "poll_id": 16
+      },
+      {
+        "name": "żyto",
+        "latin": "Secale",
+        "poll_id": 291
+      },
+      {
+        "name": "oliwka",
+        "latin": "Olea",
+        "poll_id": 18
+      },
+      {
+        "name": "ambrozja",
+        "latin": "Ambrosia",
+        "poll_id": 6
+      }
+    ]
+  },
+  "pt": {
+    "lang_code": "pt",
+    "lang": "Portuguese",
+    "poll_titles": [
+      {
+        "name": "esporos fúngicos",
+        "latin": "Alternaria",
+        "poll_id": 23
+      },
+      {
+        "name": "gramíneas",
+        "latin": "Poaceae",
+        "poll_id": 5
+      },
+      {
+        "name": "família de ciprestes",
+        "latin": "Cupressaceae",
+        "poll_id": 17
+      },
+      {
+        "name": "família das urtigas",
+        "latin": "Urticaceae",
+        "poll_id": 15
+      },
+      {
+        "name": "artemísia",
+        "latin": "Artemisia",
+        "poll_id": 7
+      },
+      {
+        "name": "amieiro",
+        "latin": "Alnus",
+        "poll_id": 1
+      },
+      {
+        "name": "aveleira",
+        "latin": "Corylus",
+        "poll_id": 3
+      },
+      {
+        "name": "vidoeiro",
+        "latin": "Betula",
+        "poll_id": 2
+      },
+      {
+        "name": "Platano",
+        "latin": "Platanus",
+        "poll_id": 16
+      },
+      {
+        "name": "centeio",
+        "latin": "Secale",
+        "poll_id": 291
+      },
+      {
+        "name": "oliveira",
+        "latin": "Olea",
+        "poll_id": 18
+      },
+      {
+        "name": "tasna, ambrosia",
+        "latin": "Ambrosia",
+        "poll_id": 6
+      }
+    ]
+  },
+  "ru": {
+    "lang_code": "ru",
+    "lang": "Russian",
+    "poll_titles": [
+      {
+        "name": "споры грибов",
+        "latin": "Alternaria",
+        "poll_id": 23
+      },
+      {
+        "name": "злаки",
+        "latin": "Poaceae",
+        "poll_id": 5
+      },
+      {
+        "name": "семейство Кипарисовые",
+        "latin": "Cupressaceae",
+        "poll_id": 17
+      },
+      {
+        "name": "семейство Крапивные",
+        "latin": "Urticaceae",
+        "poll_id": 15
+      },
+      {
+        "name": "полынь",
+        "latin": "Artemisia",
+        "poll_id": 7
+      },
+      {
+        "name": "ольха",
+        "latin": "Alnus",
+        "poll_id": 1
+      },
+      {
+        "name": "орешник, лещина",
+        "latin": "Corylus",
+        "poll_id": 3
+      },
+      {
+        "name": "береза",
+        "latin": "Betula",
+        "poll_id": 2
+      },
+      {
+        "name": "платан",
+        "latin": "Platanus",
+        "poll_id": 16
+      },
+      {
+        "name": "рожь",
+        "latin": "Secale",
+        "poll_id": 291
+      },
+      {
+        "name": "олива",
+        "latin": "Olea",
+        "poll_id": 18
+      },
+      {
+        "name": "амброзия",
+        "latin": "Ambrosia",
+        "poll_id": 6
+      }
+    ]
+  },
+  "sk": {
+    "lang_code": "sk",
+    "lang": "Slovak",
+    "poll_titles": [
+      {
+        "name": "Spóry húb",
+        "latin": "Alternaria",
+        "poll_id": 23
+      },
+      {
+        "name": "Trávy",
+        "latin": "Poaceae",
+        "poll_id": 5
+      },
+      {
+        "name": "Čeľaď cyprusovité",
+        "latin": "Cupressaceae",
+        "poll_id": 17
+      },
+      {
+        "name": "Žihľava a pŕhľava",
+        "latin": "Urticaceae",
+        "poll_id": 15
+      },
+      {
+        "name": "Pŕhľava",
+        "latin": "Artemisia",
+        "poll_id": 7
+      },
+      {
+        "name": "Jelša",
+        "latin": "Alnus",
+        "poll_id": 1
+      },
+      {
+        "name": "Lieska",
+        "latin": "Corylus",
+        "poll_id": 3
+      },
+      {
+        "name": "Breza",
+        "latin": "Betula",
+        "poll_id": 2
+      },
+      {
+        "name": "Platan",
+        "latin": "Platanus",
+        "poll_id": 16
+      },
+      {
+        "name": "Žito",
+        "latin": "Secale",
+        "poll_id": 291
+      },
+      {
+        "name": "Olivovník",
+        "latin": "Olea",
+        "poll_id": 18
+      },
+      {
+        "name": "Ragweed",
+        "latin": "ambrózia",
+        "poll_id": 6
+      }
+    ]
+  },
+  "es": {
+    "lang_code": "es",
+    "lang": "Spanish",
+    "poll_titles": [
+      {
+        "name": "esporas de hongos",
+        "latin": "Alternaria",
+        "poll_id": 23
+      },
+      {
+        "name": "Gramíneas",
+        "latin": "Poaceae",
+        "poll_id": 5
+      },
+      {
+        "name": "familia de cipreses",
+        "latin": "Cupressaceae",
+        "poll_id": 17
+      },
+      {
+        "name": "Ortiga y parietaria",
+        "latin": "Urticaceae",
+        "poll_id": 15
+      },
+      {
+        "name": "Artemisia",
+        "latin": "",
+        "poll_id": 7
+      },
+      {
+        "name": "Aliso",
+        "latin": "Alnus",
+        "poll_id": 1
+      },
+      {
+        "name": "Avellano",
+        "latin": "Corylus",
+        "poll_id": 3
+      },
+      {
+        "name": "Abedul",
+        "latin": "Betula",
+        "poll_id": 2
+      },
+      {
+        "name": "Platanero",
+        "latin": "Platanus",
+        "poll_id": 16
+      },
+      {
+        "name": "centeno",
+        "latin": "Secale",
+        "poll_id": 291
+      },
+      {
+        "name": "Olivo",
+        "latin": "Olea",
+        "poll_id": 18
+      },
+      {
+        "name": "Ambrosías",
+        "latin": "Ambrosia",
+        "poll_id": 6
+      }
+    ]
+  },
+  "tr": {
+    "lang_code": "tr",
+    "lang": "Turkish",
+    "poll_titles": [
+      {
+        "name": "mantar sporları",
+        "latin": "Alternaria",
+        "poll_id": 23
+      },
+      {
+        "name": "otlar",
+        "latin": "Poaceae",
+        "poll_id": 5
+      },
+      {
+        "name": "servigiller",
+        "latin": "Cupressaceae",
+        "poll_id": 17
+      },
+      {
+        "name": "ısırgangiller",
+        "latin": "Urticaceae",
+        "poll_id": 15
+      },
+      {
+        "name": "pelin otu",
+        "latin": "Artemisia",
+        "poll_id": 7
+      },
+      {
+        "name": "kızıl ağaç",
+        "latin": "Alnus",
+        "poll_id": 1
+      },
+      {
+        "name": "fındık ağacı",
+        "latin": "Corylus",
+        "poll_id": 3
+      },
+      {
+        "name": "huş ağacı",
+        "latin": "Betula",
+        "poll_id": 2
+      },
+      {
+        "name": "Çınar ağacı",
+        "latin": "Platanus",
+        "poll_id": 16
+      },
+      {
+        "name": "Çavdar",
+        "latin": "Secale",
+        "poll_id": 291
+      },
+      {
+        "name": "zeytin ağacı",
+        "latin": "Olea",
+        "poll_id": 18
+      },
+      {
+        "name": "üzüm otu",
+        "latin": "Ambrosia",
+        "poll_id": 6
+      }
+    ]
+  },
+  "uk": {
+    "lang_code": "uk",
+    "lang": "Ukrainian",
+    "poll_titles": [
+      {
+        "name": "Спори грибів",
+        "latin": "Alternaria",
+        "poll_id": 23
+      },
+      {
+        "name": "злаки",
+        "latin": "Poaceae",
+        "poll_id": 5
+      },
+      {
+        "name": "Родина Кипарисових",
+        "latin": "Cupressaceae",
+        "poll_id": 17
+      },
+      {
+        "name": "Родина Кропивових",
+        "latin": "Urticaceae",
+        "poll_id": 15
+      },
+      {
+        "name": "полин",
+        "latin": "Artemisia",
+        "poll_id": 7
+      },
+      {
+        "name": "вільха",
+        "latin": "Alnus",
+        "poll_id": 1
+      },
+      {
+        "name": "ліщина",
+        "latin": "Corylus",
+        "poll_id": 3
+      },
+      {
+        "name": "береза",
+        "latin": "Betula",
+        "poll_id": 2
+      },
+      {
+        "name": "платан",
+        "latin": "Platanus",
+        "poll_id": 16
+      },
+      {
+        "name": "жито",
+        "latin": "Secale",
+        "poll_id": 291
+      },
+      {
+        "name": "олива",
+        "latin": "Olea",
+        "poll_id": 18
+      },
+      {
+        "name": "амброзія",
+        "latin": "Ambrosia",
+        "poll_id": 6
+      }
+    ]
+  },
+  "hu": {
+    "lang_code": "hu",
+    "lang": "Hungarian",
+    "poll_titles": [
+      {
+        "name": "gombaspórák",
+        "latin": "Alternaria",
+        "poll_id": 23
+      },
+      {
+        "name": "pázsitfûfélék",
+        "latin": "Poaceae",
+        "poll_id": 5
+      },
+      {
+        "name": "ciprusfélék",
+        "latin": "Cupressaceae",
+        "poll_id": 17
+      },
+      {
+        "name": "csalánfélék",
+        "latin": "Urticaceae",
+        "poll_id": 15
+      },
+      {
+        "name": "üröm",
+        "latin": "Artemisia",
+        "poll_id": 7
+      },
+      {
+        "name": "éger",
+        "latin": "Alnus",
+        "poll_id": 1
+      },
+      {
+        "name": "mogyoró",
+        "latin": "Corylus",
+        "poll_id": 3
+      },
+      {
+        "name": "nyír",
+        "latin": "Betula",
+        "poll_id": 2
+      },
+      {
+        "name": "platán",
+        "latin": "Platanus",
+        "poll_id": 16
+      },
+      {
+        "name": "rozs",
+        "latin": "Secale",
+        "poll_id": 291
+      },
+      {
+        "name": "olajfa",
+        "latin": "Olea",
+        "poll_id": 18
+      },
+      {
+        "name": "parlagfû",
+        "latin": "Ambrosia",
+        "poll_id": 6
+      }
+    ]
+  }
+}

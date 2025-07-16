@@ -1,192 +1,256 @@
-"""Config flow for polleninformation.at integration."""
+# custom_components/polleninformation/config_flow.py
+"""Config flow for polleninformation.at integration (new API version).
 
-import json
+See official API documentation: https://www.polleninformation.at/en/data-interface
+"""
+
 import logging
-import os
 
-import aiohttp
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.config_entries import SOURCE_USER
+from homeassistant.helpers.selector import LocationSelector, LocationSelectorConfig
 
 from .api import async_get_pollenat_data
-from .const import DEFAULT_LANG, DEFAULT_LANG_ID, DOMAIN
-from .utils import extract_place_slug, slugify, split_location
+from .const import DEFAULT_LANG, DOMAIN
+from .utils import (
+    async_get_country_code_from_latlon,
+    async_get_country_options,
+    async_get_language_options,
+    async_load_available_languages,
+)
 
 _LOGGER = logging.getLogger(__name__)
 DEBUG = True
 
-AVAILABLE_COUNTRIES_FILE = os.path.join(
-    os.path.dirname(__file__), "available_countries.json"
-)
-
-
-async def async_load_available_countries(hass):
-    def _load_sync():
-        with open(AVAILABLE_COUNTRIES_FILE, encoding="utf-8") as f:
-            return json.load(f)["countries"]
-
-    return await hass.async_add_executor_job(_load_sync)
-
-
-async def async_get_country_code_from_latlon(hass, lat, lon):
-    url = f"https://nominatim.openstreetmap.org/reverse"
-    params = {
-        "lat": lat,
-        "lon": lon,
-        "format": "json",
-        "zoom": 3,  # Country-level
-        "addressdetails": 1,
-    }
-    headers = {"User-Agent": "Home Assistant Polleninformation Integration"}
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url, params=params, headers=headers, timeout=5) as resp:
-            if resp.status == 200:
-                result = await resp.json()
-                return result.get("address", {}).get("country_code", "").upper()
-    return None
-
-
-async def async_get_country_options(hass):
-    countries = await async_load_available_countries(hass)
-    return {
-        c["code"]: c["name"] for c in sorted(countries, key=lambda c: c["name"].lower())
-    }
+# Mapping from country code to central coordinates and radius for map zoom
+COUNTRY_CENTER = {
+    "AT": {"latitude": 47.5, "longitude": 14.0, "radius": 150000},  # Austria
+    "CH": {"latitude": 47.0, "longitude": 8.0, "radius": 120000},  # Switzerland
+    "DE": {"latitude": 51.0, "longitude": 10.0, "radius": 300000},  # Germany
+    "ES": {"latitude": 40.0, "longitude": -4.0, "radius": 350000},  # Spain
+    "FR": {"latitude": 46.6, "longitude": 2.2, "radius": 350000},  # France
+    "GB": {"latitude": 54.0, "longitude": -2.0, "radius": 300000},  # United Kingdom
+    "IT": {"latitude": 42.8, "longitude": 12.8, "radius": 250000},  # Italy
+    "LT": {"latitude": 55.2, "longitude": 23.8, "radius": 100000},  # Lithuania
+    "LV": {"latitude": 56.9, "longitude": 24.6, "radius": 100000},  # Latvia
+    "PL": {"latitude": 52.0, "longitude": 19.0, "radius": 200000},  # Poland
+    "SE": {"latitude": 62.0, "longitude": 16.0, "radius": 400000},  # Sweden
+    "TR": {"latitude": 39.0, "longitude": 35.0, "radius": 400000},  # Turkey
+    "UA": {"latitude": 49.0, "longitude": 32.0, "radius": 400000},  # Ukraine
+}
 
 
 class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+    """Config flow for polleninformation.at integration."""
+
     VERSION = 1
 
     async def async_step_user(self, user_input=None):
+        """Initial step for config flow. User selects country, coordinates via map, language, API key, and location name."""
         errors = {}
 
         country_options = await async_get_country_options(self.hass)
-        default_lat = round(self.hass.config.latitude, 5)
-        default_lon = round(self.hass.config.longitude, 5)
+        lang_options = await async_get_language_options(self.hass)
+        _LOGGER.debug("country_options: %r", country_options)
+        _LOGGER.debug("lang_options: %r", lang_options)
 
-        # Försök hämta land från HA-konfig
+        # Autodetect defaults from Home Assistant config
+        default_latitude = round(self.hass.config.latitude, 5)
+        default_longitude = round(self.hass.config.longitude, 5)
         ha_country = getattr(self.hass.config, "country", None)
-        default_country = None
-
-        if ha_country and ha_country in country_options:
-            default_country = ha_country
-        else:
-            # Prova omvänd geokodning med lat/lon
-            country_code = await async_get_country_code_from_latlon(
-                self.hass, default_lat, default_lon
+        if not ha_country:
+            ha_country = await async_get_country_code_from_latlon(
+                self.hass, default_latitude, default_longitude
             )
-            if country_code and country_code in country_options:
-                default_country = country_code
-            elif "SE" in country_options:
-                default_country = "SE"
-            else:
-                default_country = next(iter(country_options))
+        default_country = (
+            ha_country
+            if ha_country in country_options
+            else next(iter(country_options.keys()))
+        )
+        ha_lang = getattr(self.hass.config, "language", DEFAULT_LANG)
+        default_lang_code = ha_lang if ha_lang in lang_options else "en"
 
-        if user_input is not None:
-            country_code = user_input.get("country")
-            try:
-                latitude = float(user_input.get("latitude"))
-                longitude = float(user_input.get("longitude"))
-            except Exception:
-                errors["latitude"] = "invalid_latitude"
-                errors["longitude"] = "invalid_longitude"
-                latitude = longitude = None
+        # Determine selected country (from user input if present)
+        selected_country = default_country
+        if (
+            user_input is not None
+            and "country" in user_input
+            and user_input["country"] in country_options
+        ):
+            selected_country = user_input["country"]
 
-            if country_code not in country_options:
-                errors["country"] = "invalid_country"
-            elif not errors:
-                # Hitta rätt country_id
-                countries = await async_load_available_countries(self.hass)
-                countries_by_code = {c["code"]: c for c in countries}
-                country_obj = countries_by_code.get(country_code)
-                country_id = country_obj.get("country_id")
-                if isinstance(country_id, list):
-                    country_id = country_id[0]
-                elif not isinstance(country_id, int):
-                    errors["country"] = "invalid_country"
-                    country_id = None
+        # Determine location default
+        if (
+            user_input is not None
+            and "country" in user_input
+            and user_input["country"] != default_country
+            and user_input["country"] in COUNTRY_CENTER
+        ):
+            location_default = COUNTRY_CENTER[user_input["country"]]
+        elif user_input is not None and "location" in user_input:
+            location_default = user_input["location"]
+        else:
+            location_default = {
+                "latitude": default_latitude,
+                "longitude": default_longitude,
+                "radius": 5000,
+            }
 
-                if not errors:
-                    # Gör API-anrop för att få platsnamn (nya API:t tar nu C/country_id separat)
-                    _LOGGER.debug(
-                        "Kallar async_get_pollenat_data med: lat=%r, lon=%r, country=%r, country_id=%r, lang=%r, lang_id=%r",
-                        latitude,
-                        longitude,
-                        country_code,
-                        country_id,
-                        DEFAULT_LANG,
-                        DEFAULT_LANG_ID,
-                    )
-
-                    pollen_data = await async_get_pollenat_data(
-                        self.hass,
-                        latitude,
-                        longitude,
-                        country_code,
-                        country_id,
-                        DEFAULT_LANG,
-                        DEFAULT_LANG_ID,
-                    )
-
-                    _LOGGER.debug("API-svar: %r", pollen_data)
-
-                    if not pollen_data:
-                        _LOGGER.debug("Inget pollen_data mottaget")
-                    elif not pollen_data.get("contamination"):
-                        _LOGGER.debug("Ingen 'contamination'-lista: %r", pollen_data)
-
-                    # Kontroll: Finns något att visa?
-                    result = None
-                    if pollen_data and pollen_data.get("result"):
-                        result = pollen_data["result"]
-                    if not result or not result.get("contamination"):
-                        _LOGGER.debug("Ingen 'contamination'-lista på rätt nivå: %r", pollen_data)
-                        # error
-                    else:
-                        contamination = result.get("contamination")
-                        if not contamination:
-                            errors["country"] = "no_sensors_for_country"
-                        else:
-                            location_title = result.get("locationtitle", country_options[country_code])
-                            _zip, city = split_location(location_title)
-                            entry_title = city if city else location_title
-                            entry_data = {
-                                "country": country_code,
-                                "country_id": country_id,
-                                "latitude": latitude,
-                                "longitude": longitude,
-                                "lang": DEFAULT_LANG,
-                                "lang_id": DEFAULT_LANG_ID,
-                            }
-                            existing_entries = self._async_current_entries()
-                            already_exists = any(
-                                e.data.get("country") == country_code
-                                and round(e.data.get("latitude", 0), 3) == round(latitude, 3)
-                                and round(e.data.get("longitude", 0), 3) == round(longitude, 3)
-                                for e in existing_entries
-                            )
-                            if already_exists:
-                                return self.async_abort(reason="already_configured")
-                            if DEBUG:
-                                _LOGGER.debug(
-                                    "Skapar polleninformation-entry med data: %s och title: %s",
-                                    entry_data,
-                                    entry_title,
-                                )
-                            return self.async_create_entry(
-                                title=entry_title,
-                                data=entry_data,
-                            )
-
+        # Build config flow schema with map selector for coordinates
         data_schema = vol.Schema(
             {
-                vol.Required("country", default=default_country): vol.In(
+                vol.Required("country", default=selected_country): vol.In(
                     country_options
                 ),
-                vol.Required("latitude", default=default_lat): float,
-                vol.Required("longitude", default=default_lon): float,
+                vol.Optional("location_name", default=""): str,
+                vol.Required("location", default=location_default): LocationSelector(
+                    LocationSelectorConfig(radius=True)
+                ),
+                vol.Required("language", default=default_lang_code): vol.In(
+                    lang_options
+                ),
+                vol.Required("apikey", default=""): str,
             }
         )
+
+        if user_input is not None:
+            country_code = user_input["country"]
+            lang_code = user_input["language"]
+            apikey = user_input["apikey"].strip()
+            location = user_input["location"]
+            latitude = location["latitude"]
+            longitude = location["longitude"]
+            location_name = user_input.get("location_name", "").strip()
+
+            # Validate API key
+            if not apikey:
+                errors["apikey"] = "missing_apikey"
+                _LOGGER.error("Missing API key.")
+
+            # Validate country
+            if country_code not in country_options:
+                errors["country"] = "invalid_country"
+                _LOGGER.error(
+                    "Invalid country selected: %r (valid: %r)",
+                    country_code,
+                    list(country_options.keys()),
+                )
+
+            # Validate language (must be ISO code)
+            if lang_code not in lang_options:
+                errors["language"] = "invalid_language"
+                _LOGGER.error(
+                    "Invalid language selected: %r (valid: %r)",
+                    lang_code,
+                    list(lang_options.keys()),
+                )
+
+            # Confirm that chosen language exists in available languages (lang_code is ISO code)
+            if not errors:
+                langs = await async_load_available_languages(self.hass)
+                _LOGGER.debug("Available langs: %r", langs)
+                selected_lang = next(
+                    (l for l in langs if l["lang_code"] == lang_code), None
+                )
+                if not selected_lang:
+                    errors["language"] = "invalid_language"
+                    _LOGGER.error(
+                        "Selected language '%s' not found in available langs: %r",
+                        lang_code,
+                        langs,
+                    )
+
+            # Validate via API call (only if no previous errors)
+            if not errors:
+                _LOGGER.debug(
+                    "Calling async_get_pollenat_data with: lat=%r, lon=%r, country=%r, lang=%r, apikey=%r",
+                    latitude,
+                    longitude,
+                    country_code,
+                    lang_code,
+                    apikey,
+                )
+                pollen_data = await async_get_pollenat_data(
+                    self.hass,
+                    latitude,
+                    longitude,
+                    country_code,
+                    lang_code,
+                    apikey,
+                )
+                _LOGGER.debug("API response: %r", pollen_data)
+
+                if not pollen_data:
+                    errors["base"] = "no_pollen_data"
+                    _LOGGER.error("No pollen data returned for input.")
+                elif not pollen_data.get("contamination"):
+                    errors["base"] = "no_sensors_for_country"
+                    _LOGGER.error(
+                        "No contamination sensors for country: %r", country_code
+                    )
+                else:
+                    # Compose a user-facing integration title:
+                    # If location_name is set, use it.
+                    # Otherwise, fallback to "Polleninformation <country> (<lat>, <lon>)"
+                    # where <country> is the full country name from country_options.
+                    country_name = country_options.get(country_code, country_code)
+                    if location_name:
+                        entry_title = location_name
+                        location_title = location_name
+                        location_slug = (
+                            location_name.lower()
+                            .replace(" ", "_")
+                            .replace("(", "")
+                            .replace(")", "")
+                            .replace(",", "")
+                        )
+                    else:
+                        lat_str = f"{latitude:.4f}" if latitude is not None else "?"
+                        lon_str = f"{longitude:.4f}" if longitude is not None else "?"
+                        entry_title = f"{country_name} ({lat_str}, {lon_str})"
+                        location_title = entry_title
+                        location_slug = (
+                            f"{country_name}_{lat_str}_{lon_str}".lower()
+                            .replace(" ", "_")
+                            .replace("(", "")
+                            .replace(")", "")
+                            .replace(",", "")
+                        )
+
+                    entry_data = {
+                        "country": country_code,
+                        "latitude": latitude,
+                        "longitude": longitude,
+                        "lang": lang_code,
+                        "apikey": apikey,
+                        "location": location_name,
+                        "location_title": location_title,
+                        "location_slug": location_slug,
+                    }
+                    existing_entries = self._async_current_entries()
+                    already_exists = any(
+                        e.data.get("country") == country_code
+                        and round(e.data.get("latitude", 0), 3) == round(latitude, 3)
+                        and round(e.data.get("longitude", 0), 3) == round(longitude, 3)
+                        for e in existing_entries
+                    )
+                    if already_exists:
+                        _LOGGER.error(
+                            "Configuration already exists for country %s, lat %s, lon %s",
+                            country_code,
+                            latitude,
+                            longitude,
+                        )
+                        return self.async_abort(reason="already_configured")
+                    _LOGGER.debug(
+                        "Creating polleninformation entry with data: %s and title: %s",
+                        entry_data,
+                        entry_title,
+                    )
+                    return self.async_create_entry(
+                        title=entry_title,
+                        data=entry_data,
+                    )
 
         return self.async_show_form(
             step_id="user",

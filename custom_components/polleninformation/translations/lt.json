@@ -1,0 +1,32 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Pridėti žiedadulkių informaciją",
+        "data": {
+          "country": "Šalis",
+          "latitude": "Platuma",
+          "longitude": "Ilguma",
+          "language": "Kalba",
+          "location": "Vieta (pasirinkite žemėlapyje)",
+          "location_name": "Vietos pavadinimas (neprivaloma)",
+          "apikey": "API raktas"
+        },
+        "description": "Pasirinkite šalį ir vietą, kurioje norite stebėti žiedadulkių prognozę, bei kalbą, kuria bus konfigūruojami jutikliai. Jums reikia API rakto iš polleninformation.at. Prašykite čia: https://www.polleninformation.at/en/data-interface/request-an-api-key"
+      }
+    },
+    "error": {
+      "invalid_latitude": "Neteisinga platuma",
+      "invalid_longitude": "Neteisinga ilguma",
+      "invalid_language": "Neteisinga kalba",
+      "invalid_country": "Neteisinga šalis",
+      "suggested_country": "Šioje vietoje pasirinktoje šalyje duomenų nerasta. Pabandykite pakeisti šalį arba vietą.",
+      "no_sensors_for_country": "Šioje vietoje pasirinktoje šalyje jutiklių nerasta.",
+      "missing_apikey": "Trūksta API rakto",
+      "no_pollen_data": "Šiai vietai nepateikti jokie žiedadulkių duomenys."
+    },
+    "abort": {
+      "already_configured": "Ši vieta jau sukonfigūruota."
+    }
+  }
+}

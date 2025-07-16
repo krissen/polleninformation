@@ -1,5 +1,10 @@
-# custom_components/polleninformation/__init__.py
-"""Init file for polleninformation.at integration."""
+"""custom_components/polleninformation/__init__.py"""
+
+"""Init file for polleninformation.at integration (new API version).
+
+Sets up the integration and coordinates data updates using only parameters supported by the new API.
+All legacy parameters and imports have been removed.
+"""
 
 import logging
 from datetime import datetime, timedelta
@@ -11,21 +16,21 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .api import async_get_pollenat_data
 from .const import (
+    CONF_APIKEY,
     CONF_COUNTRY,
-    CONF_COUNTRY_ID,
     CONF_LANG,
-    CONF_LANG_ID,
     CONF_LATITUDE,
     CONF_LONGITUDE,
+    DEFAULT_APIKEY,
     DEFAULT_COUNTRY,
     DEFAULT_LANG,
-    DEFAULT_LANG_ID,
     DEFAULT_LATITUDE,
     DEFAULT_LONGITUDE,
     DOMAIN,
     PLATFORMS,
 )
 from .options_flow import OptionsFlowHandler
+from .utils import get_country_code_map
 
 DEBUG = True
 _LOGGER = logging.getLogger(__name__)
@@ -34,29 +39,44 @@ SCAN_INTERVAL = timedelta(hours=8)
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Initial setup of the integration using config entry."""
+
+    # --- MIGRATION: convert country display names to ISO codes ---
+    from .utils import get_country_code_map  # Should return {display_name: code}
+
+    country_val = entry.data.get(CONF_COUNTRY)
+    country_map = get_country_code_map(hass)
+    if country_val and country_val not in country_map.values():
+        code = country_map.get(country_val)
+        if code:
+            new_data = dict(entry.data)
+            new_data[CONF_COUNTRY] = code
+            hass.config_entries.async_update_entry(entry, data=new_data)
+            _LOGGER.info(
+                f"Migrated country display name '{country_val}' to code '{code}' for entry '{entry.title}'."
+            )
+    # ------------------------------------------------------------
+
     hass.data.setdefault(DOMAIN, {})
 
-    # Hämta ALLA nödvändiga parametrar, med fallback till default
+    # Fetch all required parameters, falling back to defaults
     lat = entry.data.get(CONF_LATITUDE, DEFAULT_LATITUDE)
     lon = entry.data.get(CONF_LONGITUDE, DEFAULT_LONGITUDE)
     country = entry.data.get(CONF_COUNTRY, DEFAULT_COUNTRY)
-    country_id = entry.data.get(CONF_COUNTRY_ID)
     lang = entry.data.get(CONF_LANG, DEFAULT_LANG)
-    lang_id = entry.data.get(CONF_LANG_ID, DEFAULT_LANG_ID)
+    apikey = entry.data.get(CONF_APIKEY, DEFAULT_APIKEY)
 
     if DEBUG:
         _LOGGER.debug(
-            "INIT: Setup entry with lat=%s, lon=%s, country=%s, country_id=%s, lang=%s, lang_id=%s",
+            "INIT: Setup entry with lat=%s, lon=%s, country=%s, lang=%s, apikey=%s",
             lat,
             lon,
             country,
-            country_id,
             lang,
-            lang_id,
+            apikey,
         )
 
     coordinator = PollenInformationDataUpdateCoordinator(
-        hass, lat, lon, country, country_id, lang, lang_id
+        hass, lat, lon, country, lang, apikey
     )
 
     # First refresh to populate data
@@ -81,34 +101,33 @@ async def _async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
 
 async def async_get_options_flow(config_entry):
+    """Return the options flow handler."""
     return OptionsFlowHandler(config_entry)
 
 
 class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):
     """Coordinator to fetch data from polleninformation.at."""
 
-    def __init__(
-        self, hass: HomeAssistant, lat, lon, country, country_id, lang, lang_id
-    ):
+    def __init__(self, hass: HomeAssistant, lat, lon, country, lang, apikey):
+        """Initialize the data coordinator with API parameters."""
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=SCAN_INTERVAL)
         self.lat = lat
         self.lon = lon
         self.country = country
-        self.country_id = country_id
         self.lang = lang
-        self.lang_id = lang_id
+        self.apikey = apikey
         self.last_updated = None
 
     async def _async_update_data(self) -> dict:
+        """Fetch latest pollen data from API."""
         if DEBUG:
             _LOGGER.debug(
-                "COORDINATOR: Update data with lat=%s, lon=%s, country=%s, country_id=%s, lang=%s, lang_id=%s",
+                "COORDINATOR: Update data with lat=%s, lon=%s, country=%s, lang=%s, apikey=%s",
                 self.lat,
                 self.lon,
                 self.country,
-                self.country_id,
                 self.lang,
-                self.lang_id,
+                self.apikey,
             )
         try:
             result = await async_get_pollenat_data(
@@ -116,14 +135,13 @@ class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):
                 self.lat,
                 self.lon,
                 self.country,
-                self.country_id,
                 self.lang,
-                self.lang_id,
+                self.apikey,
             )
             self.last_updated = datetime.now()
             if DEBUG:
                 _LOGGER.debug("COORDINATOR: API result: %s", result)
-            return result  # result innehåller nu {"locationtitle": ..., "contamination": [...]}
+            return result  # result contains {"locationtitle": ..., "contamination": [...], ...}
         except Exception as err:
-            _LOGGER.error("Fel vid hämtning av polleninformation.at: %s", err)
+            _LOGGER.error("Error fetching polleninformation.at: %s", err)
             raise UpdateFailed(err)

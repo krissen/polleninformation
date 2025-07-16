@@ -1,0 +1,32 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Pridať informácie o peľoch",
+        "data": {
+          "country": "Krajina",
+          "latitude": "Zemepisná šírka",
+          "longitude": "Zemepisná dĺžka",
+          "language": "Jazyk",
+          "location": "Poloha (vyberte na mape)",
+          "location_name": "Názov lokality (voliteľné)",
+          "apikey": "API kľúč"
+        },
+        "description": "Vyberte krajinu a miesto, kde chcete sledovať predpoveď peľu, a jazyk, v ktorom chcete nastaviť senzory. Potrebujete API kľúč z polleninformation.at. Požiadajte oň tu: https://www.polleninformation.at/en/data-interface/request-an-api-key"
+      }
+    },
+    "error": {
+      "invalid_latitude": "Neplatná zemepisná šírka",
+      "invalid_longitude": "Neplatná zemepisná dĺžka",
+      "invalid_language": "Neplatný jazyk",
+      "invalid_country": "Neplatná krajina",
+      "suggested_country": "Pre vybranú krajinu na tomto mieste neboli nájdené žiadne údaje. Skúste zmeniť krajinu alebo miesto.",
+      "no_sensors_for_country": "Pre vybranú krajinu na tomto mieste neboli nájdené žiadne senzory.",
+      "missing_apikey": "Chýba API kľúč",
+      "no_pollen_data": "Pre túto lokalitu neboli vrátené žiadne údaje o peľoch."
+    },
+    "abort": {
+      "already_configured": "Toto miesto je už nakonfigurované."
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Dodaj informacje o pyłkach",
+        "data": {
+          "country": "Kraj",
+          "latitude": "Szerokość geograficzna",
+          "longitude": "Długość geograficzna",
+          "language": "Język",
+          "location": "Lokalizacja (wybierz na mapie)",
+          "location_name": "Nazwa lokalizacji (opcjonalnie)",
+          "apikey": "Klucz API"
+        },
+        "description": "Wybierz kraj i lokalizację, dla których chcesz monitorować prognozę pyłków oraz język, w jakim mają być skonfigurowane czujniki. Potrzebujesz klucza API do polleninformation.at. Złóż wniosek tutaj: https://www.polleninformation.at/en/data-interface/request-an-api-key"
+      }
+    },
+    "error": {
+      "invalid_latitude": "Nieprawidłowa szerokość geograficzna",
+      "invalid_longitude": "Nieprawidłowa długość geograficzna",
+      "invalid_language": "Nieprawidłowy język",
+      "invalid_country": "Nieprawidłowy kraj",
+      "suggested_country": "Nie znaleziono danych dla wybranego kraju w tej lokalizacji. Spróbuj zmienić kraj lub lokalizację.",
+      "no_sensors_for_country": "Nie znaleziono sensorów dla wybranego kraju w tej lokalizacji.",
+      "missing_apikey": "Brak klucza API",
+      "no_pollen_data": "Brak danych o pyłkach dla tej lokalizacji."
+    },
+    "abort": {
+      "already_configured": "Ta lokalizacja jest już skonfigurowana."
+    }
+  }
+}
