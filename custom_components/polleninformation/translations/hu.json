@@ -3,7 +3,6 @@
     "step": {
       "user": {
         "title": "Polleninformáció hozzáadása",
-        "description": "Válassza ki az országot és a helyet, ahol a pollenek előrejelzését szeretné figyelni, valamint a nyelvet, amelyen a szenzorokat be szeretné állítani.",
         "data": {
           "country": "Ország",
           "latitude": "Szélesség",
@@ -12,7 +11,8 @@
           "location": "Helyszín (válassza ki a térképen)",
           "location_name": "Helyszín neve (opcionális)",
           "apikey": "API-kulcs"
-        }
+        },
+        "description": "Válassza ki az országot és a helyszínt, ahol figyelni szeretné a pollenjósltat, valamint a szenzorok beállításához kívánt nyelvet. Szüksége van egy API-kulcsra a polleninformation.at-hez. Igényelje itt: https://www.polleninformation.at/en/data-interface/request-an-api-key"
       }
     },
     "error": {
@@ -27,9 +27,6 @@
     },
     "abort": {
       "already_configured": "Ez a hely már konfigurálva van."
-    },
-    "description": {
-      "api_key_info": "API-kulcsra van szüksége a polleninformation.at-hoz. Kérje itt: https://www.polleninformation.at/en/data-interface/request-an-api-key"
     }
   }
 }

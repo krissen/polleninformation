@@ -3,7 +3,6 @@
     "step": {
       "user": {
         "title": "Ajouter les informations sur le pollen",
-        "description": "Sélectionnez le pays et l’emplacement pour lesquels vous souhaitez surveiller la prévision du pollen ainsi que la langue dans laquelle vos capteurs seront configurés.",
         "data": {
           "country": "Pays",
           "latitude": "Latitude",
@@ -12,7 +11,8 @@
           "location": "Emplacement (sélectionner sur la carte)",
           "location_name": "Nom de l'emplacement (optionnel)",
           "apikey": "Clé API"
-        }
+        },
+        "description": "Sélectionnez le pays et l'emplacement pour lesquels vous souhaitez surveiller les prévisions de pollen, ainsi que la langue souhaitée pour vos capteurs. Vous avez besoin d'une clé API pour polleninformation.at. Demandez-la ici : https://www.polleninformation.at/en/data-interface/request-an-api-key"
       }
     },
     "error": {
@@ -27,9 +27,6 @@
     },
     "abort": {
       "already_configured": "Cet emplacement est déjà configuré."
-    },
-    "description": {
-      "api_key_info": "Vous avez besoin d'une clé API pour polleninformation.at. Demandez-la ici : https://www.polleninformation.at/en/data-interface/request-an-api-key"
     }
   }
 }

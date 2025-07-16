@@ -3,7 +3,6 @@
     "step": {
       "user": {
         "title": "Додати інформацію про пилок",
-        "description": "Виберіть країну та місце, для яких ви хочете відстежувати прогноз пилку, а також мову, якою будуть налаштовані ваші датчики.",
         "data": {
           "country": "Країна",
           "latitude": "Широта",
@@ -12,7 +11,8 @@
           "location": "Місцезнаходження (виберіть на карті)",
           "location_name": "Назва місця (необов’язково)",
           "apikey": "API-ключ"
-        }
+        },
+        "description": "Виберіть країну та місце, для яких ви хочете відстежувати прогноз пилку, а також мову для налаштування датчиків. Вам потрібен API-ключ для polleninformation.at. Запросіть його тут: https://www.polleninformation.at/en/data-interface/request-an-api-key"
       }
     },
     "error": {
@@ -27,9 +27,6 @@
     },
     "abort": {
       "already_configured": "Це місце вже налаштовано."
-    },
-    "description": {
-      "api_key_info": "Вам потрібен API-ключ для polleninformation.at. Запитайте його тут: https://www.polleninformation.at/en/data-interface/request-an-api-key"
     }
   }
 }

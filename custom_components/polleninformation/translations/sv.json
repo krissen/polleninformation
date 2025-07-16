@@ -3,7 +3,6 @@
     "step": {
       "user": {
         "title": "Lägg till polleninformation",
-        "description": "Välj land och plats där du vill övervaka pollenprognosen samt det språk du vill ha dina sensorer på.",
         "data": {
           "country": "Land",
           "latitude": "Latitud",
@@ -12,7 +11,8 @@
           "location": "Plats (välj på karta)",
           "location_name": "Platsnamn (valfritt)",
           "apikey": "API-nyckel"
-        }
+        },
+        "description": "Välj land och plats där du vill övervaka pollenprognosen samt det språk du vill ha dina sensorer på. Du behöver en API-nyckel för polleninformation.at. Begär den på: https://www.polleninformation.at/en/data-interface/request-an-api-key"
       }
     },
     "error": {
@@ -27,9 +27,6 @@
     },
     "abort": {
       "already_configured": "Denna plats är redan konfigurerad."
-    },
-    "description": {
-      "api_key_info": "Du behöver en API-nyckel för polleninformation.at. Begär den på: https://www.polleninformation.at/en/data-interface/request-an-api-key"
     }
   }
 }

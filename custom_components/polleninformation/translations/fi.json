@@ -3,7 +3,6 @@
     "step": {
       "user": {
         "title": "Lisää siitepölytiedot",
-        "description": "Valitse maa ja sijainti, joista haluat seurata siitepölyennustetta, sekä kieli, jolla sensorit näytetään.",
         "data": {
           "country": "Maa",
           "latitude": "Leveysaste",
@@ -12,7 +11,8 @@
           "location": "Sijainti (valitse kartalta)",
           "location_name": "Sijainnin nimi (valinnainen)",
           "apikey": "API-avain"
-        }
+        },
+        "description": "Valitse maa ja sijainti, josta haluat seurata siitepölyennustetta, sekä kieli, jolla sensorit määritetään. Tarvitset API-avaimen palvelusta polleninformation.at. Pyydä avain täältä: https://www.polleninformation.at/en/data-interface/request-an-api-key"
       }
     },
     "error": {
@@ -27,9 +27,6 @@
     },
     "abort": {
       "already_configured": "Tämä sijainti on jo määritetty."
-    },
-    "description": {
-      "api_key_info": "Tarvitset API-avaimen palveluun polleninformation.at. Pyydä se täältä: https://www.polleninformation.at/en/data-interface/request-an-api-key"
     }
   }
 }

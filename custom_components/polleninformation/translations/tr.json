@@ -3,7 +3,6 @@
     "step": {
       "user": {
         "title": "Polen Bilgisi Ekle",
-        "description": "Polen tahminini izlemek istediğiniz ülkeyi ve konumu ile sensörlerinizin hangi dilde yapılandırılacağını seçin.",
         "data": {
           "country": "Ülke",
           "latitude": "Enlem",
@@ -12,7 +11,8 @@
           "location": "Konum (haritadan seçin)",
           "location_name": "Konum adı (isteğe bağlı)",
           "apikey": "API anahtarı"
-        }
+        },
+        "description": "Polen tahminini izlemek istediğiniz ülkeyi ve konumu, ayrıca sensörlerinizi yapılandırmak istediğiniz dili seçin. polleninformation.at için bir API anahtarına ihtiyacınız var. Şuradan talep edin: https://www.polleninformation.at/en/data-interface/request-an-api-key"
       }
     },
     "error": {
@@ -27,9 +27,6 @@
     },
     "abort": {
       "already_configured": "Bu konum zaten yapılandırılmış."
-    },
-    "description": {
-      "api_key_info": "polleninformation.at için bir API anahtarına ihtiyacınız var. Şuradan talep edin: https://www.polleninformation.at/en/data-interface/request-an-api-key"
     }
   }
 }

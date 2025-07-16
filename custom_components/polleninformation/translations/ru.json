@@ -3,7 +3,6 @@
     "step": {
       "user": {
         "title": "Добавить информацию о пыльце",
-        "description": "Выберите страну и место, для которых вы хотите отслеживать прогноз пыльцы, а также язык, на котором будут настроены ваши датчики.",
         "data": {
           "country": "Страна",
           "latitude": "Широта",
@@ -12,7 +11,8 @@
           "location": "Местоположение (выберите на карте)",
           "location_name": "Название местоположения (необязательно)",
           "apikey": "API-ключ"
-        }
+        },
+        "description": "Выберите страну и местоположение, для которых вы хотите отслеживать прогноз пыльцы, а также язык настройки ваших датчиков. Необходим API-ключ для polleninformation.at. Запросите его здесь: https://www.polleninformation.at/en/data-interface/request-an-api-key"
       }
     },
     "error": {
@@ -27,9 +27,6 @@
     },
     "abort": {
       "already_configured": "Это местоположение уже настроено."
-    },
-    "description": {
-      "api_key_info": "Вам нужен API-ключ для polleninformation.at. Запросите его здесь: https://www.polleninformation.at/en/data-interface/request-an-api-key"
     }
   }
 }

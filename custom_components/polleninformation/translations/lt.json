@@ -3,7 +3,6 @@
     "step": {
       "user": {
         "title": "Pridėti žiedadulkių informaciją",
-        "description": "Pasirinkite šalį ir vietą, kurioje norite stebėti žiedadulkių prognozę, ir kalbą, kuria bus konfigūruoti jūsų jutikliai.",
         "data": {
           "country": "Šalis",
           "latitude": "Platuma",
@@ -12,7 +11,8 @@
           "location": "Vieta (pasirinkite žemėlapyje)",
           "location_name": "Vietos pavadinimas (neprivaloma)",
           "apikey": "API raktas"
-        }
+        },
+        "description": "Pasirinkite šalį ir vietą, kurioje norite stebėti žiedadulkių prognozę, bei kalbą, kuria bus konfigūruojami jutikliai. Jums reikia API rakto iš polleninformation.at. Prašykite čia: https://www.polleninformation.at/en/data-interface/request-an-api-key"
       }
     },
     "error": {
@@ -27,9 +27,6 @@
     },
     "abort": {
       "already_configured": "Ši vieta jau sukonfigūruota."
-    },
-    "description": {
-      "api_key_info": "Jums reikia API rakto polleninformation.at svetainei. Užsisakykite čia: https://www.polleninformation.at/en/data-interface/request-an-api-key"
     }
   }
 }

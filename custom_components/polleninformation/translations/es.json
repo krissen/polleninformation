@@ -3,7 +3,6 @@
     "step": {
       "user": {
         "title": "Agregar información del polen",
-        "description": "Seleccione el país y la ubicación donde desea monitorizar la previsión del polen, así como el idioma en el que desea que se configuren sus sensores.",
         "data": {
           "country": "País",
           "latitude": "Latitud",
@@ -12,7 +11,8 @@
           "location": "Ubicación (seleccione en el mapa)",
           "location_name": "Nombre de la ubicación (opcional)",
           "apikey": "Clave API"
-        }
+        },
+        "description": "Seleccione el país y la ubicación donde desea monitorear el pronóstico de polen y el idioma en el que desea configurar sus sensores. Necesita una clave API de polleninformation.at. Solicítela en: https://www.polleninformation.at/en/data-interface/request-an-api-key"
       }
     },
     "error": {
@@ -27,9 +27,6 @@
     },
     "abort": {
       "already_configured": "Esta ubicación ya está configurada."
-    },
-    "description": {
-      "api_key_info": "Necesita una clave API para polleninformation.at. Solicítela en: https://www.polleninformation.at/en/data-interface/request-an-api-key"
     }
   }
 }

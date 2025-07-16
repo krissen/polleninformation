@@ -3,7 +3,6 @@
     "step": {
       "user": {
         "title": "Aggiungi informazioni sul polline",
-        "description": "Seleziona il paese e la posizione per cui vuoi monitorare le previsioni dei pollini e la lingua in cui desideri che i sensori siano configurati.",
         "data": {
           "country": "Paese",
           "latitude": "Latitudine",
@@ -12,7 +11,8 @@
           "location": "Posizione (seleziona sulla mappa)",
           "location_name": "Nome posizione (opzionale)",
           "apikey": "Chiave API"
-        }
+        },
+        "description": "Seleziona il paese e la località per cui vuoi monitorare la previsione dei pollini e la lingua in cui configurare i tuoi sensori. È necessaria una chiave API per polleninformation.at. Richiedila qui: https://www.polleninformation.at/en/data-interface/request-an-api-key"
       }
     },
     "error": {
@@ -27,9 +27,6 @@
     },
     "abort": {
       "already_configured": "Questa posizione è già configurata."
-    },
-    "description": {
-      "api_key_info": "È necessaria una chiave API per polleninformation.at. Richiedila su: https://www.polleninformation.at/en/data-interface/request-an-api-key"
     }
   }
 }
