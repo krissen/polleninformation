@@ -37,7 +37,7 @@ A Home Assistant integration for monitoring pollen across Europe, data provided 
 - **Multiple allergens:** Individual sensors for each detected allergen. *Different countries have different supported allergens.*
 - **Multi-day forecast:** Each sensor exposes several days of forecast data.
 - **Allergy risk**, by day and by hour.
-- **Beautiful icons & friendly names:** Instantly recognizable in the Home Assistant UI.
+- **Icons & friendly names:** Instantly recognizable in the Home Assistant UI.
 - **Pair with pollenprognos-card:** Screenshots above have been made with [pollenprognos-card](https://github.com/krissen/pollenprognos-card)
 
 ---
