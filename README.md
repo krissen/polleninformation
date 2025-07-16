@@ -7,7 +7,7 @@
 [![Project Maintenance][maintenance-shield]][user_profile]
 [![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
 
-A modern Home Assistant integration for monitoring pollen across Europe, data provided through [the Austrian Pollen Information Service](https://www.polleninformation.eu).
+A Home Assistant integration for monitoring pollen across Europe, data provided through [the Austrian Pollen Information Service](https://www.polleninformation.eu).
 
 > **NOTE:** As of v0.4.0, you must use your own API key. Request it [here](https://www.polleninformation.at/en/data-interface/request-an-api-key).
 
@@ -66,7 +66,7 @@ A modern Home Assistant integration for monitoring pollen across Europe, data pr
 The integration will create sensors named like:
 
 - `sensor.polleninformation_stockholm_birch`
-- `sensor.polleninformation_stockholm_ozone`
+- `sensor.polleninformation_stockholm_grasses`
 - ...and more, depending on your location.
 
 Each sensor includes:
@@ -75,7 +75,7 @@ Each sensor includes:
 - Multi-day forecast as an attribute
 - Human-friendly names and icons for all entities
 
-**The integration updates sensor data every 8 hours.** On the one hand, this could have been user configurable. On the other, we are using undocumented API and I doubt the pollen situation changes drastically within 8 hours. Better be conservative and keep using the API.
+**The integration updates sensor data every 8 hours.** Which is more than enough, as the data usually does not change more frequently than once every 24 hours.
 
 ### API usage and v0.4.0 changes
 
