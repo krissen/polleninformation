@@ -21,7 +21,8 @@ from .api import async_get_pollenat_data
 from .const import DEFAULT_LANG, DOMAIN
 from .const_levels import LEVELS
 from .utils import (async_get_language_block, extract_place_slug,
-                    get_allergen_info_by_latin, slugify, split_location)
+                    get_allergen_info_by_latin, normalize, slugify,
+                    split_location)
 
 DEBUG = True
 _LOGGER = logging.getLogger(__name__)
@@ -106,7 +107,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         lang = data.get("lang", DEFAULT_LANG)
         apikey = data.get("apikey")
         location_title = data.get("location_title")
-        location_slug = data.get("location_slug")
+        # location_slug = data.get("location_slug")
         # Fallback if missing or empty
         if not location_title or location_title.strip() == "":
             # Use same fallback as integrations-title
@@ -116,15 +117,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
             lat_str = f"{lat:.4f}" if lat is not None else "?"
             lon_str = f"{lon:.4f}" if lon is not None else "?"
             location_title = f"{country_name} ({lat_str}, {lon_str})"
-        if not location_slug or location_slug.strip() == "":
-            # Simple slug from title
-            location_slug = (
-                location_title.lower()
-                .replace(" ", "_")
-                .replace("(", "")
-                .replace(")", "")
-                .replace(",", "")
-            )
+        location_slug = normalize(location_title)
+        _LOGGER.debug("Using slugified location_title: '%s' -> '%s'", location_title, location_slug)
     except KeyError as e:
         _LOGGER.error("Missing config field: %s. Data: %s", e, data)
         return

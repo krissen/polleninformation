@@ -7,11 +7,14 @@ import unicodedata
 
 import aiohttp
 
-from .const import (COUNTRY_DISPLAY_NAMES, LANGUAGE_DISPLAY_NAMES,
-                    SUPPORTED_COUNTRIES, SUPPORTED_LANGUAGES)
+from .const import (
+    COUNTRY_DISPLAY_NAMES,
+    LANGUAGE_DISPLAY_NAMES,
+    SUPPORTED_COUNTRIES,
+    SUPPORTED_LANGUAGES,
+)
 
 LANGUAGE_MAP_FILE = os.path.join(os.path.dirname(__file__), "language_map.json")
-
 
 
 async def async_get_country_code_from_latlon(hass, lat, lon):
@@ -34,6 +37,7 @@ async def async_get_country_code_from_latlon(hass, lat, lon):
                 result = await resp.json()
                 return result.get("address", {}).get("country_code", "").upper()
     return None
+
 
 async def async_load_available_languages(hass):
     """
@@ -196,6 +200,37 @@ async def async_get_country_options(hass):
 # --- MISC UTILS ---
 
 
+def normalize(text: str) -> str:
+    """
+    Normalize a string for use in entity or object_id.
+    """
+    try:
+        from unidecode import unidecode
+
+        text = unidecode(text)
+    except ImportError:
+        text = (
+            unicodedata.normalize("NFKD", text)
+            .encode("ascii", "ignore")
+            .decode("ascii")
+        )
+    # Remove parentheses and commas, replace with underscore
+    text = text.replace("(", "_").replace(")", "_").replace(",", "_").replace(".", "_")
+    text = text.strip().lower()
+    text = (
+        text.replace("ö", "o")
+        .replace("ä", "a")
+        .replace("å", "a")
+        .replace("ß", "ss")
+        .replace("'", "")
+    )
+    # Replace any sequence of non-word characters with a single underscore
+    text = re.sub(r"[^\w]+", "_", text)
+    # Remove leading/trailing underscores
+    text = text.strip("_")
+    return text
+
+
 def slugify(text: str) -> str:
     """
     Slugify a string for use in entity or object_id.
@@ -220,6 +255,9 @@ def slugify(text: str) -> str:
         .replace("ß", "ss")
         .replace("'", "")
     )
+    # Replace all dots with underscores
+    text = text.replace(".", "_")
+    # Replace all non-word characters with underscore
     text = re.sub(r"[^\w]+", "_", text)
     text = text.strip("_")
     return text
