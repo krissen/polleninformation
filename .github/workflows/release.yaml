@@ -4,7 +4,6 @@ on:
   release:
     types: [published, prereleased]
 
-
 jobs:
   release_zip_file:
     name: Prepare release asset
@@ -32,5 +31,5 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ./custom_components/polleninformation/polleninformation.zip
           asset_name: polleninformation.zip
-          tag: ${{ github.ref }}
+          tag: ${{ github.ref_name }}
           overwrite: true
