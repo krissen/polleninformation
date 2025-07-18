@@ -9,6 +9,9 @@ import logging
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.helpers.selector import LocationSelector, LocationSelectorConfig
+from homeassistant.core import callback
+
+from .options_flow import OptionsFlowHandler
 
 from .api import async_get_pollenat_data
 from .const import DEFAULT_LANG, DOMAIN
@@ -70,6 +73,12 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         ha_lang = getattr(self.hass.config, "language", DEFAULT_LANG)
         default_lang_code = ha_lang if ha_lang in lang_options else "en"
 
+        # Use API key from an existing entry if available
+        default_apikey = ""
+        current_entries = self._async_current_entries()
+        if current_entries:
+            default_apikey = current_entries[0].data.get("apikey", "")
+
         # Determine selected country (from user input if present)
         selected_country = default_country
         if (
@@ -109,7 +118,7 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required("language", default=default_lang_code): vol.In(
                     lang_options
                 ),
-                vol.Required("apikey", default=""): str,
+                vol.Required("apikey", default=default_apikey): str,
             }
         )
 
@@ -150,7 +159,12 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 langs = await async_load_available_languages(self.hass)
                 _LOGGER.debug("Available langs: %r", langs)
                 selected_lang = next(
-                    (l for l in langs if l["lang_code"] == lang_code), None
+                    (
+                        lang_item
+                        for lang_item in langs
+                        if lang_item["lang_code"] == lang_code
+                    ),
+                    None,
                 )
                 if not selected_lang:
                     errors["language"] = "invalid_language"
@@ -257,3 +271,9 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=data_schema,
             errors=errors,
         )
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry):
+        """Return the options flow handler."""
+        return OptionsFlowHandler(config_entry)
