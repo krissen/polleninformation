@@ -1,4 +1,3 @@
-""" custom_components/polleninformation/options_flow.py """
 """Options flow for polleninformation.at integration (new API version).
 
 Allows updating country, language, coordinates, API key, and location name.
@@ -11,20 +10,20 @@ import logging
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.helpers.selector import (LocationSelector,
-                                            LocationSelectorConfig)
+from homeassistant.helpers.selector import LocationSelector, LocationSelectorConfig
 
-from .const import DEFAULT_LANG, DOMAIN
+from .const import DEFAULT_LANG
 from .utils import async_get_country_options, async_get_language_options
 
 _LOGGER = logging.getLogger(__name__)
 DEBUG = True
 
-class OptionsFlowHandler(config_entries.OptionsFlow):
+
+class OptionsFlowHandler(config_entries.OptionsFlowWithConfigEntry):
     """Options flow handler for polleninformation.at integration."""
 
     def __init__(self, config_entry):
-        self.config_entry = config_entry
+        super().__init__(config_entry)
 
     async def async_step_init(self, user_input=None):
         """Initial step for options flow."""
@@ -63,7 +62,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         data_schema = vol.Schema(
             {
-                vol.Required("country", default=default_country): vol.In(country_options),
+                vol.Required("country", default=default_country): vol.In(
+                    country_options
+                ),
                 vol.Required(
                     "location",
                     default={
@@ -72,7 +73,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         "radius": 5000,
                     },
                 ): LocationSelector(LocationSelectorConfig(radius=True)),
-                vol.Required("language", default=default_language): vol.In(lang_options),
+                vol.Required("language", default=default_language): vol.In(
+                    lang_options
+                ),
                 vol.Required("apikey", default=default_apikey): str,
                 vol.Optional("location_name", default=default_location_name): str,
             }
