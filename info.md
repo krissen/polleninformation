@@ -1,11 +1,10 @@
 # Home Assistant: Pollen Information EU
 
-Pollen Information EU is a Home Assistant integration that provides up-to-date pollen and air quality data for any location in Europe, powered by the Austrian Pollen Information Service.
+Pollen Information EU is a Home Assistant integration that provides up-to-date pollen data for any location in Europe, powered by the Austrian Pollen Information Service.
 
 ## Features
 
 - **Multiple allergens**: Automatically creates a sensor for each detected allergen at your chosen location.
-- **Air quality sensors**: Additional sensors for ozone, particulate matter, nitrogen dioxide, sulphur dioxide, temperature, and more.
 - **Forecast included**: Each sensor exposes a multi-day forecast as an attribute.
 - **Works in multiple European countries**: Choose location by country, and latitude and longitude.
 
@@ -20,7 +19,7 @@ Pollen Information EU is a Home Assistant integration that provides up-to-date p
 1. Go to **Settings → Devices & Services → Add Integration**.
 2. Search for `Pollen Information EU` and add the integration.
 3. Select your country and enter your desired location (latitude/longitude).
-4. Sensors will be created automatically for all available allergens and air quality metrics at the selected location.
+4. Sensors will be created automatically for all available allergens at the selected location.
 
 ## Sensor Attributes
 
@@ -31,7 +30,7 @@ Each sensor exposes attributes such as:
 - **named_state / numeric_state**: Today's level (text and numeric)
 - **location_title / location_slug / location_zip**: Location information
 - **name_en / name_de / name_la**: Allergen name (English, German, Latin)
-- **Icon**: Mapped to allergen or air quality type
+- **Icon**: Mapped to allergen type
 
 ## Data Source & Attribution
 

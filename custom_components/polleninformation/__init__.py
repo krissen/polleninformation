@@ -41,7 +41,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Initial setup of the integration using config entry."""
 
     # --- MIGRATION: convert country display names to ISO codes ---
-    from .utils import get_country_code_map  # Should return {display_name: code}
 
     country_val = entry.data.get(CONF_COUNTRY)
     country_map = get_country_code_map(hass)
@@ -98,11 +97,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def _async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Handle config entry reload."""
     await hass.config_entries.async_reload(entry.entry_id)
-
-
-async def async_get_options_flow(config_entry):
-    """Return the options flow handler."""
-    return OptionsFlowHandler(config_entry)
 
 
 class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):

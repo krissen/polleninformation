@@ -9,7 +9,7 @@
 
 A Home Assistant integration for monitoring pollen across Europe, data provided through [the Austrian Pollen Information Service](https://www.polleninformation.eu).
 
-> **NOTE:** As of v0.4.0, you must use your own API key. Request it [here](https://www.polleninformation.at/en/data-interface/request-an-api-key).
+> **NOTE:** You must use your own API key. Request it [here](https://www.polleninformation.at/en/data-interface/request-an-api-key).
 
 <table align="center">
   <tr>
@@ -77,15 +77,13 @@ Each sensor includes:
 
 **The integration updates sensor data every 8 hours.** Which is more than enough, as the data usually does not change more frequently than once every 24 hours.
 
-### API usage and v0.4.0 changes
+### API usage
 
-As of **v0.4.0**, this integration uses the new official public API provided by the [Austrian Pollen Information Service](https://www.polleninformation.at/en/data-interface).  
+This integration uses the official public API provided by the [Austrian Pollen Information Service](https://www.polleninformation.at/en/data-interface).
 You **must request a personal API key** to use the integration—get your key [here](https://www.polleninformation.at/en/data-interface/request-an-api-key).
 
-The previous versions of the integration used an undocumented, internal API endpoint. That endpoint is now closed for public use, following [the provider’s announcement](https://www.polleninformation.at/en/data-interface).  
-You will need to update to v0.4.0 or later and configure your new API key to continue receiving pollen data.
+*For more information about the API and its terms of use, see [Austrian Pollen Information Service - Data Interface](https://www.polleninformation.at/en/data-interface).* 
 
-*For more information about the API and its terms of use, see [Austrian Pollen Information Service - Data Interface](https://www.polleninformation.at/en/data-interface).*
 
 ---
 
