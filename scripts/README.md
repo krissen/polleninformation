@@ -1,6 +1,8 @@
 # Helper Scripts för polleninformation-integration
 
-Denna katalog innehåller ett antal fristående, självständiga Python-script för att:
+**Legacy note:** Denna katalog innehåller skript som inte längre aktivt underhålls. De finns kvar som referens och kan användas vid behov men omfattas inte av reguljär support.
+
+Dessa skript är fristående och används för att:
 
 - Upptäcka vilka country_id och orter som fungerar mot polleninformation.at-API:t
 - Validera, sanera och migrera vår egna JSON-databas (`country_ids.json`)
