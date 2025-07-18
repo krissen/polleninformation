@@ -9,6 +9,9 @@ import logging
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.helpers.selector import LocationSelector, LocationSelectorConfig
+from homeassistant.core import callback
+
+from .options_flow import OptionsFlowHandler
 
 from .api import async_get_pollenat_data
 from .const import DEFAULT_LANG, DOMAIN
@@ -268,3 +271,9 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=data_schema,
             errors=errors,
         )
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry):
+        """Return the options flow handler."""
+        return OptionsFlowHandler(config_entry)
