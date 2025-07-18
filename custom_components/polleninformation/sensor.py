@@ -51,17 +51,6 @@ ALLERGEN_ICON_MAP = {
     "willow": "mdi:tree",
 }
 
-AIR_SENSOR_ICON_MAP = {
-    "air_quality": "mdi:cloud",
-    "asthma_weather": "mdi:stethoscope",
-    "dayrisk": "mdi:weather-sunny-alert",
-    "nitrogen_dioxide": "mdi:weather-windy",
-    "ozone": "mdi:molecule",
-    "particulate_matter": "mdi:blur",
-    "sulphur_dioxide": "mdi:cloud-outline",
-    "temperature": "mdi:thermometer",
-}
-
 def capitalize_first(s):
     """Capitalize the first letter of the given string."""
     if not s:
