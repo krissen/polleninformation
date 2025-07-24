@@ -1,3 +1,5 @@
+"""custom_components/polleninformation/const.py"""
+
 """Constants for polleninformation.at integration (new API version)."""
 
 # Metadata

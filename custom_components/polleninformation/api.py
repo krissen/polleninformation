@@ -1,3 +1,4 @@
+"""custom_components/polleninformation/api.py"""
 """API functions for polleninformation.at.
 
 See official API documentation: https://www.polleninformation.at/en/data-interface
@@ -18,7 +19,6 @@ API_URL = (
     "&longitude={longitude}"
     "&apikey={apikey}"
 )
-
 
 async def async_get_pollenat_data(
     hass,
@@ -59,8 +59,8 @@ async def async_get_pollenat_data(
                     url,
                     headers={
                         "Accept": "application/json, text/plain, */*",
-                        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
-                    },
+                        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148"
+                    }
                 ) as resp:
                     resp.raise_for_status()
                     return await resp.json()
