@@ -32,6 +32,13 @@ Each sensor exposes attributes such as:
 - **name_en / name_de / name_la**: Allergen name (English, German, Latin)
 - **Icon**: Mapped to allergen type
 
+### Understanding the values
+
+All allergen sensors report values from **0** (none) to **4** (very high).
+The allergy risk returned by the API uses a **0–10** scale. The integration
+converts this to the same **0–4** range using `round(value / 2.5)` so that
+all values are comparable.
+
 ## Data Source & Attribution
 
 All data is provided by the Austrian Pollen Information Service.  
