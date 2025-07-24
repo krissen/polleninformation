@@ -1,9 +1,7 @@
-"""custom_components/polleninformation/__init__.py"""
-
 """Init file for polleninformation.at integration (new API version).
 
-Sets up the integration and coordinates data updates using only parameters supported by the new API.
-All legacy parameters and imports have been removed.
+Sets up the integration and coordinates data updates using only parameters
+supported by the new API. All legacy parameters and imports have been removed.
 """
 
 import logging
@@ -29,7 +27,6 @@ from .const import (
     DOMAIN,
     PLATFORMS,
 )
-from .options_flow import OptionsFlowHandler
 from .utils import get_country_code_map
 
 DEBUG = True

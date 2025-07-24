@@ -1,5 +1,3 @@
-""" custom_components/polleninformation/utils.py """
-
 import json
 import os
 import re
@@ -7,8 +5,12 @@ import unicodedata
 
 import aiohttp
 
-from .const import (COUNTRY_DISPLAY_NAMES, LANGUAGE_DISPLAY_NAMES,
-                    SUPPORTED_COUNTRIES, SUPPORTED_LANGUAGES)
+from .const import (
+    COUNTRY_DISPLAY_NAMES,
+    LANGUAGE_DISPLAY_NAMES,
+    SUPPORTED_COUNTRIES,
+    SUPPORTED_LANGUAGES,
+)
 
 LANGUAGE_MAP_FILE = os.path.join(os.path.dirname(__file__), "language_map.json")
 
@@ -195,6 +197,7 @@ async def async_get_country_options(hass):
 
 # --- MISC UTILS ---
 
+
 def normalize(text: str) -> str:
     """
     Normalize a string for use in entity or object_id.
@@ -204,6 +207,7 @@ def normalize(text: str) -> str:
     """
     try:
         from unidecode import unidecode
+
         text = unidecode(text)
     except ImportError:
         text = (

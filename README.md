@@ -75,6 +75,22 @@ Each sensor includes:
 - Multi-day forecast as an attribute
 - Human-friendly names and icons for all entities
 
+### Understanding the values
+
+All allergen sensors use a scale from `0` to `4`:
+
+| Value | Meaning     |
+|------:|-------------|
+| 0     | none        |
+| 1     | low         |
+| 2     | moderate    |
+| 3     | high        |
+| 4     | very high   |
+
+The allergy risk provided by the API ranges from `0` to `10`. The
+integration scales this value to the same `0`–`4` range by applying
+`round(value / 2.5)` so that all sensors share a common scale.
+
 **The integration updates sensor data every 8 hours.** Which is more than enough, as the data usually does not change more frequently than once every 24 hours.
 
 ### API usage

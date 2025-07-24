@@ -4,7 +4,7 @@ import time
 import requests
 from dotenv import load_dotenv
 
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../.env'))
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../.env"))
 
 # ================================
 # CONFIGURATION
@@ -15,14 +15,30 @@ LON = 16.3738189
 COUNTRY = "AT"
 API_KEY = os.environ["API_KEY"]
 LANG_CODES = [
-    "de", "en", "fi", "sv", "fr", "it", "lv", "lt", "pl", "pt", "ru", "sk", "es", "tr", "uk", "hu"
+    "de",
+    "en",
+    "fi",
+    "sv",
+    "fr",
+    "it",
+    "lv",
+    "lt",
+    "pl",
+    "pt",
+    "ru",
+    "sk",
+    "es",
+    "tr",
+    "uk",
+    "hu",
 ]
 DB_FILE = "custom_components/polleninformation/language_map.json"
 DELAY_SEC = 2  # Polite delay between requests (adjust if needed)
 HEADERS = {
     "Accept": "application/json, text/plain, */*",
-    "User-Agent": "Mozilla/5.0 (compatible; polleninfo-script/1.0)"
+    "User-Agent": "Mozilla/5.0 (compatible; polleninfo-script/1.0)",
 }
+
 
 def load_db():
     """Load the existing language_map.json, or return empty dict."""
@@ -31,20 +47,36 @@ def load_db():
     with open(DB_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
 
+
 def save_db(db):
     """Save the language_map.json file (pretty-printed, UTF-8)."""
     with open(DB_FILE, "w", encoding="utf-8") as f:
         json.dump(db, f, indent=2, ensure_ascii=False)
 
+
 def get_language_name(lang_code):
     """Return the language name in English for a given ISO code."""
     # Minimal mapping; extend as needed.
     names = {
-        "de": "German", "en": "English", "fi": "Finnish", "sv": "Swedish", "fr": "French",
-        "it": "Italian", "lv": "Latvian", "lt": "Lithuanian", "pl": "Polish", "pt": "Portuguese",
-        "ru": "Russian", "sk": "Slovak", "es": "Spanish", "tr": "Turkish", "uk": "Ukrainian", "hu": "Hungarian"
+        "de": "German",
+        "en": "English",
+        "fi": "Finnish",
+        "sv": "Swedish",
+        "fr": "French",
+        "it": "Italian",
+        "lv": "Latvian",
+        "lt": "Lithuanian",
+        "pl": "Polish",
+        "pt": "Portuguese",
+        "ru": "Russian",
+        "sk": "Slovak",
+        "es": "Spanish",
+        "tr": "Turkish",
+        "uk": "Ukrainian",
+        "hu": "Hungarian",
     }
     return names.get(lang_code, lang_code)
+
 
 def main():
     db = load_db()
@@ -66,6 +98,7 @@ def main():
             resp = requests.get(base_url, params=params, headers=HEADERS, timeout=20)
             resp.raise_for_status()
             data = resp.json()
+            contamination_date_1 = data.get("contamination_date_1")
         except Exception as e:
             print(f"{lang_code}: [request error: {e}]")
             db[lang_code] = {"error": str(e), "lang_code": lang_code}
@@ -86,11 +119,9 @@ def main():
                 else:
                     name = poll_title.strip()
                     latin = ""
-                poll_titles.append({
-                    "name": name,
-                    "latin": latin,
-                    "poll_id": poll.get("poll_id")
-                })
+                poll_titles.append(
+                    {"name": name, "latin": latin, "poll_id": poll.get("poll_id")}
+                )
         except Exception as e:
             print(f"{lang_code}: [parse error: {e}]")
             db[lang_code] = {"error": f"parse error: {e}", "lang_code": lang_code}
@@ -109,6 +140,7 @@ def main():
         time.sleep(DELAY_SEC)
 
     print(f"Done. See {DB_FILE}")
+
 
 if __name__ == "__main__":
     main()
