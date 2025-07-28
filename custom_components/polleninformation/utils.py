@@ -99,7 +99,7 @@ def get_country_code_map(hass=None):
         "Bulgaria": "BG",
         "Greece": "GR",
         "Ireland": "IE",
-        "United Kingdom": "GB",
+        "Great Britain": "GB",
         "Portugal": "PT",
         # Add more as needed
     }
