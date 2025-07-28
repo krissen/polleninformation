@@ -80,7 +80,7 @@ COUNTRY_DISPLAY_NAMES = {
     "DE": "Germany",
     "ES": "Spain",
     "FR": "France",
-    "GB": "United Kingdom",
+    "GB": "Great Britain",
     "IT": "Italy",
     "LV": "Latvia",
     "LT": "Lithuania",

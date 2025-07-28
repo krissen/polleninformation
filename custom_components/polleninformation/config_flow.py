@@ -8,13 +8,12 @@ import logging
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.helpers.selector import LocationSelector, LocationSelectorConfig
 from homeassistant.core import callback
-
-from .options_flow import OptionsFlowHandler
+from homeassistant.helpers.selector import LocationSelector, LocationSelectorConfig
 
 from .api import async_get_pollenat_data
 from .const import DEFAULT_LANG, DOMAIN
+from .options_flow import OptionsFlowHandler
 from .utils import (
     async_get_country_code_from_latlon,
     async_get_country_options,
@@ -32,7 +31,7 @@ COUNTRY_CENTER = {
     "DE": {"latitude": 51.0, "longitude": 10.0, "radius": 300000},  # Germany
     "ES": {"latitude": 40.0, "longitude": -4.0, "radius": 350000},  # Spain
     "FR": {"latitude": 46.6, "longitude": 2.2, "radius": 350000},  # France
-    "GB": {"latitude": 54.0, "longitude": -2.0, "radius": 300000},  # United Kingdom
+    "GB": {"latitude": 54.0, "longitude": -2.0, "radius": 300000},  # Great Britain
     "IT": {"latitude": 42.8, "longitude": 12.8, "radius": 250000},  # Italy
     "LT": {"latitude": 55.2, "longitude": 23.8, "radius": 100000},  # Lithuania
     "LV": {"latitude": 56.9, "longitude": 24.6, "radius": 100000},  # Latvia
