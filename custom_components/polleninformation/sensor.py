@@ -20,9 +20,7 @@ from homeassistant.helpers.event import async_track_time_interval
 from .api import async_get_pollenat_data
 from .const import DEFAULT_LANG, DOMAIN
 from .const_levels import LEVELS
-from .utils import (async_get_language_block, extract_place_slug,
-                    get_allergen_info_by_latin, normalize, slugify,
-                    split_location)
+from .utils import (async_get_language_block, get_allergen_info_by_latin, normalize, slugify)
 
 DEBUG = True
 _LOGGER = logging.getLogger(__name__)
@@ -389,17 +387,24 @@ class AllergyRiskSensor(SensorEntity):
 
     @property
     def extra_state_attributes(self):
-        """Return attributes including forecast for days 2-4, named/numeric states."""
+        """Return attributes including forecast for days 1-4 in uniform format."""
         forecast = []
-        for day in range(2, 5):
-            value = self._allergyrisk.get(f"allergyrisk_{day}", None)
-            scaled = scale_allergy_risk(value) if value is not None else None
-            named = self._levels_current[scaled] if scaled is not None and scaled < len(self._levels_current) else None
-            forecast.append({
-                "day": day,
-                "value": scaled,
-                "named_state": named,
-            })
+        base_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        for day in range(1, 5):
+            value_raw = self._allergyrisk.get(f"allergyrisk_{day}", None)
+            scaled = scale_allergy_risk(value_raw) if value_raw is not None else None
+            level_name = (
+                self._levels_current[scaled]
+                if scaled is not None and scaled < len(self._levels_current)
+                else None
+            )
+            forecast.append(
+                {
+                    "time": (base_date + timedelta(days=day - 1)).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "level": scaled,
+                    "level_name": level_name,
+                }
+            )
         raw_value = self._allergyrisk.get("allergyrisk_1", None)
         scaled_today = scale_allergy_risk(raw_value) if raw_value is not None else None
         return {
