@@ -1,4 +1,3 @@
-""" custom_components/polleninformation/sensor.py """
 """Sensors for polleninformation.at integration (new API version).
 
 Supports:
@@ -12,7 +11,7 @@ See official API documentation: https://www.polleninformation.at/en/data-interfa
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers.event import async_track_time_interval
@@ -20,7 +19,12 @@ from homeassistant.helpers.event import async_track_time_interval
 from .api import async_get_pollenat_data
 from .const import DEFAULT_LANG, DOMAIN
 from .const_levels import LEVELS
-from .utils import (async_get_language_block, get_allergen_info_by_latin, normalize, slugify)
+from .utils import (
+    async_get_language_block,
+    get_allergen_info_by_latin,
+    normalize,
+    slugify,
+)
 
 DEBUG = True
 _LOGGER = logging.getLogger(__name__)
@@ -49,11 +53,13 @@ ALLERGEN_ICON_MAP = {
     "willow": "mdi:tree",
 }
 
+
 def capitalize_first(s):
     """Capitalize the first letter of the given string."""
     if not s:
         return s
     return s[0].upper() + s[1:]
+
 
 def pollen_forecast_for_allergen(contamination, allergen_name, levels):
     """Return forecast for one allergen for 4 days.
@@ -65,7 +71,11 @@ def pollen_forecast_for_allergen(contamination, allergen_name, levels):
         if poll_title == allergen_name_lower:
             for day in range(1, 5):
                 val = item.get(f"contamination_{day}", 0)
-                level_name = levels[val] if isinstance(val, int) and val < len(levels) else str(val)
+                level_name = (
+                    levels[val]
+                    if isinstance(val, int) and val < len(levels)
+                    else str(val)
+                )
                 out.append(
                     {
                         "day": day,
@@ -76,12 +86,14 @@ def pollen_forecast_for_allergen(contamination, allergen_name, levels):
             break
     return out
 
+
 def scale_allergy_risk(value):
     """Scale allergy risk to 0-4 for uniform state."""
     try:
         return int(round(value / 2.5))
     except Exception:
         return None
+
 
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up polleninformation sensors from a config entry."""
@@ -100,13 +112,18 @@ async def async_setup_entry(hass, entry, async_add_entities):
         if not location_title or location_title.strip() == "":
             # Use same fallback as integrations-title
             from .utils import async_get_country_options
+
             country_options = await async_get_country_options(hass)
             country_name = country_options.get(country, country)
             lat_str = f"{lat:.4f}" if lat is not None else "?"
             lon_str = f"{lon:.4f}" if lon is not None else "?"
             location_title = f"{country_name} ({lat_str}, {lon_str})"
         location_slug = normalize(location_title)
-        _LOGGER.debug("Using slugified location_title: '%s' -> '%s'", location_title, location_slug)
+        _LOGGER.debug(
+            "Using slugified location_title: '%s' -> '%s'",
+            location_title,
+            location_slug,
+        )
     except KeyError as e:
         _LOGGER.error("Missing config field: %s. Data: %s", e, data)
         return
@@ -128,7 +145,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
     # Language/levels handling
     language_block_current = await async_get_language_block(hass, lang)
     language_block_en = await async_get_language_block(hass, "en")
-    levels_current = LEVELS.get(lang, LEVELS.get("en", ["none", "low", "moderate", "high", "very high"]))
+    levels_current = LEVELS.get(
+        lang, LEVELS.get("en", ["none", "low", "moderate", "high", "very high"])
+    )
     levels_en = LEVELS.get("en", ["none", "low", "moderate", "high", "very high"])
 
     entities = []
@@ -147,7 +166,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 if allergen.get("name") == poll_title_local:
                     latin = allergen.get("latin")
                     break
-        allergen_en_obj = get_allergen_info_by_latin(latin, language_block_en) if latin else None
+        allergen_en_obj = (
+            get_allergen_info_by_latin(latin, language_block_en) if latin else None
+        )
         allergen_en = allergen_en_obj["name"] if allergen_en_obj else poll_title_local
         allergen_la = latin if latin else ""
         slug_en = slugify(allergen_en) if allergen_en else slugify(poll_title_local)
@@ -204,8 +225,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     async_track_time_interval(hass, scheduled_refresh, SCAN_INTERVAL)
 
+
 class PollenDataCoordinator:
     """Coordinator to fetch and cache polleninformation.at API data."""
+
     def __init__(self, hass, latitude, longitude, country, lang, apikey):
         self.hass = hass
         self.latitude = latitude
@@ -231,6 +254,7 @@ class PollenDataCoordinator:
         except Exception as e:
             _LOGGER.error("Failed to fetch pollen data: %s", e)
             self.data = None
+
 
 class PolleninformationSensor(SensorEntity):
     """Generic sensor for pollen allergen."""
@@ -313,12 +337,20 @@ class PolleninformationSensor(SensorEntity):
                 for day in range(1, 5):
                     val = item.get(f"contamination_{day}", 0)
                     # Use localized level name
-                    level_name = self._levels_current[val] if isinstance(val, int) and val < len(self._levels_current) else str(val)
-                    forecast.append({
-                        "time": (base_date + timedelta(days=day-1)).strftime("%Y-%m-%dT%H:%M:%S"),
-                        "level": val,
-                        "level_name": level_name,
-                    })
+                    level_name = (
+                        self._levels_current[val]
+                        if isinstance(val, int) and val < len(self._levels_current)
+                        else str(val)
+                    )
+                    forecast.append(
+                        {
+                            "time": (base_date + timedelta(days=day - 1)).strftime(
+                                "%Y-%m-%dT%H:%M:%S"
+                            ),
+                            "level": val,
+                            "level_name": level_name,
+                        }
+                    )
                 break
 
         today_raw = forecast[0] if forecast else None
@@ -328,7 +360,9 @@ class PolleninformationSensor(SensorEntity):
             "numeric_state": today_raw["level"] if today_raw else None,
             "named_state": today_raw["level_name"] if today_raw else None,
             "tomorrow_numeric_state": tomorrow_raw["level"] if tomorrow_raw else None,
-            "tomorrow_named_state": tomorrow_raw["level_name"] if tomorrow_raw else None,
+            "tomorrow_named_state": tomorrow_raw["level_name"]
+            if tomorrow_raw
+            else None,
             "friendly_name": self._allergen_name,
             "name_en": self._allergen_en,
             "name_la": self._allergen_latin,
@@ -348,12 +382,15 @@ class PolleninformationSensor(SensorEntity):
         """Update state and attributes (property-based, so nothing to store)."""
         pass
 
+
 class AllergyRiskSensor(SensorEntity):
     """Sensor for daily allergy risk (one sensor, with forecast)."""
 
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator, allergyrisk, levels_current, location_slug, location_title):
+    def __init__(
+        self, coordinator, allergyrisk, levels_current, location_slug, location_title
+    ):
         self.coordinator = coordinator
         self._allergyrisk = allergyrisk
         self._levels_current = levels_current
@@ -400,7 +437,9 @@ class AllergyRiskSensor(SensorEntity):
             )
             forecast.append(
                 {
-                    "time": (base_date + timedelta(days=day - 1)).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "time": (base_date + timedelta(days=day - 1)).strftime(
+                        "%Y-%m-%dT%H:%M:%S"
+                    ),
                     "level": scaled,
                     "level_name": level_name,
                 }
@@ -422,12 +461,20 @@ class AllergyRiskSensor(SensorEntity):
     async def async_update(self):
         pass
 
+
 class AllergyRiskHourlySensor(SensorEntity):
     """Sensor for hourly allergy risk (one sensor, with forecast)."""
 
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator, allergyrisk_hourly, levels_current, location_slug, location_title):
+    def __init__(
+        self,
+        coordinator,
+        allergyrisk_hourly,
+        levels_current,
+        location_slug,
+        location_title,
+    ):
         self.coordinator = coordinator
         self._allergyrisk_hourly = allergyrisk_hourly
         self._levels_current = levels_current
@@ -452,51 +499,57 @@ class AllergyRiskHourlySensor(SensorEntity):
 
     @property
     def state(self):
-        """Return allergy risk value for current hour of day 1, scaled to 0-4."""
+        """Return named allergy risk for the current hour of day 1."""
         now_hour = datetime.now().hour
         values = self._allergyrisk_hourly.get("allergyrisk_hourly_1", [])
         if 0 <= now_hour < len(values):
-            value = values[now_hour]
-            return scale_allergy_risk(value)
+            raw = values[now_hour]
+            scaled = scale_allergy_risk(raw)
+            if scaled is not None and scaled < len(self._levels_current):
+                return self._levels_current[scaled]
         return None
 
     @property
     def extra_state_attributes(self):
-        """Return attributes including forecast for future hours and days."""
-        # Forecast for hours of day 1
-        hourly_forecast = []
-        values = self._allergyrisk_hourly.get("allergyrisk_hourly_1", [])
-        for hour, value in enumerate(values):
-            scaled = scale_allergy_risk(value)
-            named = self._levels_current[scaled] if scaled is not None and scaled < len(self._levels_current) else None
-            hourly_forecast.append({
-                "hour": hour,
-                "value": scaled,
-                "named_state": named,
-            })
-        # Forecast for days 2-4
-        day_forecast = []
-        for day in range(2, 5):
-            values_day = self._allergyrisk_hourly.get(f"allergyrisk_hourly_{day}", [])
-            forecast_day = []
-            for hour, value in enumerate(values_day):
-                scaled = scale_allergy_risk(value)
-                named = self._levels_current[scaled] if scaled is not None and scaled < len(self._levels_current) else None
-                forecast_day.append({
-                    "hour": hour,
-                    "value": scaled,
-                    "named_state": named,
-                })
-            day_forecast.append({
-                "day": day,
-                "hourly_forecast": forecast_day,
-            })
-        named_state = self._levels_current[self.state] if self.state is not None and self.state < len(self._levels_current) else None
+        """Return attributes including forecast for all available hours."""
+        base_time = datetime.now(timezone.utc).replace(
+            minute=0, second=0, microsecond=0
+        )
+        forecast = []
+        for day in range(1, 5):
+            values = self._allergyrisk_hourly.get(f"allergyrisk_hourly_{day}", [])
+            for hour, raw in enumerate(values):
+                dt = base_time + timedelta(days=day - 1, hours=hour)
+                scaled = scale_allergy_risk(raw)
+                named = (
+                    self._levels_current[scaled]
+                    if scaled is not None and scaled < len(self._levels_current)
+                    else None
+                )
+                forecast.append(
+                    {
+                        "datetime": dt.isoformat(),
+                        "condition": named,
+                        "named_state": named,
+                        "numeric_state": scaled,
+                        "numeric_state_raw": raw,
+                    }
+                )
+
+        now_hour = datetime.now().hour
+        values_today = self._allergyrisk_hourly.get("allergyrisk_hourly_1", [])
+        raw_now = values_today[now_hour] if 0 <= now_hour < len(values_today) else None
+        scaled_now = scale_allergy_risk(raw_now) if raw_now is not None else None
+        named_now = (
+            self._levels_current[scaled_now]
+            if scaled_now is not None and scaled_now < len(self._levels_current)
+            else None
+        )
         return {
-            "named_state": named_state,
-            "numeric_state": self.state,
-            "hourly_forecast": hourly_forecast,
-            "day_forecast": day_forecast,
+            "named_state": named_now,
+            "numeric_state": scaled_now,
+            "numeric_state_raw": raw_now,
+            "forecast": forecast,
             "location_title": self._location_title,
             "location_slug": self._location_slug,
             "attribution": "Austrian Pollen Information Service",
