@@ -406,7 +406,7 @@ class AllergyRiskSensor(SensorEntity):
         return {
             "named_state": named_state,
             "numeric_state": self.state,
-            "raw_numeric_state": raw_value,
+            "numeric_state_raw": raw_value,
             "forecast": forecast,
             "location_title": self._location_title,
             "location_slug": self._location_slug,
