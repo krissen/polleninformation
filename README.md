@@ -91,7 +91,8 @@ The allergy risk provided by the API ranges from `0` to `10`. The
 integration scales this value to the same `0`–`4` range by applying
 `round(value / 2.5)` so that all sensors share a common scale.
 The original `0`–`10` value is available as the `numeric_state_raw`
-attribute of the `allergy_risk` sensor.
+attribute of both the `allergy_risk` and `allergy_risk_hourly`
+sensors.
 
 **The integration updates sensor data every 8 hours.** Which is more than enough, as the data usually does not change more frequently than once every 24 hours.
 

@@ -7,14 +7,17 @@ from collections import defaultdict
 from pathlib import Path
 
 # Anpassa vägen hit till rätt path i ditt repo!
-TRANSLATIONS_DIR = Path(__file__).parent.parent / "custom_components/polleninformation/translations"
+TRANSLATIONS_DIR = (
+    Path(__file__).parent.parent / "custom_components/polleninformation/translations"
+)
 
 MASTER = "en.json"
 
 PY_FILES_TO_SCAN = [
     Path(__file__).parent.parent / "custom_components/polleninformation/config_flow.py",
     Path(__file__).parent.parent / "custom_components/polleninformation/sensor.py",
-    Path(__file__).parent.parent / "custom_components/polleninformation/options_flow.py",
+    Path(__file__).parent.parent
+    / "custom_components/polleninformation/options_flow.py",
     Path(__file__).parent.parent / "custom_components/polleninformation/api.py",
 ]
 
@@ -28,9 +31,11 @@ def load_json(path):
     with open(path, encoding="utf-8") as f:
         return json.load(f)
 
+
 def save_json(path, data):
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+
 
 def flatten(d, parent_key="", sep="."):
     items = []
@@ -42,6 +47,7 @@ def flatten(d, parent_key="", sep="."):
             items.append((new_key, v))
     return items
 
+
 def unflatten(flat, sep="."):
     result = {}
     for key, value in flat.items():
@@ -51,6 +57,7 @@ def unflatten(flat, sep="."):
             d = d.setdefault(k, {})
         d[keys[-1]] = value
     return result
+
 
 def find_missing_and_redundant():
     files = sorted([f for f in TRANSLATIONS_DIR.glob("*.json")])
@@ -75,9 +82,10 @@ def find_missing_and_redundant():
                 redundant_per_lang[file.stem].append(key)
     return master, master_flat, missing_per_lang, redundant_per_lang
 
+
 def find_used_keys_in_py():
     used_keys = set()
-    pattern = re.compile(r'["\']([a-zA-Z0-9_.-]+)["\']')
+    _pattern = re.compile(r'["\']([a-zA-Z0-9_.-]+)["\']')
     for py_file in PY_FILES_TO_SCAN:
         if py_file.exists():
             content = py_file.read_text(encoding="utf-8")
@@ -90,8 +98,11 @@ def find_used_keys_in_py():
                     used_keys.add(match)
     return used_keys
 
+
 def scan_missing():
-    master, master_flat, missing_per_lang, redundant_per_lang = find_missing_and_redundant()
+    master, master_flat, missing_per_lang, redundant_per_lang = (
+        find_missing_and_redundant()
+    )
 
     # Kontroll mot keys i py-filer (om du skulle använda dem)
     used_keys = find_used_keys_in_py()
@@ -122,6 +133,7 @@ def scan_missing():
         for key, langs in all_redundant_keys.items():
             print(f"  {ICON_DEL} '{key}' finns i: {', '.join(langs)}")
 
+
 def gen_translation_json():
     master, master_flat, missing_per_lang, _ = find_missing_and_redundant()
     output = defaultdict(dict)
@@ -144,6 +156,7 @@ def gen_translation_json():
             print(f"{ICON_WARN} Kunde inte kopiera till clipboard: {e}")
     else:
         print(f"{ICON_OK} Alla språkfiler har redan alla nycklar från master.")
+
 
 def update_with_translation(json_path, force=False):
     with open(json_path, encoding="utf-8") as f:
@@ -178,6 +191,7 @@ def update_with_translation(json_path, force=False):
                 msg += " (force=True)"
             print(msg)
 
+
 def delete_redundant():
     _, master_flat, _, redundant_per_lang = find_missing_and_redundant()
     files = sorted([f for f in TRANSLATIONS_DIR.glob("*.json")])
@@ -192,7 +206,9 @@ def delete_redundant():
             for key in redundant:
                 del data_flat[key]
             save_json(file, unflatten(data_flat))
-            print(f"{ICON_DEL} {file.name}: tog bort {len(redundant)} överflödiga nycklar: {', '.join(redundant)}")
+            print(
+                f"{ICON_DEL} {file.name}: tog bort {len(redundant)} överflödiga nycklar: {', '.join(redundant)}"
+            )
             total_removed += len(redundant)
         else:
             print(f"{ICON_OK} {file.name}: inga överflödiga nycklar.")
@@ -200,6 +216,7 @@ def delete_redundant():
         print(f"{ICON_OK} Inga överflödiga nycklar att ta bort.")
     else:
         print(f"{ICON_DEL} Totalt borttagna nycklar: {total_removed}")
+
 
 if __name__ == "__main__":
     cmds = []
@@ -244,4 +261,3 @@ if __name__ == "__main__":
             "\nDu kan kombinera flera kommandon i valfri ordning, t.ex.:\n"
             f"  python3 {Path(__file__).name} update oversattning.json clean\n"
         )
-
