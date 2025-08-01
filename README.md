@@ -90,6 +90,8 @@ All allergen sensors use a scale from `0` to `4`:
 The allergy risk provided by the API ranges from `0` to `10`. The
 integration scales this value to the same `0`–`4` range by applying
 `round(value / 2.5)` so that all sensors share a common scale.
+The original `0`–`10` value is available as the `numeric_state_raw`
+attribute of the `allergy_risk` sensor.
 
 **The integration updates sensor data every 8 hours.** Which is more than enough, as the data usually does not change more frequently than once every 24 hours.
 
@@ -98,8 +100,7 @@ integration scales this value to the same `0`–`4` range by applying
 This integration uses the official public API provided by the [Austrian Pollen Information Service](https://www.polleninformation.at/en/data-interface).
 You **must request a personal API key** to use the integration—get your key [here](https://www.polleninformation.at/en/data-interface/request-an-api-key).
 
-*For more information about the API and its terms of use, see [Austrian Pollen Information Service - Data Interface](https://www.polleninformation.at/en/data-interface).* 
-
+*For more information about the API and its terms of use, see [Austrian Pollen Information Service - Data Interface](https://www.polleninformation.at/en/data-interface).*
 
 ---
 

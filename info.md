@@ -38,6 +38,8 @@ All allergen sensors report values from **0** (none) to **4** (very high).
 The allergy risk returned by the API uses a **0–10** scale. The integration
 converts this to the same **0–4** range using `round(value / 2.5)` so that
 all values are comparable.
+The original `0`–`10` value can be found in the `numeric_state_raw` attribute
+of the `allergy_risk` sensor.
 
 ## Data Source & Attribution
 
