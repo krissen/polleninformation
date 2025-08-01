@@ -380,9 +380,12 @@ class AllergyRiskSensor(SensorEntity):
 
     @property
     def state(self):
-        """Return allergy risk value for day 1, scaled to 0-4."""
+        """Return allergy risk for day 1 as named level."""
         value = self._allergyrisk.get("allergyrisk_1", None)
-        return scale_allergy_risk(value) if value is not None else None
+        scaled = scale_allergy_risk(value) if value is not None else None
+        if scaled is not None and scaled < len(self._levels_current):
+            return self._levels_current[scaled]
+        return None
 
     @property
     def extra_state_attributes(self):
@@ -397,15 +400,11 @@ class AllergyRiskSensor(SensorEntity):
                 "value": scaled,
                 "named_state": named,
             })
-        named_state = (
-            self._levels_current[self.state]
-            if self.state is not None and self.state < len(self._levels_current)
-            else None
-        )
         raw_value = self._allergyrisk.get("allergyrisk_1", None)
+        scaled_today = scale_allergy_risk(raw_value) if raw_value is not None else None
         return {
-            "named_state": named_state,
-            "numeric_state": self.state,
+            "named_state": self.state,
+            "numeric_state": scaled_today,
             "numeric_state_raw": raw_value,
             "forecast": forecast,
             "location_title": self._location_title,
