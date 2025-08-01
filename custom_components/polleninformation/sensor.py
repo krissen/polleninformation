@@ -397,10 +397,16 @@ class AllergyRiskSensor(SensorEntity):
                 "value": scaled,
                 "named_state": named,
             })
-        named_state = self._levels_current[self.state] if self.state is not None and self.state < len(self._levels_current) else None
+        named_state = (
+            self._levels_current[self.state]
+            if self.state is not None and self.state < len(self._levels_current)
+            else None
+        )
+        raw_value = self._allergyrisk.get("allergyrisk_1", None)
         return {
             "named_state": named_state,
             "numeric_state": self.state,
+            "raw_numeric_state": raw_value,
             "forecast": forecast,
             "location_title": self._location_title,
             "location_slug": self._location_slug,
