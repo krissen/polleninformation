@@ -92,7 +92,8 @@ integration scales this value to the same `0`–`4` range by applying
 `round(value / 2.5)` so that all sensors share a common scale.
 The original `0`–`10` value is available as the `numeric_state_raw`
 attribute of both the `allergy_risk` and `allergy_risk_hourly`
-sensors.
+sensors. Within their forecast attribute the same raw value is exposed
+as `level_raw` for each forecast entry.
 
 **The integration updates sensor data every 8 hours.** Which is more than enough, as the data usually does not change more frequently than once every 24 hours.
 

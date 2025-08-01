@@ -442,6 +442,7 @@ class AllergyRiskSensor(SensorEntity):
                     ),
                     "level": scaled,
                     "level_name": level_name,
+                    "level_raw": value_raw,
                 }
             )
         raw_value = self._allergyrisk.get("allergyrisk_1", None)
@@ -528,11 +529,10 @@ class AllergyRiskHourlySensor(SensorEntity):
                 )
                 forecast.append(
                     {
-                        "datetime": dt.isoformat(),
-                        "condition": named,
-                        "named_state": named,
-                        "numeric_state": scaled,
-                        "numeric_state_raw": raw,
+                        "time": dt.isoformat(),
+                        "level": scaled,
+                        "level_name": named,
+                        "level_raw": raw,
                     }
                 )
 
