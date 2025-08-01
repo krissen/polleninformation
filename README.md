@@ -71,9 +71,9 @@ The integration will create sensors named like:
 
 Each sensor includes:
 
-- Current pollen level (numerical and descriptive string)
-- Multi-day forecast as an attribute
-- Human-friendly names and icons for all entities
+ - Current pollen level as text (numeric value available in attributes)
+ - Multi-day forecast as an attribute
+ - Human-friendly names and icons for all entities
 
 ### Understanding the values
 

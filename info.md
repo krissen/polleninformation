@@ -27,7 +27,7 @@ Each sensor exposes attributes such as:
 
 - **level_en**: Current state as text (`none`, `low`, `moderate`, etc.)
 - **forecast**: Array with daily forecast (each entry includes date, numeric and named level)
-- **named_state / numeric_state**: Today's level (text and numeric)
+ - **named_state / numeric_state**: Current level (sensor state is `named_state`)
 - **location_title / location_slug / location_zip**: Location information
 - **name_en / name_de / name_la**: Allergen name (English, German, Latin)
 - **Icon**: Mapped to allergen type
