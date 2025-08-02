@@ -14,6 +14,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 from homeassistant.components.sensor import SensorEntity
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_time_interval
 
 from .api import async_get_pollenat_data
@@ -151,6 +152,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     levels_en = LEVELS.get("en", ["none", "low", "moderate", "high", "very high"])
 
     entities = []
+    new_unique_ids: set[str] = set()
 
     # Allergen sensors (one per item in contamination)
     for item in contamination:
@@ -174,47 +176,56 @@ async def async_setup_entry(hass, entry, async_add_entities):
         slug_en = slugify(allergen_en) if allergen_en else slugify(poll_title_local)
         icon = ALLERGEN_ICON_MAP.get(slug_en, ALLERGEN_ICON_MAP["default"])
 
-        entities.append(
-            PolleninformationSensor(
-                coordinator=coordinator,
-                sensor_type="pollen",
-                allergen_name=poll_title_local,
-                allergen_en=allergen_en,
-                allergen_slug=slug_en,
-                allergen_latin=allergen_la,
-                levels_current=levels_current,
-                levels_en=levels_en,
-                location_slug=location_slug,
-                location_title=location_title,
-                icon=icon,
-            )
+        sensor = PolleninformationSensor(
+            coordinator=coordinator,
+            sensor_type="pollen",
+            allergen_name=poll_title_local,
+            allergen_en=allergen_en,
+            allergen_slug=slug_en,
+            allergen_latin=allergen_la,
+            levels_current=levels_current,
+            levels_en=levels_en,
+            location_slug=location_slug,
+            location_title=location_title,
+            icon=icon,
         )
+        entities.append(sensor)
+        new_unique_ids.add(sensor.unique_id)
 
     # Allergy risk daily sensor (one sensor, state is day 1, forecast is days 2-4)
     allergyrisk = coordinator.data.get("allergyrisk", {})
     if allergyrisk:
-        entities.append(
-            AllergyRiskSensor(
-                coordinator=coordinator,
-                allergyrisk=allergyrisk,
-                levels_current=levels_current,
-                location_slug=location_slug,
-                location_title=location_title,
-            )
+        sensor = AllergyRiskSensor(
+            coordinator=coordinator,
+            allergyrisk=allergyrisk,
+            levels_current=levels_current,
+            location_slug=location_slug,
+            location_title=location_title,
         )
+        entities.append(sensor)
+        new_unique_ids.add(sensor.unique_id)
 
     # Allergy risk hourly sensor (one sensor, state is hour 0 of day 1, forecast is hours/days 2-4)
     allergyrisk_hourly = coordinator.data.get("allergyrisk_hourly", {})
     if allergyrisk_hourly:
-        entities.append(
-            AllergyRiskHourlySensor(
-                coordinator=coordinator,
-                allergyrisk_hourly=allergyrisk_hourly,
-                levels_current=levels_current,
-                location_slug=location_slug,
-                location_title=location_title,
-            )
+        sensor = AllergyRiskHourlySensor(
+            coordinator=coordinator,
+            allergyrisk_hourly=allergyrisk_hourly,
+            levels_current=levels_current,
+            location_slug=location_slug,
+            location_title=location_title,
         )
+        entities.append(sensor)
+        new_unique_ids.add(sensor.unique_id)
+
+    # Remove outdated sensors no longer provided by the API
+    registry = er.async_get(hass)
+    for entity_entry in er.async_entries_for_config_entry(registry, entry.entry_id):
+        if entity_entry.domain != "sensor":
+            continue
+        if entity_entry.unique_id not in new_unique_ids:
+            _LOGGER.debug("Removing outdated sensor %s", entity_entry.entity_id)
+            registry.async_remove(entity_entry.entity_id)
 
     async_add_entities(entities, update_before_add=True)
 
