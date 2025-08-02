@@ -220,7 +220,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     # Remove outdated sensors no longer provided by the API
     registry = er.async_get(hass)
-    for entity_entry in registry.async_entries_for_config_entry(entry.entry_id):
+    for entity_entry in er.async_entries_for_config_entry(registry, entry.entry_id):
         if entity_entry.domain != "sensor":
             continue
         if entity_entry.unique_id not in new_unique_ids:
