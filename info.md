@@ -27,7 +27,8 @@ Each sensor exposes attributes such as:
 
 - **level_en**: Current state as text (`none`, `low`, `moderate`, etc.)
 - **forecast**: Array with daily forecast (each entry includes date, numeric and named level)
-- **named_state / numeric_state**: Today's level (text and numeric)
+  - For the allergy risk sensors the original 0–10 value is included as `level_raw` in each entry
+ - **named_state / numeric_state**: Current level (sensor state is `named_state`)
 - **location_title / location_slug / location_zip**: Location information
 - **name_en / name_de / name_la**: Allergen name (English, German, Latin)
 - **Icon**: Mapped to allergen type
@@ -38,6 +39,9 @@ All allergen sensors report values from **0** (none) to **4** (very high).
 The allergy risk returned by the API uses a **0–10** scale. The integration
 converts this to the same **0–4** range using `round(value / 2.5)` so that
 all values are comparable.
+The original `0`–`10` value can be found in the `numeric_state_raw` attribute
+of both the `allergy_risk` and `allergy_risk_hourly` sensors. The same raw value
+is available per forecast entry as `level_raw`.
 
 ## Data Source & Attribution
 
