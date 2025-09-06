@@ -15,9 +15,8 @@ from datetime import datetime, timedelta, timezone
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .api import async_get_pollenat_data
 from .const import DEFAULT_LANG, DOMAIN
 from .const_levels import LEVELS
 from .utils import (
@@ -29,7 +28,6 @@ from .utils import (
 
 DEBUG = True
 _LOGGER = logging.getLogger(__name__)
-SCAN_INTERVAL = timedelta(hours=8)
 
 # Icon maps for allergens and air sensors
 ALLERGEN_ICON_MAP = {
@@ -98,50 +96,37 @@ def scale_allergy_risk(value):
 
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up polleninformation sensors from a config entry."""
-    data = entry.data
+    # Get the coordinator from the integration setup
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    
     if DEBUG:
-        _LOGGER.debug("Polleninformation: async_setup_entry data: %s", data)
-    try:
-        lat = data["latitude"]
-        lon = data["longitude"]
-        country = data["country"]
-        lang = data.get("lang", DEFAULT_LANG)
-        apikey = data.get("apikey")
-        location_title = data.get("location_title")
-        # location_slug = data.get("location_slug")
-        # Fallback if missing or empty
-        if not location_title or location_title.strip() == "":
-            # Use same fallback as integrations-title
-            from .utils import async_get_country_options
-
-            country_options = await async_get_country_options(hass)
-            country_name = country_options.get(country, country)
-            lat_str = f"{lat:.4f}" if lat is not None else "?"
-            lon_str = f"{lon:.4f}" if lon is not None else "?"
-            location_title = f"{country_name} ({lat_str}, {lon_str})"
-        location_slug = normalize(location_title)
-        _LOGGER.debug(
-            "Using slugified location_title: '%s' -> '%s'",
-            location_title,
-            location_slug,
-        )
-    except KeyError as e:
-        _LOGGER.error("Missing config field: %s. Data: %s", e, data)
-        return
-    coordinator = PollenDataCoordinator(
-        hass=hass,
-        latitude=lat,
-        longitude=lon,
-        country=country,
-        lang=lang,
-        apikey=apikey,
-    )
-    await coordinator.async_refresh()
+        _LOGGER.debug("Polleninformation: async_setup_entry using coordinator: %s", coordinator)
+    
     if not coordinator.data:
         _LOGGER.error("No pollen data found during setup.")
         return
 
     contamination = coordinator.data.get("contamination", [])
+
+    # Get entry data for location info
+    data = entry.data
+    lat = data["latitude"]
+    lon = data["longitude"]
+    country = data["country"]
+    lang = data.get("lang", DEFAULT_LANG)
+    location_title = data.get("location_title")
+    
+    # Fallback if missing or empty
+    if not location_title or location_title.strip() == "":
+        # Use same fallback as integrations-title
+        from .utils import async_get_country_options
+
+        country_options = await async_get_country_options(hass)
+        country_name = country_options.get(country, country)
+        lat_str = f"{lat:.4f}" if lat is not None else "?"
+        lon_str = f"{lon:.4f}" if lon is not None else "?"
+        location_title = f"{country_name} ({lat_str}, {lon_str})"
+    location_slug = normalize(location_title)
 
     # Language/levels handling
     language_block_current = await async_get_language_block(hass, lang)
@@ -229,45 +214,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     async_add_entities(entities, update_before_add=True)
 
-    async def scheduled_refresh(now):
-        await coordinator.async_refresh()
-        for entity in entities:
-            await entity.async_update_ha_state(force_refresh=True)
-
-    async_track_time_interval(hass, scheduled_refresh, SCAN_INTERVAL)
 
 
-class PollenDataCoordinator:
-    """Coordinator to fetch and cache polleninformation.at API data."""
-
-    def __init__(self, hass, latitude, longitude, country, lang, apikey):
-        self.hass = hass
-        self.latitude = latitude
-        self.longitude = longitude
-        self.country = country
-        self.lang = lang
-        self.apikey = apikey
-        self.data = None
-
-    async def async_refresh(self):
-        """Fetch latest pollen data from API."""
-        try:
-            self.data = await async_get_pollenat_data(
-                self.hass,
-                self.latitude,
-                self.longitude,
-                self.country,
-                self.lang,
-                self.apikey,
-            )
-            if DEBUG:
-                _LOGGER.debug("API response data: %s", self.data)
-        except Exception as e:
-            _LOGGER.error("Failed to fetch pollen data: %s", e)
-            self.data = None
-
-
-class PolleninformationSensor(SensorEntity):
+class PolleninformationSensor(CoordinatorEntity, SensorEntity):
     """Generic sensor for pollen allergen."""
 
     _attr_has_entity_name = True
@@ -286,7 +235,7 @@ class PolleninformationSensor(SensorEntity):
         location_title,
         icon,
     ):
-        self.coordinator = coordinator
+        super().__init__(coordinator)
         self.sensor_type = sensor_type
         self._allergen_name = allergen_name
         self._allergen_en = allergen_en
@@ -390,11 +339,11 @@ class PolleninformationSensor(SensorEntity):
         }
 
     async def async_update(self):
-        """Update state and attributes (property-based, so nothing to store)."""
+        """Update handled by coordinator."""
         pass
 
 
-class AllergyRiskSensor(SensorEntity):
+class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
     """Sensor for daily allergy risk (one sensor, with forecast)."""
 
     _attr_has_entity_name = True
@@ -402,7 +351,7 @@ class AllergyRiskSensor(SensorEntity):
     def __init__(
         self, coordinator, allergyrisk, levels_current, location_slug, location_title
     ):
-        self.coordinator = coordinator
+        super().__init__(coordinator)
         self._allergyrisk = allergyrisk
         self._levels_current = levels_current
         self._location_slug = location_slug
@@ -471,10 +420,11 @@ class AllergyRiskSensor(SensorEntity):
         }
 
     async def async_update(self):
+        """Update handled by coordinator."""
         pass
 
 
-class AllergyRiskHourlySensor(SensorEntity):
+class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
     """Sensor for hourly allergy risk (one sensor, with forecast)."""
 
     _attr_has_entity_name = True
@@ -487,7 +437,7 @@ class AllergyRiskHourlySensor(SensorEntity):
         location_slug,
         location_title,
     ):
-        self.coordinator = coordinator
+        super().__init__(coordinator)
         self._allergyrisk_hourly = allergyrisk_hourly
         self._levels_current = levels_current
         self._location_slug = location_slug
@@ -569,4 +519,5 @@ class AllergyRiskHourlySensor(SensorEntity):
         }
 
     async def async_update(self):
+        """Update handled by coordinator."""
         pass
