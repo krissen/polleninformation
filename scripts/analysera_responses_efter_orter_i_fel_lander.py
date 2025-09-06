@@ -5,23 +5,45 @@ import pgeocode
 import requests
 
 # Dämpar specifik FutureWarning för fillna
-pd.set_option('future.no_silent_downcasting', True)
+pd.set_option("future.no_silent_downcasting", True)
 
 EU_COUNTRIES = [
-    "AT","BE","BG","CH","CZ","DE","DK","EE","ES","FI","FR","GB","GR","HR","HU",
-    "IE","IT","LT","LU","LV","MT","NL","NO","PL","PT","RO","SE","SI","SK"
+    "AT",
+    "BE",
+    "BG",
+    "CH",
+    "CZ",
+    "DE",
+    "DK",
+    "EE",
+    "ES",
+    "FI",
+    "FR",
+    "GB",
+    "GR",
+    "HR",
+    "HU",
+    "IE",
+    "IT",
+    "LT",
+    "LU",
+    "LV",
+    "MT",
+    "NL",
+    "NO",
+    "PL",
+    "PT",
+    "RO",
+    "SE",
+    "SI",
+    "SK",
 ]
 RESPONSES_FILE = "responses"
 
+
 def get_country_code_from_gps(lat, lon):
     url = "https://nominatim.openstreetmap.org/reverse"
-    params = {
-        "lat": lat,
-        "lon": lon,
-        "zoom": 3,
-        "format": "json",
-        "addressdetails": 1
-    }
+    params = {"lat": lat, "lon": lon, "zoom": 3, "format": "json", "addressdetails": 1}
     headers = {"User-Agent": "Polleninformation-Validation/1.2"}
     try:
         r = requests.get(url, params=params, headers=headers, timeout=10)
@@ -34,6 +56,7 @@ def get_country_code_from_gps(lat, lon):
         return None, str(e)
     return None, None
 
+
 def parse_gps(value):
     if not value or "," not in value:
         return None, None
@@ -45,9 +68,16 @@ def parse_gps(value):
     except Exception:
         return None, None
 
+
 def color(code, text):
-    codes = {"GRÖNT": "\033[92m", "ORANGE": "\033[93m", "RÖTT": "\033[91m", "SLUT": "\033[0m"}
+    codes = {
+        "GRÖNT": "\033[92m",
+        "ORANGE": "\033[93m",
+        "RÖTT": "\033[91m",
+        "SLUT": "\033[0m",
+    }
     return f"{codes.get(code, '')}{text}{codes['SLUT']}"
+
 
 def safe_query_postal_code(nomi, postcode):
     try:
@@ -58,6 +88,7 @@ def safe_query_postal_code(nomi, postcode):
         pass
     return None
 
+
 def safe_query_city(nomi, city):
     try:
         if city:
@@ -65,6 +96,7 @@ def safe_query_city(nomi, city):
     except Exception:
         pass
     return None
+
 
 def match_city_or_postcode(country_code, locationtitle):
     # Postcode och stad (kan vara tom)
@@ -83,16 +115,20 @@ def match_city_or_postcode(country_code, locationtitle):
             postcode_country_code = result_pc.country_code.upper()
             ortname = getattr(result_pc, "place_name", city)
             ort_info = f"{ortname} [{postcode_country_code}]"
-            ort_match = (postcode_country_code == country_code)
+            ort_match = postcode_country_code == country_code
             ort_wrong_country = not ort_match and (postcode_country_code is not None)
             return ort_match, ort_wrong_country, ort_info
         # Om ingen postnummer, testa city som fallback
         locations = safe_query_city(nomi, city)
-        if locations is not None and hasattr(locations, "country_code") and len(locations) > 0:
+        if (
+            locations is not None
+            and hasattr(locations, "country_code")
+            and len(locations) > 0
+        ):
             loc_country_code = locations.iloc[0].country_code.upper()
             place = locations.iloc[0].place_name
             ort_info = f"{place} [{loc_country_code}] (city fallback)"
-            ort_match = (loc_country_code == country_code)
+            ort_match = loc_country_code == country_code
             ort_wrong_country = not ort_match and (loc_country_code is not None)
             return ort_match, ort_wrong_country, ort_info
     except Exception as e:
@@ -109,20 +145,25 @@ def match_city_or_postcode(country_code, locationtitle):
                 postcode_country_code = result_fb.country_code.upper()
                 ortname = getattr(result_fb, "place_name", city)
                 ort_info = f"{ortname} [{postcode_country_code}] via {fallback_country}"
-                ort_match = (postcode_country_code == country_code)
+                ort_match = postcode_country_code == country_code
                 ort_wrong_country = not ort_match
                 return ort_match, ort_wrong_country, ort_info
             locations_fb = safe_query_city(nomi_fb, city)
-            if locations_fb is not None and hasattr(locations_fb, "country_code") and len(locations_fb) > 0:
+            if (
+                locations_fb is not None
+                and hasattr(locations_fb, "country_code")
+                and len(locations_fb) > 0
+            ):
                 loc_country_code = locations_fb.iloc[0].country_code.upper()
                 place = locations_fb.iloc[0].place_name
                 ort_info = f"{place} [{loc_country_code}] via {fallback_country} (city fallback)"
-                ort_match = (loc_country_code == country_code)
+                ort_match = loc_country_code == country_code
                 ort_wrong_country = not ort_match
                 return ort_match, ort_wrong_country, ort_info
         except Exception:
             continue
     return False, False, "?"
+
 
 pattern = re.compile(
     r"^====\s+([A-Z]{2})\s+\([^)]+\)\s+====\s*\n(.*?^\})\s*(?=^====|\Z)",
@@ -146,11 +187,15 @@ for match in pattern.finditer(content):
         gps_country_code, gps_country_name = None, None
         if lat is not None and lon is not None:
             gps_country_code, gps_country_name = get_country_code_from_gps(lat, lon)
-        gps_match = (gps_country_code == country_code)
-        gps_info = f"{gps_country_name} [{gps_country_code}]" if gps_country_name else "?"
+        gps_match = gps_country_code == country_code
+        gps_info = (
+            f"{gps_country_name} [{gps_country_code}]" if gps_country_name else "?"
+        )
 
         # Ort/postnummer-match
-        ort_match, ort_wrong_country, ort_info = match_city_or_postcode(country_code, locationtitle)
+        ort_match, ort_wrong_country, ort_info = match_city_or_postcode(
+            country_code, locationtitle
+        )
 
         # Färglogik
         if gps_match and ort_match:
@@ -160,8 +205,9 @@ for match in pattern.finditer(content):
         else:
             status = color("ORANGE", "KANSKE")
 
-        print(f"{country_code}: {status}  Ort: '{locationtitle}'  GPS→{gps_info}  GPS-match: {gps_match}  Ort-match: {ort_match} ({ort_info})")
+        print(
+            f"{country_code}: {status}  Ort: '{locationtitle}'  GPS→{gps_info}  GPS-match: {gps_match}  Ort-match: {ort_match} ({ort_info})"
+        )
 
     except Exception as e:
         print(f"Error parsing country {country_code}: {e}")
-

@@ -32,4 +32,3 @@ if sensorless:
         print("-", code)
 else:
     print("Alla länder verkar ha minst en sensor/allergen.")
-
