@@ -4,3 +4,4 @@ __pycache__
 oversattning.json
 custom_components/hacs
 .env
+.venv/
