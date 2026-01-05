@@ -14,7 +14,6 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 from homeassistant.components.sensor import SensorEntity
-from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DEFAULT_LANG, DOMAIN
@@ -98,10 +97,12 @@ async def async_setup_entry(hass, entry, async_add_entities):
     """Set up polleninformation sensors from a config entry."""
     # Get the coordinator from the integration setup
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    
+
     if DEBUG:
-        _LOGGER.debug("Polleninformation: async_setup_entry using coordinator: %s", coordinator)
-    
+        _LOGGER.debug(
+            "Polleninformation: async_setup_entry using coordinator: %s", coordinator
+        )
+
     if not coordinator.data:
         _LOGGER.error("No pollen data found during setup.")
         return
@@ -115,7 +116,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     country = data["country"]
     lang = data.get("lang", DEFAULT_LANG)
     location_title = data.get("location_title")
-    
+
     # Fallback if missing or empty
     if not location_title or location_title.strip() == "":
         # Use same fallback as integrations-title
@@ -203,17 +204,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         entities.append(sensor)
         new_unique_ids.add(sensor.unique_id)
 
-    # Remove outdated sensors no longer provided by the API
-    registry = er.async_get(hass)
-    for entity_entry in er.async_entries_for_config_entry(registry, entry.entry_id):
-        if entity_entry.domain != "sensor":
-            continue
-        if entity_entry.unique_id not in new_unique_ids:
-            _LOGGER.debug("Removing outdated sensor %s", entity_entry.entity_id)
-            registry.async_remove(entity_entry.entity_id)
-
     async_add_entities(entities, update_before_add=True)
-
 
 
 class PolleninformationSensor(CoordinatorEntity, SensorEntity):

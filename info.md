@@ -1,5 +1,7 @@
 # Home Assistant: Pollen Information EU
 
+[![API Status](https://img.shields.io/endpoint?url=https://krissen.github.io/polleninformation/badge.json)](https://krissen.github.io/polleninformation/)
+
 Pollen Information EU is a Home Assistant integration that provides up-to-date pollen data for any location in Europe, powered by the Austrian Pollen Information Service.
 
 ## Features

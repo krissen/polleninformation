@@ -11,7 +11,12 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.helpers.selector import LocationSelector, LocationSelectorConfig
 
-from .api import async_get_pollenat_data
+from .api import (
+    PollenApiAuthError,
+    PollenApiConnectionError,
+    PollenApiError,
+    async_get_pollenat_data,
+)
 from .const import DEFAULT_LANG, DOMAIN
 from .options_flow import OptionsFlowHandler
 from .utils import (
@@ -176,27 +181,38 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             # Validate via API call (only if no previous errors)
             if not errors:
                 _LOGGER.debug(
-                    "Calling async_get_pollenat_data with: lat=%r, lon=%r, country=%r, lang=%r, apikey=%r",
+                    "Calling async_get_pollenat_data with: lat=%r, lon=%r, country=%r, lang=%r",
                     latitude,
                     longitude,
                     country_code,
                     lang_code,
-                    apikey,
                 )
-                pollen_data = await async_get_pollenat_data(
-                    self.hass,
-                    latitude,
-                    longitude,
-                    country_code,
-                    lang_code,
-                    apikey,
-                )
+                try:
+                    pollen_data = await async_get_pollenat_data(
+                        self.hass,
+                        latitude,
+                        longitude,
+                        country_code,
+                        lang_code,
+                        apikey,
+                    )
+                except PollenApiAuthError:
+                    errors["apikey"] = "invalid_api_key"
+                    pollen_data = None
+                except PollenApiConnectionError:
+                    errors["base"] = "connection_error"
+                    pollen_data = None
+                except PollenApiError as e:
+                    errors["base"] = "api_error"
+                    _LOGGER.error("API error: %s", e)
+                    pollen_data = None
+
                 _LOGGER.debug("API response: %r", pollen_data)
 
-                if not pollen_data:
+                if pollen_data is None and not errors:
                     errors["base"] = "no_pollen_data"
                     _LOGGER.error("No pollen data returned for input.")
-                elif not pollen_data.get("contamination"):
+                elif pollen_data and not pollen_data.get("contamination"):
                     errors["base"] = "no_sensors_for_country"
                     _LOGGER.error(
                         "No contamination sensors for country: %r", country_code
