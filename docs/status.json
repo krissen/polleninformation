@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-01-05 16:10:00",
+  "timestamp": "2026-01-05 16:25:58",
   "countries": [
     {
       "code": "AT",
@@ -7,7 +7,7 @@
       "status": "ok",
       "http_code": 200,
       "allergen_count": 12,
-      "latency_ms": 573,
+      "latency_ms": 819,
       "error": null,
       "location": null
     },
@@ -17,7 +17,7 @@
       "status": "ok",
       "http_code": 200,
       "allergen_count": 5,
-      "latency_ms": 897,
+      "latency_ms": 1088,
       "error": null,
       "location": null
     },
@@ -27,7 +27,7 @@
       "status": "ok",
       "http_code": 200,
       "allergen_count": 8,
-      "latency_ms": 1228,
+      "latency_ms": 1327,
       "error": null,
       "location": null
     },
@@ -37,7 +37,7 @@
       "status": "empty",
       "http_code": 200,
       "allergen_count": 0,
-      "latency_ms": 841,
+      "latency_ms": 689,
       "error": null,
       "location": null
     },
@@ -47,7 +47,7 @@
       "status": "empty",
       "http_code": 200,
       "allergen_count": 0,
-      "latency_ms": 785,
+      "latency_ms": 894,
       "error": null,
       "location": null
     },
@@ -57,7 +57,7 @@
       "status": "empty",
       "http_code": 200,
       "allergen_count": 0,
-      "latency_ms": 1092,
+      "latency_ms": 1186,
       "error": null,
       "location": null
     },
@@ -67,7 +67,7 @@
       "status": "empty",
       "http_code": 200,
       "allergen_count": 0,
-      "latency_ms": 570,
+      "latency_ms": 755,
       "error": null,
       "location": null
     },
@@ -77,7 +77,7 @@
       "status": "empty",
       "http_code": 200,
       "allergen_count": 0,
-      "latency_ms": 760,
+      "latency_ms": 1092,
       "error": null,
       "location": null
     },
@@ -87,7 +87,7 @@
       "status": "empty",
       "http_code": 200,
       "allergen_count": 0,
-      "latency_ms": 961,
+      "latency_ms": 852,
       "error": null,
       "location": null
     },
@@ -97,7 +97,7 @@
       "status": "empty",
       "http_code": 200,
       "allergen_count": 0,
-      "latency_ms": 666,
+      "latency_ms": 688,
       "error": null,
       "location": null
     },
@@ -107,7 +107,7 @@
       "status": "ok",
       "http_code": 200,
       "allergen_count": 9,
-      "latency_ms": 1023,
+      "latency_ms": 689,
       "error": null,
       "location": null
     },
@@ -117,7 +117,7 @@
       "status": "empty",
       "http_code": 200,
       "allergen_count": 0,
-      "latency_ms": 594,
+      "latency_ms": 960,
       "error": null,
       "location": null
     },
@@ -127,7 +127,7 @@
       "status": "empty",
       "http_code": 200,
       "allergen_count": 0,
-      "latency_ms": 684,
+      "latency_ms": 689,
       "error": null,
       "location": null
     }

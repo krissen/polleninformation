@@ -2,12 +2,17 @@ name: API Status Check
 
 on:
   schedule:
-    - cron: '0 6,18 * * *'  # Run at 06:00 and 18:00 UTC
-  workflow_dispatch:  # Allow manual triggering
+    - cron: '0 6,18 * * *'
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
 
 jobs:
   check-status:
@@ -15,8 +20,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          ref: master
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -31,10 +34,18 @@ jobs:
           POLLENAT_API_KEY: ${{ secrets.POLLENAT_API_KEY }}
         run: python scripts/check_api_status.py
 
-      - name: Commit and push status files
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/
-          git diff --staged --quiet || git commit -m "(docs) Update API status $(date -u '+%Y-%m-%d %H:%M') UTC"
-          git push origin HEAD:master
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/
+
+  deploy:
+    needs: check-status
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

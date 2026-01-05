@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check polleninformation.at API status for all supported countries.
 
-Outputs status as JSON and Markdown for GitHub Pages.
+Outputs status as JSON and HTML for GitHub Pages.
 Requires POLLENAT_API_KEY environment variable.
 """
 
@@ -185,54 +185,72 @@ def status_emoji(status: str) -> str:
     }.get(status, "❓")
 
 
-def generate_markdown(results: list[CountryStatus], timestamp: str) -> str:
-    lines = [
-        "# Pollen API Status",
-        "",
-        "![API Status](https://img.shields.io/endpoint?url=https://krissen.github.io/polleninformation/badge.json)",
-        "",
-        f"Last updated: **{timestamp}** UTC",
-        "",
-        "| Country | Status | Allergens | Latency | Location |",
-        "|---------|--------|-----------|---------|----------|",
-    ]
-
+def generate_html(results: list[CountryStatus], timestamp: str) -> str:
+    rows = []
     for r in sorted(results, key=lambda x: x.code):
         emoji = status_emoji(r.status)
         latency = f"{r.latency_ms}ms" if r.latency_ms else "-"
         allergens = str(r.allergen_count) if r.allergen_count else "-"
         location = r.location or "-"
         if r.error and r.status != "ok":
-            location = f"_{r.error}_"
-
-        lines.append(
-            f"| {r.name} ({r.code}) | {emoji} {r.status} | {allergens} | {latency} | {location} |"
+            location = f"<em>{r.error}</em>"
+        rows.append(
+            f"<tr><td>{r.name} ({r.code})</td><td>{emoji} {r.status}</td>"
+            f"<td>{allergens}</td><td>{latency}</td><td>{location}</td></tr>"
         )
 
-    lines.extend(
-        [
-            "",
-            "## Legend",
-            "",
-            "| Symbol | Meaning |",
-            "|--------|---------|",
-            "| ✅ ok | API returned valid data with allergens |",
-            "| ⚠️ empty | API returned valid response but no allergen data |",
-            "| 🕐 timeout | Request timed out |",
-            "| 🔑 auth_error | API key invalid or unauthorized |",
-            "| ❌ http_error / api_error | Server returned an error |",
-            "| 🔌 connection_error | Could not connect to server |",
-            "",
-            "---",
-            "",
-            "*Automatically updated at 06:00 and 18:00 UTC by GitHub Actions.*",
-            "",
-            "**Note:** Status is checked using a single coordinate per country (typically the capital). "
-            "Regional availability may vary.",
-        ]
-    )
+    table_rows = "\n".join(rows)
 
-    return "\n".join(lines)
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pollen API Status</title>
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; }}
+        h1 {{ color: #333; }}
+        table {{ border-collapse: collapse; width: 100%; margin: 20px 0; }}
+        th, td {{ border: 1px solid #ddd; padding: 8px 12px; text-align: left; }}
+        th {{ background: #f5f5f5; }}
+        tr:hover {{ background: #f9f9f9; }}
+        .badge {{ margin: 10px 0; }}
+        .footer {{ color: #666; font-size: 0.9em; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; }}
+        .note {{ background: #fffbea; border-left: 4px solid #f0c000; padding: 10px; margin: 20px 0; }}
+    </style>
+</head>
+<body>
+    <h1>Pollen API Status</h1>
+    <div class="badge">
+        <img src="https://img.shields.io/endpoint?url=https://krissen.github.io/polleninformation/badge.json" alt="API Status">
+    </div>
+    <p>Last updated: <strong>{timestamp}</strong> UTC</p>
+
+    <table>
+        <thead>
+            <tr><th>Country</th><th>Status</th><th>Allergens</th><th>Latency</th><th>Location</th></tr>
+        </thead>
+        <tbody>
+{table_rows}
+        </tbody>
+    </table>
+
+    <h2>Legend</h2>
+    <table>
+        <tr><td>✅ ok</td><td>API returned valid data with allergens</td></tr>
+        <tr><td>⚠️ empty</td><td>API returned valid response but no allergen data</td></tr>
+        <tr><td>🕐 timeout</td><td>Request timed out</td></tr>
+        <tr><td>🔑 auth_error</td><td>API key invalid or unauthorized</td></tr>
+        <tr><td>❌ http_error / api_error</td><td>Server returned an error</td></tr>
+        <tr><td>🔌 connection_error</td><td>Could not connect to server</td></tr>
+    </table>
+
+    <div class="footer">
+        <p>Automatically updated at 06:00 and 18:00 UTC by GitHub Actions.</p>
+        <p class="note"><strong>Note:</strong> Status is checked using a single coordinate per country (typically the capital). Regional availability may vary.</p>
+    </div>
+</body>
+</html>"""
 
 
 async def main():
@@ -261,9 +279,9 @@ async def main():
     json_path = output_dir / "status.json"
     json_path.write_text(json.dumps(json_data, indent=2))
 
-    md_content = generate_markdown(results, timestamp)
-    md_path = output_dir / "index.md"
-    md_path.write_text(md_content)
+    html_content = generate_html(results, timestamp)
+    html_path = output_dir / "index.html"
+    html_path.write_text(html_content)
 
     ok_count = sum(1 for r in results if r.status == "ok")
     empty_count = sum(1 for r in results if r.status == "empty")
@@ -271,7 +289,7 @@ async def main():
 
     if error_count > 0:
         badge_color = "red"
-        badge_message = f"{error_count} error"
+        badge_message = "1 error" if error_count == 1 else f"{error_count} errors"
     elif empty_count > 0:
         badge_color = "yellow"
         badge_message = f"{ok_count} OK, {empty_count} empty"
@@ -290,7 +308,7 @@ async def main():
 
     print(f"Status check complete at {timestamp}")
     print(f"  JSON: {json_path}")
-    print(f"  Markdown: {md_path}")
+    print(f"  HTML: {html_path}")
     print(f"  Badge: {badge_path}")
     print(f"  Results: {ok_count} OK, {empty_count} empty, {error_count} errors")
 
