@@ -3,8 +3,10 @@
 See official API documentation: https://www.polleninformation.at/en/data-interface
 """
 
+import asyncio
 import logging
 
+import aiohttp
 import async_timeout
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -102,8 +104,10 @@ async def async_get_pollenat_data(
 
     except PollenApiError:
         raise
-    except TimeoutError as e:
+    except asyncio.TimeoutError as e:
         raise PollenApiConnectionError(f"Timeout connecting to API: {e}") from e
+    except aiohttp.ClientError as e:
+        raise PollenApiConnectionError(f"HTTP client error: {e}") from e
     except Exception as e:
         _LOGGER.error("Error calling polleninformation.at: %s", e)
         raise PollenApiConnectionError(f"Connection error: {e}") from e
