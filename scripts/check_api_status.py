@@ -225,7 +225,10 @@ def generate_markdown(results: list[CountryStatus], timestamp: str) -> str:
             "",
             "---",
             "",
-            "*This page is automatically updated twice daily by GitHub Actions.*",
+            "*Automatically updated at 06:00 and 18:00 UTC by GitHub Actions.*",
+            "",
+            "**Note:** Status is checked using a single coordinate per country (typically the capital). "
+            "Regional availability may vary.",
         ]
     )
 

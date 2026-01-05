@@ -2,23 +2,23 @@
 
 ![API Status](https://img.shields.io/endpoint?url=https://krissen.github.io/polleninformation/badge.json)
 
-Last updated: **2026-01-05 16:05:57** UTC
+Last updated: **2026-01-05 16:10:00** UTC
 
 | Country | Status | Allergens | Latency | Location |
 |---------|--------|-----------|---------|----------|
-| Austria (AT) | ✅ ok | 12 | 661ms | - |
-| Switzerland (CH) | ✅ ok | 5 | 990ms | - |
-| Germany (DE) | ✅ ok | 8 | 971ms | - |
-| Spain (ES) | ⚠️ empty | - | 761ms | - |
-| France (FR) | ⚠️ empty | - | 889ms | - |
-| Great Britain (GB) | ⚠️ empty | - | 830ms | - |
-| Italy (IT) | ⚠️ empty | - | 659ms | - |
-| Lithuania (LT) | ⚠️ empty | - | 658ms | - |
-| Latvia (LV) | ⚠️ empty | - | 741ms | - |
-| Poland (PL) | ⚠️ empty | - | 660ms | - |
-| Sweden (SE) | ✅ ok | 9 | 659ms | - |
-| Türkiye (TR) | ⚠️ empty | - | 1156ms | - |
-| Ukraine (UA) | ⚠️ empty | - | 1052ms | - |
+| Austria (AT) | ✅ ok | 12 | 573ms | - |
+| Switzerland (CH) | ✅ ok | 5 | 897ms | - |
+| Germany (DE) | ✅ ok | 8 | 1228ms | - |
+| Spain (ES) | ⚠️ empty | - | 841ms | - |
+| France (FR) | ⚠️ empty | - | 785ms | - |
+| Great Britain (GB) | ⚠️ empty | - | 1092ms | - |
+| Italy (IT) | ⚠️ empty | - | 570ms | - |
+| Lithuania (LT) | ⚠️ empty | - | 760ms | - |
+| Latvia (LV) | ⚠️ empty | - | 961ms | - |
+| Poland (PL) | ⚠️ empty | - | 666ms | - |
+| Sweden (SE) | ✅ ok | 9 | 1023ms | - |
+| Türkiye (TR) | ⚠️ empty | - | 594ms | - |
+| Ukraine (UA) | ⚠️ empty | - | 684ms | - |
 
 ## Legend
 
@@ -33,4 +33,6 @@ Last updated: **2026-01-05 16:05:57** UTC
 
 ---
 
-*This page is automatically updated twice daily by GitHub Actions.*
+*Automatically updated at 06:00 and 18:00 UTC by GitHub Actions.*
+
+**Note:** Status is checked using a single coordinate per country (typically the capital). Regional availability may vary.
