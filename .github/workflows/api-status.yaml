@@ -1,0 +1,38 @@
+name: API Status Check
+
+on:
+  schedule:
+    - cron: '0 6,18 * * *'  # Run at 06:00 and 18:00 UTC
+  workflow_dispatch:  # Allow manual triggering
+
+permissions:
+  contents: write
+  pages: write
+
+jobs:
+  check-status:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install aiohttp async-timeout
+
+      - name: Run status check
+        env:
+          POLLENAT_API_KEY: ${{ secrets.POLLENAT_API_KEY }}
+        run: python scripts/check_api_status.py
+
+      - name: Commit and push status files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/
+          git diff --staged --quiet || git commit -m "(docs) Update API status $(date -u '+%Y-%m-%d %H:%M') UTC"
+          git push
