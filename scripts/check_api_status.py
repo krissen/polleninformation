@@ -189,6 +189,8 @@ def generate_markdown(results: list[CountryStatus], timestamp: str) -> str:
     lines = [
         "# Pollen API Status",
         "",
+        "![API Status](https://img.shields.io/endpoint?url=https://krissen.github.io/polleninformation/badge.json)",
+        "",
         f"Last updated: **{timestamp}** UTC",
         "",
         "| Country | Status | Allergens | Latency | Location |",
@@ -260,14 +262,36 @@ async def main():
     md_path = output_dir / "index.md"
     md_path.write_text(md_content)
 
+    ok_count = sum(1 for r in results if r.status == "ok")
+    empty_count = sum(1 for r in results if r.status == "empty")
+    total = len(results)
+
+    if ok_count == total:
+        badge_color = "brightgreen"
+    elif ok_count >= total * 0.7:
+        badge_color = "green"
+    elif ok_count >= total * 0.5:
+        badge_color = "yellow"
+    elif ok_count > 0:
+        badge_color = "orange"
+    else:
+        badge_color = "red"
+
+    badge_data = {
+        "schemaVersion": 1,
+        "label": "API Status",
+        "message": f"{ok_count}/{total} countries",
+        "color": badge_color,
+    }
+    badge_path = output_dir / "badge.json"
+    badge_path.write_text(json.dumps(badge_data, indent=2))
+
     print(f"Status check complete at {timestamp}")
     print(f"  JSON: {json_path}")
     print(f"  Markdown: {md_path}")
+    print(f"  Badge: {badge_path}")
 
-    ok_count = sum(1 for r in results if r.status == "ok")
-    empty_count = sum(1 for r in results if r.status == "empty")
-    error_count = len(results) - ok_count - empty_count
-
+    error_count = total - ok_count - empty_count
     print(f"  Results: {ok_count} OK, {empty_count} empty, {error_count} errors")
 
     if error_count > 0:
