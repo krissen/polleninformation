@@ -12,7 +12,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import async_get_pollenat_data
+from .api import (
+    PollenApiAuthError,
+    PollenApiConnectionError,
+    PollenApiError,
+    async_get_pollenat_data,
+)
 from .const import (
     CONF_APIKEY,
     CONF_COUNTRY,
@@ -153,6 +158,12 @@ class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):
             return result  # type: ignore[return-value]
         except UpdateFailed:
             raise
+        except PollenApiAuthError as err:
+            raise UpdateFailed(f"Authentication failed: {err}") from err
+        except PollenApiConnectionError as err:
+            raise UpdateFailed(f"Connection failed: {err}") from err
+        except PollenApiError as err:
+            raise UpdateFailed(f"API error: {err}") from err
         except Exception as err:
             _LOGGER.error("Error fetching polleninformation.at: %s", err)
             raise UpdateFailed(err) from err
