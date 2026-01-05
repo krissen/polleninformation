@@ -106,6 +106,8 @@ async def async_get_pollenat_data(
         raise
     except asyncio.TimeoutError as e:
         raise PollenApiConnectionError(f"Timeout connecting to API: {e}") from e
+    except aiohttp.ClientResponseError as e:
+        raise PollenApiError(f"API returned HTTP {e.status}: {e.message}") from e
     except aiohttp.ClientError as e:
         raise PollenApiConnectionError(f"HTTP client error: {e}") from e
     except Exception as e:
