@@ -20,5 +20,5 @@ python3 -m pip install mutagen home-assistant-frontend
 export PYTHONPATH="$PWD/custom_components:$PYTHONPATH"
 
 echo "✅  venv is ready and requirements installed. PYTHONPATH set."
-echo "Now start HA with: hass --config \"$PWD/config\""
+echo "Now start HA with: ./scripts/run_ha.sh"
 
