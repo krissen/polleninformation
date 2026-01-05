@@ -23,7 +23,10 @@
       "suggested_country": "A kiválasztott országra és helyre nem találhatók adatok. Próbálja meg módosítani az országot vagy a helyet.",
       "no_sensors_for_country": "A kiválasztott országra és helyre nem találhatók szenzorok.",
       "missing_apikey": "Hiányzó API-kulcs",
-      "no_pollen_data": "Ehhez a helyhez nem érkezett pollenadat."
+      "no_pollen_data": "Ehhez a helyhez nem érkezett pollenadat.",
+      "invalid_api_key": "Érvénytelen API-kulcs",
+      "connection_error": "Nem sikerült csatlakozni a pollenszolgáltatáshoz",
+      "api_error": "A pollenszolgáltatás hibát adott vissza"
     },
     "abort": {
       "already_configured": "Ez a hely már konfigurálva van."

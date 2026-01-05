@@ -23,7 +23,10 @@
       "suggested_country": "Atlasītajā valstī šajā vietā dati nav atrasti. Mēģiniet mainīt valsti vai vietu.",
       "no_sensors_for_country": "Atlasītajā valstī šajā vietā sensori nav atrasti.",
       "missing_apikey": "Trūkst API atslēgas",
-      "no_pollen_data": "Šai vietai nav atgriezti ziedputekšņu dati."
+      "no_pollen_data": "Šai vietai nav atgriezti ziedputekšņu dati.",
+      "invalid_api_key": "Nederīga API atslēga",
+      "connection_error": "Neizdevās izveidot savienojumu ar putekšņu pakalpojumu",
+      "api_error": "Putekšņu pakalpojums atgrieza kļūdu"
     },
     "abort": {
       "already_configured": "Šī vieta jau ir konfigurēta."

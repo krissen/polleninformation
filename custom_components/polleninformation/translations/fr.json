@@ -23,7 +23,10 @@
       "suggested_country": "Aucune donnée trouvée pour le pays sélectionné à cet emplacement. Essayez de changer de pays ou d’emplacement.",
       "no_sensors_for_country": "Aucun capteur trouvé pour le pays sélectionné à cet emplacement.",
       "missing_apikey": "Clé API manquante",
-      "no_pollen_data": "Aucune donnée de pollen n'a été retournée pour cet emplacement."
+      "no_pollen_data": "Aucune donnée de pollen n'a été retournée pour cet emplacement.",
+      "invalid_api_key": "Clé API non valide",
+      "connection_error": "Impossible de se connecter au service de pollen",
+      "api_error": "Le service de pollen a renvoyé une erreur"
     },
     "abort": {
       "already_configured": "Cet emplacement est déjà configuré."

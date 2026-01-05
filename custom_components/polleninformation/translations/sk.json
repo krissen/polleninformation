@@ -23,7 +23,10 @@
       "suggested_country": "Pre vybranú krajinu na tomto mieste neboli nájdené žiadne údaje. Skúste zmeniť krajinu alebo miesto.",
       "no_sensors_for_country": "Pre vybranú krajinu na tomto mieste neboli nájdené žiadne senzory.",
       "missing_apikey": "Chýba API kľúč",
-      "no_pollen_data": "Pre túto lokalitu neboli vrátené žiadne údaje o peľoch."
+      "no_pollen_data": "Pre túto lokalitu neboli vrátené žiadne údaje o peľoch.",
+      "invalid_api_key": "Neplatný API kľúč",
+      "connection_error": "Nepodarilo sa pripojiť k peľovej službe",
+      "api_error": "Peľová služba vrátila chybu"
     },
     "abort": {
       "already_configured": "Toto miesto je už nakonfigurované."
