@@ -64,7 +64,8 @@ async def check_country(
         apikey=apikey,
     )
 
-    start = asyncio.get_event_loop().time()
+    loop = asyncio.get_running_loop()
+    start = loop.time()
     try:
         async with async_timeout.timeout(15):
             async with session.get(
@@ -74,7 +75,7 @@ async def check_country(
                     "User-Agent": "PollenStatusChecker/1.0",
                 },
             ) as resp:
-                latency = int((asyncio.get_event_loop().time() - start) * 1000)
+                latency = int((loop.time() - start) * 1000)
                 http_code = resp.status
 
                 if http_code == 401:
@@ -147,7 +148,7 @@ async def check_country(
                     location=location,
                 )
 
-    except TimeoutError:
+    except asyncio.TimeoutError:
         return CountryStatus(
             code=code,
             name=info["name"],
