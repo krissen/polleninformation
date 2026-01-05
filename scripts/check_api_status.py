@@ -264,23 +264,22 @@ async def main():
 
     ok_count = sum(1 for r in results if r.status == "ok")
     empty_count = sum(1 for r in results if r.status == "empty")
-    total = len(results)
+    error_count = sum(1 for r in results if r.status not in ("ok", "empty"))
 
-    if ok_count == total:
-        badge_color = "brightgreen"
-    elif ok_count >= total * 0.7:
-        badge_color = "green"
-    elif ok_count >= total * 0.5:
-        badge_color = "yellow"
-    elif ok_count > 0:
-        badge_color = "orange"
-    else:
+    if error_count > 0:
         badge_color = "red"
+        badge_message = f"{error_count} error"
+    elif empty_count > 0:
+        badge_color = "yellow"
+        badge_message = f"{ok_count} OK, {empty_count} empty"
+    else:
+        badge_color = "brightgreen"
+        badge_message = "all OK"
 
     badge_data = {
         "schemaVersion": 1,
         "label": "API Status",
-        "message": f"{ok_count}/{total} countries",
+        "message": badge_message,
         "color": badge_color,
     }
     badge_path = output_dir / "badge.json"
@@ -290,8 +289,6 @@ async def main():
     print(f"  JSON: {json_path}")
     print(f"  Markdown: {md_path}")
     print(f"  Badge: {badge_path}")
-
-    error_count = total - ok_count - empty_count
     print(f"  Results: {ok_count} OK, {empty_count} empty, {error_count} errors")
 
     if error_count > 0:

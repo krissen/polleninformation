@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
   "label": "API Status",
-  "message": "4/13 countries",
-  "color": "orange"
+  "message": "4 OK, 9 empty",
+  "color": "yellow"
 }

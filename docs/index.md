@@ -2,23 +2,23 @@
 
 ![API Status](https://img.shields.io/endpoint?url=https://krissen.github.io/polleninformation/badge.json)
 
-Last updated: **2026-01-05 16:02:55** UTC
+Last updated: **2026-01-05 16:05:57** UTC
 
 | Country | Status | Allergens | Latency | Location |
 |---------|--------|-----------|---------|----------|
-| Austria (AT) | ✅ ok | 12 | 605ms | - |
-| Switzerland (CH) | ✅ ok | 5 | 1194ms | - |
-| Germany (DE) | ✅ ok | 8 | 761ms | - |
-| Spain (ES) | ⚠️ empty | - | 833ms | - |
-| France (FR) | ⚠️ empty | - | 1478ms | - |
-| Great Britain (GB) | ⚠️ empty | - | 640ms | - |
-| Italy (IT) | ⚠️ empty | - | 1057ms | - |
-| Lithuania (LT) | ⚠️ empty | - | 950ms | - |
-| Latvia (LV) | ⚠️ empty | - | 1370ms | - |
-| Poland (PL) | ⚠️ empty | - | 659ms | - |
-| Sweden (SE) | ✅ ok | 9 | 602ms | - |
-| Türkiye (TR) | ⚠️ empty | - | 762ms | - |
-| Ukraine (UA) | ⚠️ empty | - | 1256ms | - |
+| Austria (AT) | ✅ ok | 12 | 661ms | - |
+| Switzerland (CH) | ✅ ok | 5 | 990ms | - |
+| Germany (DE) | ✅ ok | 8 | 971ms | - |
+| Spain (ES) | ⚠️ empty | - | 761ms | - |
+| France (FR) | ⚠️ empty | - | 889ms | - |
+| Great Britain (GB) | ⚠️ empty | - | 830ms | - |
+| Italy (IT) | ⚠️ empty | - | 659ms | - |
+| Lithuania (LT) | ⚠️ empty | - | 658ms | - |
+| Latvia (LV) | ⚠️ empty | - | 741ms | - |
+| Poland (PL) | ⚠️ empty | - | 660ms | - |
+| Sweden (SE) | ✅ ok | 9 | 659ms | - |
+| Türkiye (TR) | ⚠️ empty | - | 1156ms | - |
+| Ukraine (UA) | ⚠️ empty | - | 1052ms | - |
 
 ## Legend
 
