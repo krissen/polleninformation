@@ -176,12 +176,11 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             # Validate via API call (only if no previous errors)
             if not errors:
                 _LOGGER.debug(
-                    "Calling async_get_pollenat_data with: lat=%r, lon=%r, country=%r, lang=%r, apikey=%r",
+                    "Calling async_get_pollenat_data with: lat=%r, lon=%r, country=%r, lang=%r",
                     latitude,
                     longitude,
                     country_code,
                     lang_code,
-                    apikey,
                 )
                 pollen_data = await async_get_pollenat_data(
                     self.hass,

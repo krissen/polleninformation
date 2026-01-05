@@ -63,12 +63,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     if DEBUG:
         _LOGGER.debug(
-            "INIT: Setup entry with lat=%s, lon=%s, country=%s, lang=%s, apikey=%s",
+            "INIT: Setup entry with lat=%s, lon=%s, country=%s, lang=%s",
             lat,
             lon,
             country,
             lang,
-            apikey,
         )
 
     coordinator = PollenInformationDataUpdateCoordinator(
