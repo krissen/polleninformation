@@ -1,0 +1,135 @@
+{
+  "timestamp": "2026-01-05 14:13:56",
+  "countries": [
+    {
+      "code": "AT",
+      "name": "Austria",
+      "status": "ok",
+      "http_code": 200,
+      "allergen_count": 12,
+      "latency_ms": 728,
+      "error": null,
+      "location": null
+    },
+    {
+      "code": "CH",
+      "name": "Switzerland",
+      "status": "ok",
+      "http_code": 200,
+      "allergen_count": 5,
+      "latency_ms": 1493,
+      "error": null,
+      "location": null
+    },
+    {
+      "code": "DE",
+      "name": "Germany",
+      "status": "ok",
+      "http_code": 200,
+      "allergen_count": 8,
+      "latency_ms": 1849,
+      "error": null,
+      "location": null
+    },
+    {
+      "code": "ES",
+      "name": "Spain",
+      "status": "api_error",
+      "http_code": 200,
+      "allergen_count": 0,
+      "latency_ms": 818,
+      "error": "F\u00fcr diese Position sind derzeit leider keine Daten verf\u00fcgbar.",
+      "location": null
+    },
+    {
+      "code": "FR",
+      "name": "France",
+      "status": "parse_error",
+      "http_code": 200,
+      "allergen_count": 0,
+      "latency_ms": 729,
+      "error": "Invalid JSON response",
+      "location": null
+    },
+    {
+      "code": "GB",
+      "name": "Great Britain",
+      "status": "api_error",
+      "http_code": 200,
+      "allergen_count": 0,
+      "latency_ms": 1533,
+      "error": "F\u00fcr diese Position sind derzeit leider keine Daten verf\u00fcgbar.",
+      "location": null
+    },
+    {
+      "code": "IT",
+      "name": "Italy",
+      "status": "api_error",
+      "http_code": 200,
+      "allergen_count": 0,
+      "latency_ms": 1252,
+      "error": "F\u00fcr diese Position sind derzeit leider keine Daten verf\u00fcgbar.",
+      "location": null
+    },
+    {
+      "code": "LT",
+      "name": "Lithuania",
+      "status": "api_error",
+      "http_code": 200,
+      "allergen_count": 0,
+      "latency_ms": 785,
+      "error": "F\u00fcr diese Position sind derzeit leider keine Daten verf\u00fcgbar.",
+      "location": null
+    },
+    {
+      "code": "LV",
+      "name": "Latvia",
+      "status": "api_error",
+      "http_code": 200,
+      "allergen_count": 0,
+      "latency_ms": 1156,
+      "error": "F\u00fcr diese Position sind derzeit leider keine Daten verf\u00fcgbar.",
+      "location": null
+    },
+    {
+      "code": "PL",
+      "name": "Poland",
+      "status": "api_error",
+      "http_code": 200,
+      "allergen_count": 0,
+      "latency_ms": 830,
+      "error": "F\u00fcr diese Position sind derzeit leider keine Daten verf\u00fcgbar.",
+      "location": null
+    },
+    {
+      "code": "SE",
+      "name": "Sweden",
+      "status": "ok",
+      "http_code": 200,
+      "allergen_count": 9,
+      "latency_ms": 1492,
+      "error": null,
+      "location": null
+    },
+    {
+      "code": "TR",
+      "name": "T\u00fcrkiye",
+      "status": "api_error",
+      "http_code": 200,
+      "allergen_count": 0,
+      "latency_ms": 878,
+      "error": "F\u00fcr diese Position sind derzeit leider keine Daten verf\u00fcgbar.",
+      "location": null
+    },
+    {
+      "code": "UA",
+      "name": "Ukraine",
+      "status": "api_error",
+      "http_code": 200,
+      "allergen_count": 0,
+      "latency_ms": 1533,
+      "error": "F\u00fcr diese Position sind derzeit leider keine Daten verf\u00fcgbar.",
+      "location": null
+    }
+  ]
+}
