@@ -23,7 +23,10 @@
       "suggested_country": "Für das ausgewählte Land an diesem Standort wurden keine Daten gefunden. Versuchen Sie, das Land oder den Standort zu ändern.",
       "no_sensors_for_country": "Für das ausgewählte Land an diesem Standort wurden keine Sensoren gefunden.",
       "missing_apikey": "API-Schlüssel fehlt",
-      "no_pollen_data": "Für diesen Standort wurden keine Pollendaten zurückgegeben."
+      "no_pollen_data": "Für diesen Standort wurden keine Pollendaten zurückgegeben.",
+      "invalid_api_key": "Ungültiger API-Schlüssel",
+      "connection_error": "Verbindung zum Pollendienst konnte nicht hergestellt werden",
+      "api_error": "Der Pollendienst hat einen Fehler zurückgegeben"
     },
     "abort": {
       "already_configured": "Dieser Standort ist bereits konfiguriert."

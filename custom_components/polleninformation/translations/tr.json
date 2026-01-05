@@ -23,7 +23,10 @@
       "suggested_country": "Seçilen ülke ve konum için veri bulunamadı. Lütfen ülkeyi veya konumu değiştirin.",
       "no_sensors_for_country": "Seçilen ülke ve konum için sensör bulunamadı.",
       "missing_apikey": "API anahtarı eksik",
-      "no_pollen_data": "Bu konum için polen verisi döndürülmedi."
+      "no_pollen_data": "Bu konum için polen verisi döndürülmedi.",
+      "invalid_api_key": "Geçersiz API anahtarı",
+      "connection_error": "Polen servisine bağlanılamadı",
+      "api_error": "Polen servisi bir hata döndürdü"
     },
     "abort": {
       "already_configured": "Bu konum zaten yapılandırılmış."

@@ -23,7 +23,10 @@
       "suggested_country": "Nenhum dado encontrado para o país selecionado nesta localização. Tente alterar o país ou a localização.",
       "no_sensors_for_country": "Nenhum sensor encontrado para o país selecionado nesta localização.",
       "missing_apikey": "Chave API ausente",
-      "no_pollen_data": "Nenhum dado de pólen retornado para este local."
+      "no_pollen_data": "Nenhum dado de pólen retornado para este local.",
+      "invalid_api_key": "Chave de API inválida",
+      "connection_error": "Não foi possível conectar ao serviço de pólen",
+      "api_error": "O serviço de pólen retornou um erro"
     },
     "abort": {
       "already_configured": "Este local já está configurado."

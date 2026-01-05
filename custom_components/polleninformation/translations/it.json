@@ -23,7 +23,10 @@
       "suggested_country": "Nessun dato trovato per il paese selezionato in questa posizione. Prova a cambiare paese o posizione.",
       "no_sensors_for_country": "Nessun sensore trovato per il paese selezionato in questa posizione.",
       "missing_apikey": "Chiave API mancante",
-      "no_pollen_data": "Nessun dato sul polline restituito per questa posizione."
+      "no_pollen_data": "Nessun dato sul polline restituito per questa posizione.",
+      "invalid_api_key": "Chiave API non valida",
+      "connection_error": "Impossibile connettersi al servizio pollini",
+      "api_error": "Il servizio pollini ha restituito un errore"
     },
     "abort": {
       "already_configured": "Questa posizione è già configurata."

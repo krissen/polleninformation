@@ -23,7 +23,10 @@
       "suggested_country": "Valitulle maalle ja sijainnille ei löytynyt tietoja. Kokeile toista maata tai sijaintia.",
       "no_sensors_for_country": "Valitulle maalle ja sijainnille ei löytynyt sensoreita.",
       "missing_apikey": "API-avain puuttuu",
-      "no_pollen_data": "Tälle sijainnille ei palautettu siitepölytietoja."
+      "no_pollen_data": "Tälle sijainnille ei palautettu siitepölytietoja.",
+      "invalid_api_key": "Virheellinen API-avain",
+      "connection_error": "Yhteyttä siitepölypalveluun ei voitu muodostaa",
+      "api_error": "Siitepölypalvelu palautti virheen"
     },
     "abort": {
       "already_configured": "Tämä sijainti on jo määritetty."
