@@ -1,0 +1,135 @@
+{
+  "timestamp": "2026-01-05 16:25:58",
+  "countries": [
+    {
+      "code": "AT",
+      "name": "Austria",
+      "status": "ok",
+      "http_code": 200,
+      "allergen_count": 12,
+      "latency_ms": 819,
+      "error": null,
+      "location": null
+    },
+    {
+      "code": "CH",
+      "name": "Switzerland",
+      "status": "ok",
+      "http_code": 200,
+      "allergen_count": 5,
+      "latency_ms": 1088,
+      "error": null,
+      "location": null
+    },
+    {
+      "code": "DE",
+      "name": "Germany",
+      "status": "ok",
+      "http_code": 200,
+      "allergen_count": 8,
+      "latency_ms": 1327,
+      "error": null,
+      "location": null
+    },
+    {
+      "code": "ES",
+      "name": "Spain",
+      "status": "empty",
+      "http_code": 200,
+      "allergen_count": 0,
+      "latency_ms": 689,
+      "error": null,
+      "location": null
+    },
+    {
+      "code": "FR",
+      "name": "France",
+      "status": "empty",
+      "http_code": 200,
+      "allergen_count": 0,
+      "latency_ms": 894,
+      "error": null,
+      "location": null
+    },
+    {
+      "code": "GB",
+      "name": "Great Britain",
+      "status": "empty",
+      "http_code": 200,
+      "allergen_count": 0,
+      "latency_ms": 1186,
+      "error": null,
+      "location": null
+    },
+    {
+      "code": "IT",
+      "name": "Italy",
+      "status": "empty",
+      "http_code": 200,
+      "allergen_count": 0,
+      "latency_ms": 755,
+      "error": null,
+      "location": null
+    },
+    {
+      "code": "LT",
+      "name": "Lithuania",
+      "status": "empty",
+      "http_code": 200,
+      "allergen_count": 0,
+      "latency_ms": 1092,
+      "error": null,
+      "location": null
+    },
+    {
+      "code": "LV",
+      "name": "Latvia",
+      "status": "empty",
+      "http_code": 200,
+      "allergen_count": 0,
+      "latency_ms": 852,
+      "error": null,
+      "location": null
+    },
+    {
+      "code": "PL",
+      "name": "Poland",
+      "status": "empty",
+      "http_code": 200,
+      "allergen_count": 0,
+      "latency_ms": 688,
+      "error": null,
+      "location": null
+    },
+    {
+      "code": "SE",
+      "name": "Sweden",
+      "status": "ok",
+      "http_code": 200,
+      "allergen_count": 9,
+      "latency_ms": 689,
+      "error": null,
+      "location": null
+    },
+    {
+      "code": "TR",
+      "name": "T\u00fcrkiye",
+      "status": "empty",
+      "http_code": 200,
+      "allergen_count": 0,
+      "latency_ms": 960,
+      "error": null,
+      "location": null
+    },
+    {
+      "code": "UA",
+      "name": "Ukraine",
+      "status": "empty",
+      "http_code": 200,
+      "allergen_count": 0,
+      "latency_ms": 689,
+      "error": null,
+      "location": null
+    }
+  ]
+}

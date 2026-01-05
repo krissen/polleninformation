@@ -3,10 +3,12 @@
 See official API documentation: https://www.polleninformation.at/en/data-interface
 """
 
+import asyncio
 import logging
 
 import aiohttp
 import async_timeout
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -18,6 +20,18 @@ API_URL = (
     "&longitude={longitude}"
     "&apikey={apikey}"
 )
+
+
+class PollenApiError(Exception):
+    """Base exception for pollen API errors."""
+
+
+class PollenApiAuthError(PollenApiError):
+    """Invalid or missing API key."""
+
+
+class PollenApiConnectionError(PollenApiError):
+    """Network or connection error."""
 
 
 async def async_get_pollenat_data(
@@ -40,7 +54,12 @@ async def async_get_pollenat_data(
         apikey: API key (string).
 
     Returns:
-        dict: JSON response from the API, or None on error.
+        dict: JSON response from the API.
+
+    Raises:
+        PollenApiAuthError: If API key is invalid.
+        PollenApiConnectionError: If network request fails.
+        PollenApiError: For other API errors.
     """
     url = API_URL.format(
         country=country,
@@ -50,20 +69,47 @@ async def async_get_pollenat_data(
         apikey=apikey,
     )
 
-    _LOGGER.debug(f"Calling polleninformation.at: {url}")
+    _LOGGER.debug(
+        "Calling polleninformation.at for country=%s, lat=%s, lon=%s",
+        country,
+        latitude,
+        longitude,
+    )
 
     try:
+        session = async_get_clientsession(hass)
         async with async_timeout.timeout(15):
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    url,
-                    headers={
-                        "Accept": "application/json, text/plain, */*",
-                        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
-                    },
-                ) as resp:
-                    resp.raise_for_status()
-                    return await resp.json()
+            async with session.get(
+                url,
+                headers={
+                    "Accept": "application/json, text/plain, */*",
+                    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+                },
+            ) as resp:
+                if resp.status == 401:
+                    raise PollenApiAuthError("Invalid API key")
+                if resp.status == 403:
+                    raise PollenApiAuthError("API key not authorized for this resource")
+                resp.raise_for_status()
+
+                data = await resp.json()
+
+                if isinstance(data, dict) and "error" in data:
+                    error_msg = data.get("error", "Unknown error")
+                    if "api key" in error_msg.lower():
+                        raise PollenApiAuthError(error_msg)
+                    raise PollenApiError(error_msg)
+
+                return data
+
+    except PollenApiError:
+        raise
+    except asyncio.TimeoutError as e:
+        raise PollenApiConnectionError(f"Timeout connecting to API: {e}") from e
+    except aiohttp.ClientResponseError as e:
+        raise PollenApiError(f"API returned HTTP {e.status}: {e.message}") from e
+    except aiohttp.ClientError as e:
+        raise PollenApiConnectionError(f"HTTP client error: {e}") from e
     except Exception as e:
-        _LOGGER.error(f"Error calling polleninformation.at: {e}")
-        return None
+        _LOGGER.error("Error calling polleninformation.at: %s", e)
+        raise PollenApiConnectionError(f"Connection error: {e}") from e

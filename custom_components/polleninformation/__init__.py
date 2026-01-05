@@ -12,7 +12,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import async_get_pollenat_data
+from .api import (
+    PollenApiAuthError,
+    PollenApiConnectionError,
+    PollenApiError,
+    async_get_pollenat_data,
+)
 from .const import (
     CONF_APIKEY,
     CONF_COUNTRY,
@@ -63,12 +68,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     if DEBUG:
         _LOGGER.debug(
-            "INIT: Setup entry with lat=%s, lon=%s, country=%s, lang=%s, apikey=%s",
+            "INIT: Setup entry with lat=%s, lon=%s, country=%s, lang=%s",
             lat,
             lon,
             country,
             lang,
-            apikey,
         )
 
     coordinator = PollenInformationDataUpdateCoordinator(
@@ -109,16 +113,26 @@ class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):
         self.apikey = apikey
         self.last_updated = None
 
+    def _is_valid_api_response(self, result: dict | None) -> bool:
+        if result is None:
+            return False
+        if not isinstance(result, dict):
+            return False
+        if "contamination" not in result:
+            return False
+        if not isinstance(result.get("contamination"), list):
+            return False
+        return True
+
     async def _async_update_data(self) -> dict:
         """Fetch latest pollen data from API."""
         if DEBUG:
             _LOGGER.debug(
-                "COORDINATOR: Update data with lat=%s, lon=%s, country=%s, lang=%s, apikey=%s",
+                "COORDINATOR: Update data with lat=%s, lon=%s, country=%s, lang=%s",
                 self.lat,
                 self.lon,
                 self.country,
                 self.lang,
-                self.apikey,
             )
         try:
             result = await async_get_pollenat_data(
@@ -129,10 +143,27 @@ class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):
                 self.lang,
                 self.apikey,
             )
+
+            if not self._is_valid_api_response(result):
+                raise UpdateFailed(
+                    f"Invalid API response for {self.country}: missing or malformed data"
+                )
+
             self.last_updated = datetime.now()
             if DEBUG:
-                _LOGGER.debug("COORDINATOR: API result: %s", result)
-            return result  # result contains {"locationtitle": ..., "contamination": [...], ...}
+                _LOGGER.debug(
+                    "COORDINATOR: API result keys: %s",
+                    list(result.keys()),  # type: ignore[union-attr]
+                )
+            return result  # type: ignore[return-value]
+        except UpdateFailed:
+            raise
+        except PollenApiAuthError as err:
+            raise UpdateFailed(f"Authentication failed: {err}") from err
+        except PollenApiConnectionError as err:
+            raise UpdateFailed(f"Connection failed: {err}") from err
+        except PollenApiError as err:
+            raise UpdateFailed(f"API error: {err}") from err
         except Exception as err:
             _LOGGER.error("Error fetching polleninformation.at: %s", err)
-            raise UpdateFailed(err)
+            raise UpdateFailed(err) from err

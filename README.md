@@ -2,6 +2,7 @@
 
 [![GitHub Release][releases-shield]][releases]
 [![License][license-shield]](LICENSE)
+[![API Status][api-status-badge]][api-status]
 
 [![hacs][hacsbadge]][hacs]
 [![Project Maintenance][maintenance-shield]][user_profile]
@@ -104,6 +105,12 @@ You **must request a personal API key** to use the integration—get your key [h
 
 *For more information about the API and its terms of use, see [Austrian Pollen Information Service - Data Interface](https://www.polleninformation.at/en/data-interface).*
 
+### API availability
+
+The upstream API does not always provide data for all countries. Check the **[API Status Page](https://krissen.github.io/polleninformation/)** for current availability per country.
+
+When the API is unavailable for your location, sensors will show as **unavailable** until data becomes available again.
+
 ---
 
 ## Data Source & Attribution
@@ -125,3 +132,5 @@ All data is provided by the [Austrian Pollen Information Service](https://www.po
 [user_profile]: https://github.com/krissen
 [buymecoffee]: https://coff.ee/krissen
 [buymecoffeebadge]: https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg?style=for-the-badge
+[api-status-badge]: https://img.shields.io/endpoint?url=https://krissen.github.io/polleninformation/badge.json&style=for-the-badge
+[api-status]: https://krissen.github.io/polleninformation/
