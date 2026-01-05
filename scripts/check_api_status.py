@@ -26,19 +26,19 @@ API_URL = (
 )
 
 COUNTRIES = {
-    "AT": {"name": "Austria", "lat": 48.2082, "lon": 16.3738},
-    "CH": {"name": "Switzerland", "lat": 47.3769, "lon": 8.5417},
-    "DE": {"name": "Germany", "lat": 52.5200, "lon": 13.4050},
-    "ES": {"name": "Spain", "lat": 40.4168, "lon": -3.7038},
-    "FR": {"name": "France", "lat": 48.8566, "lon": 2.3522},
-    "GB": {"name": "Great Britain", "lat": 51.5074, "lon": -0.1278},
-    "IT": {"name": "Italy", "lat": 41.9028, "lon": 12.4964},
-    "LT": {"name": "Lithuania", "lat": 54.6872, "lon": 25.2797},
-    "LV": {"name": "Latvia", "lat": 56.9496, "lon": 24.1052},
-    "PL": {"name": "Poland", "lat": 52.2297, "lon": 21.0122},
-    "SE": {"name": "Sweden", "lat": 59.3293, "lon": 18.0686},
-    "TR": {"name": "Türkiye", "lat": 39.9334, "lon": 32.8597},
-    "UA": {"name": "Ukraine", "lat": 50.4501, "lon": 30.5234},
+    "AT": {"name": "Austria", "lat": 48.2082, "lon": 16.3738, "city": "Vienna"},
+    "CH": {"name": "Switzerland", "lat": 47.3769, "lon": 8.5417, "city": "Zürich"},
+    "DE": {"name": "Germany", "lat": 52.5200, "lon": 13.4050, "city": "Berlin"},
+    "ES": {"name": "Spain", "lat": 40.4168, "lon": -3.7038, "city": "Madrid"},
+    "FR": {"name": "France", "lat": 48.8566, "lon": 2.3522, "city": "Paris"},
+    "GB": {"name": "Great Britain", "lat": 51.5074, "lon": -0.1278, "city": "London"},
+    "IT": {"name": "Italy", "lat": 41.9028, "lon": 12.4964, "city": "Rome"},
+    "LT": {"name": "Lithuania", "lat": 54.6872, "lon": 25.2797, "city": "Vilnius"},
+    "LV": {"name": "Latvia", "lat": 56.9496, "lon": 24.1052, "city": "Riga"},
+    "PL": {"name": "Poland", "lat": 52.2297, "lon": 21.0122, "city": "Warsaw"},
+    "SE": {"name": "Sweden", "lat": 59.3293, "lon": 18.0686, "city": "Stockholm"},
+    "TR": {"name": "Türkiye", "lat": 39.9334, "lon": 32.8597, "city": "Ankara"},
+    "UA": {"name": "Ukraine", "lat": 50.4501, "lon": 30.5234, "city": "Kyiv"},
 }
 
 
@@ -51,7 +51,7 @@ class CountryStatus:
     allergen_count: int
     latency_ms: int | None
     error: str | None
-    location: str | None
+    test_city: str
 
 
 async def check_country(
@@ -87,7 +87,7 @@ async def check_country(
                         allergen_count=0,
                         latency_ms=latency,
                         error="Invalid API key",
-                        location=None,
+                        test_city=info["city"],
                     )
 
                 if http_code != 200:
@@ -99,7 +99,7 @@ async def check_country(
                         allergen_count=0,
                         latency_ms=latency,
                         error=f"HTTP {http_code}",
-                        location=None,
+                        test_city=info["city"],
                     )
 
                 try:
@@ -113,7 +113,7 @@ async def check_country(
                         allergen_count=0,
                         latency_ms=latency,
                         error="Invalid JSON response",
-                        location=None,
+                        test_city=info["city"],
                     )
 
                 if "error" in data:
@@ -125,12 +125,11 @@ async def check_country(
                         allergen_count=0,
                         latency_ms=latency,
                         error=data.get("error"),
-                        location=None,
+                        test_city=info["city"],
                     )
 
                 contamination = data.get("contamination", [])
                 allergen_count = len(contamination)
-                location = data.get("locationtitle")
 
                 if allergen_count == 0:
                     status = "empty"
@@ -145,7 +144,7 @@ async def check_country(
                     allergen_count=allergen_count,
                     latency_ms=latency,
                     error=None,
-                    location=location,
+                    test_city=info["city"],
                 )
 
     except asyncio.TimeoutError:
@@ -157,7 +156,7 @@ async def check_country(
             allergen_count=0,
             latency_ms=None,
             error="Request timed out",
-            location=None,
+            test_city=info["city"],
         )
     except Exception as e:
         return CountryStatus(
@@ -168,7 +167,7 @@ async def check_country(
             allergen_count=0,
             latency_ms=None,
             error=str(e),
-            location=None,
+            test_city=info["city"],
         )
 
 
@@ -191,12 +190,9 @@ def generate_html(results: list[CountryStatus], timestamp: str) -> str:
         emoji = status_emoji(r.status)
         latency = f"{r.latency_ms}ms" if r.latency_ms else "-"
         allergens = str(r.allergen_count) if r.allergen_count else "-"
-        location = r.location or "-"
-        if r.error and r.status != "ok":
-            location = f"<em>{r.error}</em>"
         rows.append(
             f"<tr><td>{r.name} ({r.code})</td><td>{emoji} {r.status}</td>"
-            f"<td>{allergens}</td><td>{latency}</td><td>{location}</td></tr>"
+            f"<td>{allergens}</td><td>{latency}</td><td>{r.test_city}</td></tr>"
         )
 
     table_rows = "\n".join(rows)
@@ -206,21 +202,46 @@ def generate_html(results: list[CountryStatus], timestamp: str) -> str:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pollen API Status</title>
+    <title>Polleninformation.at API Status</title>
     <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; }}
-        h1 {{ color: #333; }}
+        :root {{
+            --bg: #fff;
+            --text: #333;
+            --text-muted: #666;
+            --border: #ddd;
+            --table-header: #f5f5f5;
+            --table-hover: #f9f9f9;
+            --note-bg: #fffbea;
+            --note-border: #f0c000;
+        }}
+        @media (prefers-color-scheme: dark) {{
+            :root {{
+                --bg: #1a1a1a;
+                --text: #e0e0e0;
+                --text-muted: #999;
+                --border: #444;
+                --table-header: #2a2a2a;
+                --table-hover: #252525;
+                --note-bg: #2a2500;
+                --note-border: #806000;
+            }}
+        }}
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; background: var(--bg); color: var(--text); }}
+        h1 {{ color: var(--text); }}
         table {{ border-collapse: collapse; width: 100%; margin: 20px 0; }}
-        th, td {{ border: 1px solid #ddd; padding: 8px 12px; text-align: left; }}
-        th {{ background: #f5f5f5; }}
-        tr:hover {{ background: #f9f9f9; }}
+        th, td {{ border: 1px solid var(--border); padding: 8px 12px; text-align: left; }}
+        th {{ background: var(--table-header); }}
+        tr:hover {{ background: var(--table-hover); }}
         .badge {{ margin: 10px 0; }}
-        .footer {{ color: #666; font-size: 0.9em; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; }}
-        .note {{ background: #fffbea; border-left: 4px solid #f0c000; padding: 10px; margin: 20px 0; }}
+        .footer {{ color: var(--text-muted); font-size: 0.9em; margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border); }}
+        .note {{ background: var(--note-bg); border-left: 4px solid var(--note-border); padding: 10px; margin: 20px 0; }}
     </style>
 </head>
 <body>
-    <h1>Pollen API Status</h1>
+    <header style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+        <img src="https://www.polleninformation.at/typo3conf/ext/sc_template/Resources/Public/Images/logo_polleninformation.svg" alt="Polleninformation Logo" style="height: 50px;">
+        <h1 style="margin: 0;">API Status</h1>
+    </header>
     <div class="badge">
         <img src="https://img.shields.io/endpoint?url=https://krissen.github.io/polleninformation/badge.json" alt="API Status">
     </div>
@@ -228,7 +249,7 @@ def generate_html(results: list[CountryStatus], timestamp: str) -> str:
 
     <table>
         <thead>
-            <tr><th>Country</th><th>Status</th><th>Allergens</th><th>Latency</th><th>Location</th></tr>
+            <tr><th>Country</th><th>Status</th><th>Allergens</th><th>Latency</th><th>Test Location</th></tr>
         </thead>
         <tbody>
 {table_rows}

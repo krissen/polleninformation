@@ -10,10 +10,14 @@ Supports:
 See official API documentation: https://www.polleninformation.at/en/data-interface
 """
 
+from __future__ import annotations
+
 import logging
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from homeassistant.components.sensor import SensorEntity
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DEFAULT_LANG, DOMAIN
@@ -28,7 +32,6 @@ from .utils import (
 DEBUG = True
 _LOGGER = logging.getLogger(__name__)
 
-# Icon maps for allergens and air sensors
 ALLERGEN_ICON_MAP = {
     "alder": "mdi:tree-outline",
     "ash": "mdi:tree",
@@ -51,17 +54,37 @@ ALLERGEN_ICON_MAP = {
     "willow": "mdi:tree",
 }
 
+KNOWN_ALLERGEN_SLUGS = set(ALLERGEN_ICON_MAP.keys()) - {"default"} | {
+    "allergy_risk",
+    "allergy_risk_hourly",
+}
 
-def capitalize_first(s):
-    """Capitalize the first letter of the given string."""
+
+def capitalize_first(s: str) -> str:
     if not s:
         return s
     return s[0].upper() + s[1:]
 
 
-def pollen_forecast_for_allergen(contamination, allergen_name, levels):
-    """Return forecast for one allergen for 4 days.
-    Always compare allergen names in lower-case to avoid mismatch due to casing."""
+def extract_allergen_slug_from_unique_id(unique_id: str) -> str | None:
+    """Extract allergen slug from unique_id by matching known suffixes.
+
+    unique_id format: polleninformation_<location_slug>_<allergen_slug>
+    location_slug can contain underscores, so we match against known allergen slugs.
+    """
+    if not unique_id or not unique_id.startswith("polleninformation_"):
+        return None
+
+    for slug in sorted(KNOWN_ALLERGEN_SLUGS, key=len, reverse=True):
+        suffix = f"_{slug}"
+        if unique_id.endswith(suffix):
+            return slug
+    return None
+
+
+def pollen_forecast_for_allergen(
+    contamination: list, allergen_name: str, levels: list
+) -> list:
     out = []
     allergen_name_lower = allergen_name.lower()
     for item in contamination:
@@ -74,19 +97,12 @@ def pollen_forecast_for_allergen(contamination, allergen_name, levels):
                     if isinstance(val, int) and val < len(levels)
                     else str(val)
                 )
-                out.append(
-                    {
-                        "day": day,
-                        "level_name": level_name,
-                        "level": val,
-                    }
-                )
+                out.append({"day": day, "level_name": level_name, "level": val})
             break
     return out
 
 
-def scale_allergy_risk(value):
-    """Scale allergy risk to 0-4 for uniform state."""
+def scale_allergy_risk(value: Any) -> int | None:
     try:
         return int(round(value / 2.5))
     except Exception:
@@ -94,8 +110,6 @@ def scale_allergy_risk(value):
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    """Set up polleninformation sensors from a config entry."""
-    # Get the coordinator from the integration setup
     coordinator = hass.data[DOMAIN][entry.entry_id]
 
     if DEBUG:
@@ -103,13 +117,27 @@ async def async_setup_entry(hass, entry, async_add_entities):
             "Polleninformation: async_setup_entry using coordinator: %s", coordinator
         )
 
-    if not coordinator.data:
-        _LOGGER.error("No pollen data found during setup.")
-        return
+    # Get existing entities from registry to handle stale data scenarios
+    ent_reg = er.async_get(hass)
+    existing_entities = er.async_entries_for_config_entry(ent_reg, entry.entry_id)
+    existing_unique_ids = {
+        e.unique_id
+        for e in existing_entities
+        if e.domain == "sensor" and not e.disabled
+    }
 
-    contamination = coordinator.data.get("contamination", [])
+    has_data = coordinator.data is not None
+    contamination = coordinator.data.get("contamination", []) if has_data else []
+    is_data_empty = len(contamination) == 0
 
-    # Get entry data for location info
+    if DEBUG:
+        _LOGGER.debug(
+            "Polleninformation: has_data=%s, contamination_count=%s, existing_entities=%s",
+            has_data,
+            len(contamination),
+            len(existing_unique_ids),
+        )
+
     data = entry.data
     lat = data["latitude"]
     lon = data["longitude"]
@@ -117,9 +145,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     lang = data.get("lang", DEFAULT_LANG)
     location_title = data.get("location_title")
 
-    # Fallback if missing or empty
     if not location_title or location_title.strip() == "":
-        # Use same fallback as integrations-title
         from .utils import async_get_country_options
 
         country_options = await async_get_country_options(hass)
@@ -129,7 +155,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
         location_title = f"{country_name} ({lat_str}, {lon_str})"
     location_slug = normalize(location_title)
 
-    # Language/levels handling
     language_block_current = await async_get_language_block(hass, lang)
     language_block_en = await async_get_language_block(hass, "en")
     levels_current = LEVELS.get(
@@ -137,18 +162,15 @@ async def async_setup_entry(hass, entry, async_add_entities):
     )
     levels_en = LEVELS.get("en", ["none", "low", "moderate", "high", "very high"])
 
-    entities = []
+    entities: list[SensorEntity] = []
     new_unique_ids: set[str] = set()
 
-    # Allergen sensors (one per item in contamination)
     for item in contamination:
         poll_title_full = item.get("poll_title", "<unknown>")
         poll_title_local = capitalize_first(poll_title_full.split("(", 1)[0].strip())
         latin = None
-        # Extract latin name from parenthesis if present
         if "(" in poll_title_full and ")" in poll_title_full:
             latin = poll_title_full.split("(", 1)[1].split(")", 1)[0].strip()
-        # Try to map via language block as previously
         if not latin:
             for allergen in language_block_current.get("poll_titles", []):
                 if allergen.get("name") == poll_title_local:
@@ -176,10 +198,15 @@ async def async_setup_entry(hass, entry, async_add_entities):
             icon=icon,
         )
         entities.append(sensor)
-        new_unique_ids.add(sensor.unique_id)
+        if sensor.unique_id:
+            new_unique_ids.add(sensor.unique_id)
 
-    # Allergy risk daily sensor (one sensor, state is day 1, forecast is days 2-4)
-    allergyrisk = coordinator.data.get("allergyrisk", {})
+    # Allergy risk daily sensor - only if contamination has data (otherwise allergyrisk is meaningless)
+    allergyrisk = (
+        coordinator.data.get("allergyrisk", {})
+        if has_data and not is_data_empty
+        else {}
+    )
     if allergyrisk:
         sensor = AllergyRiskSensor(
             coordinator=coordinator,
@@ -189,10 +216,15 @@ async def async_setup_entry(hass, entry, async_add_entities):
             location_title=location_title,
         )
         entities.append(sensor)
-        new_unique_ids.add(sensor.unique_id)
+        if sensor.unique_id:
+            new_unique_ids.add(sensor.unique_id)
 
-    # Allergy risk hourly sensor (one sensor, state is hour 0 of day 1, forecast is hours/days 2-4)
-    allergyrisk_hourly = coordinator.data.get("allergyrisk_hourly", {})
+    # Allergy risk hourly sensor - only if contamination has data (otherwise allergyrisk is meaningless)
+    allergyrisk_hourly = (
+        coordinator.data.get("allergyrisk_hourly", {})
+        if has_data and not is_data_empty
+        else {}
+    )
     if allergyrisk_hourly:
         sensor = AllergyRiskHourlySensor(
             coordinator=coordinator,
@@ -202,30 +234,91 @@ async def async_setup_entry(hass, entry, async_add_entities):
             location_title=location_title,
         )
         entities.append(sensor)
-        new_unique_ids.add(sensor.unique_id)
+        if sensor.unique_id:
+            new_unique_ids.add(sensor.unique_id)
+
+    # Recreate stale entities from registry when API returns empty data
+    stale_since = datetime.now().isoformat() if is_data_empty else None
+    if is_data_empty and existing_unique_ids:
+        _LOGGER.warning(
+            "API returned empty data for %s, recreating %d entities as stale",
+            location_title,
+            len(existing_unique_ids),
+        )
+        for unique_id in existing_unique_ids:
+            if unique_id in new_unique_ids:
+                continue
+            allergen_slug = extract_allergen_slug_from_unique_id(unique_id)
+            if not allergen_slug:
+                continue
+            if allergen_slug == "allergy_risk":
+                sensor = AllergyRiskSensor(
+                    coordinator=coordinator,
+                    allergyrisk={},
+                    levels_current=levels_current,
+                    location_slug=location_slug,
+                    location_title=location_title,
+                    is_stale=True,
+                    stale_since=stale_since,
+                )
+            elif allergen_slug == "allergy_risk_hourly":
+                sensor = AllergyRiskHourlySensor(
+                    coordinator=coordinator,
+                    allergyrisk_hourly={},
+                    levels_current=levels_current,
+                    location_slug=location_slug,
+                    location_title=location_title,
+                    is_stale=True,
+                    stale_since=stale_since,
+                )
+            else:
+                allergen_en = allergen_slug.replace("_", " ").title()
+                icon = ALLERGEN_ICON_MAP.get(
+                    allergen_slug, ALLERGEN_ICON_MAP["default"]
+                )
+                sensor = PolleninformationSensor(
+                    coordinator=coordinator,
+                    sensor_type="pollen",
+                    allergen_name=allergen_en,
+                    allergen_en=allergen_en,
+                    allergen_slug=allergen_slug,
+                    allergen_latin="",
+                    levels_current=levels_current,
+                    levels_en=levels_en,
+                    location_slug=location_slug,
+                    location_title=location_title,
+                    icon=icon,
+                    is_stale=True,
+                    stale_since=stale_since,
+                )
+            entities.append(sensor)
+            if sensor.unique_id:
+                new_unique_ids.add(sensor.unique_id)
 
     async_add_entities(entities, update_before_add=True)
 
 
 class PolleninformationSensor(CoordinatorEntity, SensorEntity):
-    """Generic sensor for pollen allergen."""
+    """Pollen allergen sensor."""
 
     _attr_has_entity_name = True
 
     def __init__(
         self,
         coordinator,
-        sensor_type,
-        allergen_name,
-        allergen_en,
-        allergen_slug,
-        allergen_latin,
-        levels_current,
-        levels_en,
-        location_slug,
-        location_title,
-        icon,
-    ):
+        sensor_type: str,
+        allergen_name: str,
+        allergen_en: str,
+        allergen_slug: str,
+        allergen_latin: str,
+        levels_current: list,
+        levels_en: list,
+        location_slug: str,
+        location_title: str,
+        icon: str,
+        is_stale: bool = False,
+        stale_since: str | None = None,
+    ) -> None:
         super().__init__(coordinator)
         self.sensor_type = sensor_type
         self._allergen_name = allergen_name
@@ -236,9 +329,12 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
         self._levels_en = levels_en
         self._location_slug = location_slug
         self._location_title = location_title
-        self._icon = icon
+        self._is_stale = is_stale
+        self._stale_since = stale_since
+
         self._attr_name = allergen_name
         self._attr_unique_id = f"polleninformation_{location_slug}_{allergen_slug}"
+        self._attr_icon = icon
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{location_slug}")},
             "name": f"Polleninformation ({location_title})",
@@ -246,20 +342,19 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
         }
 
     @property
-    def unique_id(self):
-        return self._attr_unique_id
-
-    @property
-    def suggested_object_id(self):
+    def suggested_object_id(self) -> str:
         return self._allergen_slug
 
     @property
-    def icon(self):
-        return self._icon
+    def available(self) -> bool:
+        # Only unavailable if coordinator update failed (connectivity issue)
+        # Stale/empty data still shows as available but with state "unknown"
+        return self.coordinator.last_update_success is not False
 
     @property
-    def state(self):
-        """Return today's contamination level as localized string."""
+    def native_value(self) -> str | None:
+        if not self.coordinator.data:
+            return None
         contamination = self.coordinator.data.get("contamination", [])
         found = None
         for item in contamination:
@@ -273,13 +368,18 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
         try:
             return self._levels_current[raw_val]
         except (IndexError, TypeError):
-            return "unavailable"
+            return None
 
     @property
-    def extra_state_attributes(self):
-        """Return attributes including forecasts and names."""
+    def extra_state_attributes(self) -> dict[str, Any]:
+        if not self.coordinator.data:
+            attrs: dict[str, Any] = {}
+            if self._is_stale:
+                attrs["data_stale"] = True
+                attrs["stale_since"] = self._stale_since
+            return attrs
+
         contamination = self.coordinator.data.get("contamination", [])
-        # Build forecast with time, level, level_name
         forecast = []
         base_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         for item in contamination:
@@ -287,7 +387,6 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
             if poll_title.lower() == self._allergen_name.lower():
                 for day in range(1, 5):
                     val = item.get(f"contamination_{day}", 0)
-                    # Use localized level name
                     level_name = (
                         self._levels_current[val]
                         if isinstance(val, int) and val < len(self._levels_current)
@@ -306,7 +405,7 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
 
         today_raw = forecast[0] if forecast else None
         tomorrow_raw = forecast[1] if len(forecast) > 1 else None
-        return {
+        attrs = {
             "forecast": forecast,
             "numeric_state": today_raw["level"] if today_raw else None,
             "named_state": today_raw["level_name"] if today_raw else None,
@@ -322,51 +421,58 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
             "location_slug": self._location_slug,
             "type": self.sensor_type,
             "attribution": "Austrian Pollen Information Service",
-            "icon": self._icon,
+            "icon": self._attr_icon,
             "levels_current": self._levels_current,
             "levels_en": self._levels_en,
             "update_success": self.coordinator.data is not None,
             "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
-
-    async def async_update(self):
-        """Update handled by coordinator."""
-        pass
+        if self._is_stale:
+            attrs["data_stale"] = True
+            attrs["stale_since"] = self._stale_since
+        return attrs
 
 
 class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
-    """Sensor for daily allergy risk (one sensor, with forecast)."""
+    """Daily allergy risk sensor."""
 
     _attr_has_entity_name = True
 
     def __init__(
-        self, coordinator, allergyrisk, levels_current, location_slug, location_title
-    ):
+        self,
+        coordinator,
+        allergyrisk: dict,
+        levels_current: list,
+        location_slug: str,
+        location_title: str,
+        is_stale: bool = False,
+        stale_since: str | None = None,
+    ) -> None:
         super().__init__(coordinator)
         self._allergyrisk = allergyrisk
         self._levels_current = levels_current
         self._location_slug = location_slug
         self._location_title = location_title
+        self._is_stale = is_stale
+        self._stale_since = stale_since
+
         self._attr_name = "Allergy risk"
         self._attr_unique_id = f"polleninformation_{location_slug}_allergy_risk"
+        self._attr_icon = "mdi:alert"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{location_slug}")},
             "name": f"Polleninformation ({location_title})",
             "manufacturer": "Austrian Pollen Information Service",
         }
-        self._icon = "mdi:alert"
 
     @property
-    def unique_id(self):
-        return self._attr_unique_id
+    def available(self) -> bool:
+        return self.coordinator.last_update_success is not False
 
     @property
-    def icon(self):
-        return self._icon
-
-    @property
-    def state(self):
-        """Return allergy risk for day 1 as named level."""
+    def native_value(self) -> str | None:
+        if self._is_stale or not self._allergyrisk:
+            return None
         value = self._allergyrisk.get("allergyrisk_1", None)
         scaled = scale_allergy_risk(value) if value is not None else None
         if scaled is not None and scaled < len(self._levels_current):
@@ -374,8 +480,18 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
         return None
 
     @property
-    def extra_state_attributes(self):
-        """Return attributes including forecast for days 1-4 in uniform format."""
+    def extra_state_attributes(self) -> dict[str, Any]:
+        if self._is_stale or not self._allergyrisk:
+            attrs: dict[str, Any] = {
+                "location_title": self._location_title,
+                "location_slug": self._location_slug,
+                "attribution": "Austrian Pollen Information Service",
+            }
+            if self._is_stale:
+                attrs["data_stale"] = True
+                attrs["stale_since"] = self._stale_since
+            return attrs
+
         forecast = []
         base_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         for day in range(1, 5):
@@ -399,7 +515,7 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
         raw_value = self._allergyrisk.get("allergyrisk_1", None)
         scaled_today = scale_allergy_risk(raw_value) if raw_value is not None else None
         return {
-            "named_state": self.state,
+            "named_state": self.native_value,
             "numeric_state": scaled_today,
             "numeric_state_raw": raw_value,
             "forecast": forecast,
@@ -410,49 +526,47 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
             "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
 
-    async def async_update(self):
-        """Update handled by coordinator."""
-        pass
-
 
 class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
-    """Sensor for hourly allergy risk (one sensor, with forecast)."""
+    """Hourly allergy risk sensor."""
 
     _attr_has_entity_name = True
 
     def __init__(
         self,
         coordinator,
-        allergyrisk_hourly,
-        levels_current,
-        location_slug,
-        location_title,
-    ):
+        allergyrisk_hourly: dict,
+        levels_current: list,
+        location_slug: str,
+        location_title: str,
+        is_stale: bool = False,
+        stale_since: str | None = None,
+    ) -> None:
         super().__init__(coordinator)
         self._allergyrisk_hourly = allergyrisk_hourly
         self._levels_current = levels_current
         self._location_slug = location_slug
         self._location_title = location_title
+        self._is_stale = is_stale
+        self._stale_since = stale_since
+
         self._attr_name = "Allergy risk hourly"
         self._attr_unique_id = f"polleninformation_{location_slug}_allergy_risk_hourly"
+        self._attr_icon = "mdi:timeline-clock"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{location_slug}")},
             "name": f"Polleninformation ({location_title})",
             "manufacturer": "Austrian Pollen Information Service",
         }
-        self._icon = "mdi:timeline-clock"
 
     @property
-    def unique_id(self):
-        return self._attr_unique_id
+    def available(self) -> bool:
+        return self.coordinator.last_update_success is not False
 
     @property
-    def icon(self):
-        return self._icon
-
-    @property
-    def state(self):
-        """Return named allergy risk for the current hour of day 1."""
+    def native_value(self) -> str | None:
+        if self._is_stale or not self._allergyrisk_hourly:
+            return None
         now_hour = datetime.now().hour
         values = self._allergyrisk_hourly.get("allergyrisk_hourly_1", [])
         if 0 <= now_hour < len(values):
@@ -463,8 +577,18 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
         return None
 
     @property
-    def extra_state_attributes(self):
-        """Return attributes including forecast for all available hours."""
+    def extra_state_attributes(self) -> dict[str, Any]:
+        if self._is_stale or not self._allergyrisk_hourly:
+            attrs: dict[str, Any] = {
+                "location_title": self._location_title,
+                "location_slug": self._location_slug,
+                "attribution": "Austrian Pollen Information Service",
+            }
+            if self._is_stale:
+                attrs["data_stale"] = True
+                attrs["stale_since"] = self._stale_since
+            return attrs
+
         base_time = datetime.now(timezone.utc).replace(
             minute=0, second=0, microsecond=0
         )
@@ -508,7 +632,3 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
             "update_success": self.coordinator.data is not None,
             "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
-
-    async def async_update(self):
-        """Update handled by coordinator."""
-        pass
