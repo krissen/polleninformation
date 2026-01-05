@@ -147,7 +147,8 @@ class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):
             self.last_updated = datetime.now()
             if DEBUG:
                 _LOGGER.debug(
-                    "COORDINATOR: API result keys: %s", list(result.keys())  # type: ignore[union-attr]
+                    "COORDINATOR: API result keys: %s",
+                    list(result.keys()),  # type: ignore[union-attr]
                 )
             return result  # type: ignore[return-value]
         except UpdateFailed:
