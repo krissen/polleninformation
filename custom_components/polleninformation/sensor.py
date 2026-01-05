@@ -54,11 +54,32 @@ ALLERGEN_ICON_MAP = {
     "willow": "mdi:tree",
 }
 
+KNOWN_ALLERGEN_SLUGS = set(ALLERGEN_ICON_MAP.keys()) - {"default"} | {
+    "allergy_risk",
+    "allergy_risk_hourly",
+}
+
 
 def capitalize_first(s: str) -> str:
     if not s:
         return s
     return s[0].upper() + s[1:]
+
+
+def extract_allergen_slug_from_unique_id(unique_id: str) -> str | None:
+    """Extract allergen slug from unique_id by matching known suffixes.
+
+    unique_id format: polleninformation_<location_slug>_<allergen_slug>
+    location_slug can contain underscores, so we match against known allergen slugs.
+    """
+    if not unique_id or not unique_id.startswith("polleninformation_"):
+        return None
+
+    for slug in sorted(KNOWN_ALLERGEN_SLUGS, key=len, reverse=True):
+        suffix = f"_{slug}"
+        if unique_id.endswith(suffix):
+            return slug
+    return None
 
 
 def pollen_forecast_for_allergen(
@@ -227,10 +248,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
         for unique_id in existing_unique_ids:
             if unique_id in new_unique_ids:
                 continue
-            parts = unique_id.split("_", 2) if unique_id else []
-            if len(parts) < 3:
+            allergen_slug = extract_allergen_slug_from_unique_id(unique_id)
+            if not allergen_slug:
                 continue
-            allergen_slug = parts[2]
             if allergen_slug == "allergy_risk":
                 sensor = AllergyRiskSensor(
                     coordinator=coordinator,
