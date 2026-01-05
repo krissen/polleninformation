@@ -340,11 +340,6 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
             "name": f"Polleninformation ({location_title})",
             "manufacturer": "Austrian Pollen Information Service",
         }
-        if is_stale:
-            self._attr_extra_state_attributes = {
-                "data_stale": True,
-                "stale_since": stale_since,
-            }
 
     @property
     def suggested_object_id(self) -> str:
@@ -469,11 +464,6 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
             "name": f"Polleninformation ({location_title})",
             "manufacturer": "Austrian Pollen Information Service",
         }
-        if is_stale:
-            self._attr_extra_state_attributes = {
-                "data_stale": True,
-                "stale_since": stale_since,
-            }
 
     @property
     def available(self) -> bool:
@@ -568,11 +558,6 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
             "name": f"Polleninformation ({location_title})",
             "manufacturer": "Austrian Pollen Information Service",
         }
-        if is_stale:
-            self._attr_extra_state_attributes = {
-                "data_stale": True,
-                "stale_since": stale_since,
-            }
 
     @property
     def available(self) -> bool:
