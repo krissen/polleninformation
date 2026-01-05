@@ -1,22 +1,24 @@
 # Pollen API Status
 
-Last updated: **2026-01-05 14:13:56** UTC
+![API Status](https://img.shields.io/endpoint?url=https://krissen.github.io/polleninformation/badge.json)
+
+Last updated: **2026-01-05 16:02:55** UTC
 
 | Country | Status | Allergens | Latency | Location |
 |---------|--------|-----------|---------|----------|
-| Austria (AT) | ✅ ok | 12 | 728ms | - |
-| Switzerland (CH) | ✅ ok | 5 | 1493ms | - |
-| Germany (DE) | ✅ ok | 8 | 1849ms | - |
-| Spain (ES) | ❌ api_error | - | 818ms | _Für diese Position sind derzeit leider keine Daten verfügbar._ |
-| France (FR) | ❌ parse_error | - | 729ms | _Invalid JSON response_ |
-| Great Britain (GB) | ❌ api_error | - | 1533ms | _Für diese Position sind derzeit leider keine Daten verfügbar._ |
-| Italy (IT) | ❌ api_error | - | 1252ms | _Für diese Position sind derzeit leider keine Daten verfügbar._ |
-| Lithuania (LT) | ❌ api_error | - | 785ms | _Für diese Position sind derzeit leider keine Daten verfügbar._ |
-| Latvia (LV) | ❌ api_error | - | 1156ms | _Für diese Position sind derzeit leider keine Daten verfügbar._ |
-| Poland (PL) | ❌ api_error | - | 830ms | _Für diese Position sind derzeit leider keine Daten verfügbar._ |
-| Sweden (SE) | ✅ ok | 9 | 1492ms | - |
-| Türkiye (TR) | ❌ api_error | - | 878ms | _Für diese Position sind derzeit leider keine Daten verfügbar._ |
-| Ukraine (UA) | ❌ api_error | - | 1533ms | _Für diese Position sind derzeit leider keine Daten verfügbar._ |
+| Austria (AT) | ✅ ok | 12 | 605ms | - |
+| Switzerland (CH) | ✅ ok | 5 | 1194ms | - |
+| Germany (DE) | ✅ ok | 8 | 761ms | - |
+| Spain (ES) | ⚠️ empty | - | 833ms | - |
+| France (FR) | ⚠️ empty | - | 1478ms | - |
+| Great Britain (GB) | ⚠️ empty | - | 640ms | - |
+| Italy (IT) | ⚠️ empty | - | 1057ms | - |
+| Lithuania (LT) | ⚠️ empty | - | 950ms | - |
+| Latvia (LV) | ⚠️ empty | - | 1370ms | - |
+| Poland (PL) | ⚠️ empty | - | 659ms | - |
+| Sweden (SE) | ✅ ok | 9 | 602ms | - |
+| Türkiye (TR) | ⚠️ empty | - | 762ms | - |
+| Ukraine (UA) | ⚠️ empty | - | 1256ms | - |
 
 ## Legend
 

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-01-05 14:13:56",
+  "timestamp": "2026-01-05 16:02:55",
   "countries": [
     {
       "code": "AT",
@@ -7,7 +7,7 @@
       "status": "ok",
       "http_code": 200,
       "allergen_count": 12,
-      "latency_ms": 728,
+      "latency_ms": 605,
       "error": null,
       "location": null
     },
@@ -17,7 +17,7 @@
       "status": "ok",
       "http_code": 200,
       "allergen_count": 5,
-      "latency_ms": 1493,
+      "latency_ms": 1194,
       "error": null,
       "location": null
     },
@@ -27,78 +27,78 @@
       "status": "ok",
       "http_code": 200,
       "allergen_count": 8,
-      "latency_ms": 1849,
+      "latency_ms": 761,
       "error": null,
       "location": null
     },
     {
       "code": "ES",
       "name": "Spain",
-      "status": "api_error",
+      "status": "empty",
       "http_code": 200,
       "allergen_count": 0,
-      "latency_ms": 818,
-      "error": "F\u00fcr diese Position sind derzeit leider keine Daten verf\u00fcgbar.",
+      "latency_ms": 833,
+      "error": null,
       "location": null
     },
     {
       "code": "FR",
       "name": "France",
-      "status": "parse_error",
+      "status": "empty",
       "http_code": 200,
       "allergen_count": 0,
-      "latency_ms": 729,
-      "error": "Invalid JSON response",
+      "latency_ms": 1478,
+      "error": null,
       "location": null
     },
     {
       "code": "GB",
       "name": "Great Britain",
-      "status": "api_error",
+      "status": "empty",
       "http_code": 200,
       "allergen_count": 0,
-      "latency_ms": 1533,
-      "error": "F\u00fcr diese Position sind derzeit leider keine Daten verf\u00fcgbar.",
+      "latency_ms": 640,
+      "error": null,
       "location": null
     },
     {
       "code": "IT",
       "name": "Italy",
-      "status": "api_error",
+      "status": "empty",
       "http_code": 200,
       "allergen_count": 0,
-      "latency_ms": 1252,
-      "error": "F\u00fcr diese Position sind derzeit leider keine Daten verf\u00fcgbar.",
+      "latency_ms": 1057,
+      "error": null,
       "location": null
     },
     {
       "code": "LT",
       "name": "Lithuania",
-      "status": "api_error",
+      "status": "empty",
       "http_code": 200,
       "allergen_count": 0,
-      "latency_ms": 785,
-      "error": "F\u00fcr diese Position sind derzeit leider keine Daten verf\u00fcgbar.",
+      "latency_ms": 950,
+      "error": null,
       "location": null
     },
     {
       "code": "LV",
       "name": "Latvia",
-      "status": "api_error",
+      "status": "empty",
       "http_code": 200,
       "allergen_count": 0,
-      "latency_ms": 1156,
-      "error": "F\u00fcr diese Position sind derzeit leider keine Daten verf\u00fcgbar.",
+      "latency_ms": 1370,
+      "error": null,
       "location": null
     },
     {
       "code": "PL",
       "name": "Poland",
-      "status": "api_error",
+      "status": "empty",
       "http_code": 200,
       "allergen_count": 0,
-      "latency_ms": 830,
-      "error": "F\u00fcr diese Position sind derzeit leider keine Daten verf\u00fcgbar.",
+      "latency_ms": 659,
+      "error": null,
       "location": null
     },
     {
@@ -107,28 +107,28 @@
       "status": "ok",
       "http_code": 200,
       "allergen_count": 9,
-      "latency_ms": 1492,
+      "latency_ms": 602,
       "error": null,
       "location": null
     },
     {
       "code": "TR",
       "name": "T\u00fcrkiye",
-      "status": "api_error",
+      "status": "empty",
       "http_code": 200,
       "allergen_count": 0,
-      "latency_ms": 878,
-      "error": "F\u00fcr diese Position sind derzeit leider keine Daten verf\u00fcgbar.",
+      "latency_ms": 762,
+      "error": null,
       "location": null
     },
     {
       "code": "UA",
       "name": "Ukraine",
-      "status": "api_error",
+      "status": "empty",
       "http_code": 200,
       "allergen_count": 0,
-      "latency_ms": 1533,
-      "error": "F\u00fcr diese Position sind derzeit leider keine Daten verf\u00fcgbar.",
+      "latency_ms": 1256,
+      "error": null,
       "location": null
     }
   ]
