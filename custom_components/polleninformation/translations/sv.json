@@ -12,7 +12,7 @@
           "location_name": "Platsnamn (valfritt)",
           "apikey": "API-nyckel"
         },
-        "description": "Välj land och plats där du vill övervaka pollenprognosen samt det språk du vill ha dina sensorer på. Du behöver en API-nyckel för polleninformation.at. Begär den på: https://www.polleninformation.at/en/data-interface/request-an-api-key"
+        "description": "Välj land och plats där du vill övervaka pollenprognosen samt det språk du vill ha dina sensorer på. Du behöver en API-nyckel för polleninformation.at. Begär den på: {api_key_url}"
       }
     },
     "error": {

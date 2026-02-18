@@ -12,7 +12,7 @@
           "location_name": "Nombre de la ubicación (opcional)",
           "apikey": "Clave API"
         },
-        "description": "Seleccione el país y la ubicación donde desea monitorear el pronóstico de polen y el idioma en el que desea configurar sus sensores. Necesita una clave API de polleninformation.at. Solicítela en: https://www.polleninformation.at/en/data-interface/request-an-api-key"
+        "description": "Seleccione el país y la ubicación donde desea monitorear el pronóstico de polen y el idioma en el que desea configurar sus sensores. Necesita una clave API de polleninformation.at. Solicítela en: {api_key_url}"
       }
     },
     "error": {

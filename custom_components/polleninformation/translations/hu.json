@@ -12,7 +12,7 @@
           "location_name": "Helyszín neve (opcionális)",
           "apikey": "API-kulcs"
         },
-        "description": "Válassza ki az országot és a helyszínt, ahol figyelni szeretné a pollenjósltat, valamint a szenzorok beállításához kívánt nyelvet. Szüksége van egy API-kulcsra a polleninformation.at-hez. Igényelje itt: https://www.polleninformation.at/en/data-interface/request-an-api-key"
+        "description": "Válassza ki az országot és a helyszínt, ahol figyelni szeretné a pollenjósltat, valamint a szenzorok beállításához kívánt nyelvet. Szüksége van egy API-kulcsra a polleninformation.at-hez. Igényelje itt: {api_key_url}"
       }
     },
     "error": {

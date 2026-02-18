@@ -12,7 +12,7 @@
           "location_name": "Konum adı (isteğe bağlı)",
           "apikey": "API anahtarı"
         },
-        "description": "Polen tahminini izlemek istediğiniz ülkeyi ve konumu, ayrıca sensörlerinizi yapılandırmak istediğiniz dili seçin. polleninformation.at için bir API anahtarına ihtiyacınız var. Şuradan talep edin: https://www.polleninformation.at/en/data-interface/request-an-api-key"
+        "description": "Polen tahminini izlemek istediğiniz ülkeyi ve konumu, ayrıca sensörlerinizi yapılandırmak istediğiniz dili seçin. polleninformation.at için bir API anahtarına ihtiyacınız var. Şuradan talep edin: {api_key_url}"
       }
     },
     "error": {

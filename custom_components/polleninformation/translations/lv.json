@@ -12,7 +12,7 @@
           "location_name": "Vietas nosaukums (nav obligāts)",
           "apikey": "API atslēga"
         },
-        "description": "Izvēlieties valsti un atrašanās vietu, kur vēlaties uzraudzīt ziedputekšņu prognozi, un valodu, kādā konfigurēt sensorus. Jums ir nepieciešama API atslēga no polleninformation.at. Pieprasiet to šeit: https://www.polleninformation.at/en/data-interface/request-an-api-key"
+        "description": "Izvēlieties valsti un atrašanās vietu, kur vēlaties uzraudzīt ziedputekšņu prognozi, un valodu, kādā konfigurēt sensorus. Jums ir nepieciešama API atslēga no polleninformation.at. Pieprasiet to šeit: {api_key_url}"
       }
     },
     "error": {
