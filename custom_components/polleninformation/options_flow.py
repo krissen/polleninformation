@@ -12,7 +12,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.helpers.selector import LocationSelector, LocationSelectorConfig
 
-from .const import DEFAULT_LANG
+from .const import API_KEY_REQUEST_URL, DEFAULT_LANG
 from .utils import async_get_country_options, async_get_language_options
 
 _LOGGER = logging.getLogger(__name__)
@@ -79,11 +79,6 @@ class OptionsFlowHandler(config_entries.OptionsFlowWithConfigEntry):
                 vol.Required("apikey", default=default_apikey): str,
                 vol.Optional("location_name", default=default_location_name): str,
             }
-        )
-
-        api_key_info = (
-            "An API key is required for polleninformation.at. "
-            "You can request an API key at: https://www.polleninformation.at/en/data-interface/request-an-api-key"
         )
 
         if user_input is not None:
@@ -159,5 +154,5 @@ class OptionsFlowHandler(config_entries.OptionsFlowWithConfigEntry):
             step_id="init",
             data_schema=data_schema,
             errors=errors,
-            description_placeholders={"api_key_info": api_key_info},
+            description_placeholders={"api_key_url": API_KEY_REQUEST_URL},
         )

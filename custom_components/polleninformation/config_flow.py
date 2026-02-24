@@ -17,7 +17,7 @@ from .api import (
     PollenApiError,
     async_get_pollenat_data,
 )
-from .const import DEFAULT_LANG, DOMAIN
+from .const import API_KEY_REQUEST_URL, DEFAULT_LANG, DOMAIN
 from .options_flow import OptionsFlowHandler
 from .utils import (
     async_get_country_code_from_latlon,
@@ -285,9 +285,7 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=data_schema,
             errors=errors,
-            description_placeholders={
-                "api_key_url": "https://www.polleninformation.at/en/data-interface/request-an-api-key"
-            },
+            description_placeholders={"api_key_url": API_KEY_REQUEST_URL},
         )
 
     @staticmethod
