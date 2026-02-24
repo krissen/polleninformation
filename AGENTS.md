@@ -4,7 +4,7 @@
 
 ### Directory and File Handling
 
-- In the `custom_components/polleninformation/translations/` directory, only process the `en.json` file. All other files in this directory must be ignored.
+- In the `custom_components/polleninformation/translations/` directory, only edit the `en.json` file for content changes (new strings, rewording, etc.). Mechanical changes required for validation compliance (e.g. HACS rules) may be applied across all translation files.
 
 ### Coding Principles
 
