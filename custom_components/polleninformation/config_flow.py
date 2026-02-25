@@ -285,6 +285,9 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=data_schema,
             errors=errors,
+            description_placeholders={
+                "api_key_url": "https://www.polleninformation.at/en/data-interface/request-an-api-key"
+            },
         )
 
     @staticmethod
