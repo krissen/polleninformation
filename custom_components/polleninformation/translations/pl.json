@@ -12,7 +12,7 @@
           "location_name": "Nazwa lokalizacji (opcjonalnie)",
           "apikey": "Klucz API"
         },
-        "description": "Wybierz kraj i lokalizację, dla których chcesz monitorować prognozę pyłków oraz język, w jakim mają być skonfigurowane czujniki. Potrzebujesz klucza API do polleninformation.at. Złóż wniosek tutaj: https://www.polleninformation.at/en/data-interface/request-an-api-key"
+        "description": "Wybierz kraj i lokalizację, dla których chcesz monitorować prognozę pyłków oraz język, w jakim mają być skonfigurowane czujniki. Potrzebujesz klucza API do polleninformation.at. Złóż wniosek tutaj: {api_key_url}"
       }
     },
     "error": {

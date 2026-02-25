@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Add Pollen Information",
-        "description": "Select the country and location where you want to monitor the pollen forecast and the language you want your sensors configured as. You need an API key for polleninformation.at. Request it at: https://www.polleninformation.at/en/data-interface/request-an-api-key",
+        "description": "Select the country and location where you want to monitor the pollen forecast and the language you want your sensors configured as. You need an API key for polleninformation.at. Request it at: {api_key_url}",
         "data": {
           "country": "Country",
           "location": "Location (select on map)",

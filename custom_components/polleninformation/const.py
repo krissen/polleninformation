@@ -26,6 +26,11 @@ DEFAULT_LANG = "en"
 DEFAULT_NAME = "Polleninformation"
 DEFAULT_APIKEY = ""  # Empty by default; must be set by user
 
+# URL for requesting an API key
+API_KEY_REQUEST_URL = (
+    "https://www.polleninformation.at/en/data-interface/request-an-api-key"
+)
+
 # API URL for polleninformation.at (new structure)
 POLLENAT_API_URL = (
     "https://www.polleninformation.at/api/forecast/public"

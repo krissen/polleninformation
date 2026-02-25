@@ -12,7 +12,7 @@
           "location_name": "Назва місця (необов’язково)",
           "apikey": "API-ключ"
         },
-        "description": "Виберіть країну та місце, для яких ви хочете відстежувати прогноз пилку, а також мову для налаштування датчиків. Вам потрібен API-ключ для polleninformation.at. Запросіть його тут: https://www.polleninformation.at/en/data-interface/request-an-api-key"
+        "description": "Виберіть країну та місце, для яких ви хочете відстежувати прогноз пилку, а також мову для налаштування датчиків. Вам потрібен API-ключ для polleninformation.at. Запросіть його тут: {api_key_url}"
       }
     },
     "error": {
