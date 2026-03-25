@@ -45,6 +45,12 @@ The original `0`–`10` value can be found in the `numeric_state_raw` attribute
 of both the `allergy_risk` and `allergy_risk_hourly` sensors. The same raw value
 is available per forecast entry as `level_raw`.
 
+## Update Interval & Manual Refresh
+
+Data updates every **8 hours** by default. You can change this in the integration options (1–24 hours).
+
+To trigger an immediate refresh, use the `homeassistant.update_entity` service targeting any of your pollen sensors. This works in automations and scripts.
+
 ## Data Source & Attribution
 
 All data is provided by the Austrian Pollen Information Service.  

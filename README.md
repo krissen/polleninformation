@@ -96,7 +96,23 @@ attribute of both the `allergy_risk` and `allergy_risk_hourly`
 sensors. Within their forecast attribute the same raw value is exposed
 as `level_raw` for each forecast entry.
 
-**The integration updates sensor data every 8 hours.** Which is more than enough, as the data usually does not change more frequently than once every 24 hours.
+### Update interval
+
+The integration updates sensor data every **8 hours** by default. This is usually more than enough, as the data typically does not change more frequently than once every 24 hours.
+
+You can change the update interval in **Settings → Devices & Services → Pollen Information EU → Configure** (1–24 hours).
+
+### Manual refresh
+
+To trigger an immediate data refresh, call the built-in `homeassistant.update_entity` service:
+
+```yaml
+service: homeassistant.update_entity
+target:
+  entity_id: sensor.polleninformation_stockholm_birch
+```
+
+This works in automations, scripts, and the Developer Tools → Services panel.
 
 ### API usage
 
