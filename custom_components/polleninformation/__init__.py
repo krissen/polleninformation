@@ -24,11 +24,13 @@ from .const import (
     CONF_LANG,
     CONF_LATITUDE,
     CONF_LONGITUDE,
+    CONF_UPDATE_INTERVAL,
     DEFAULT_APIKEY,
     DEFAULT_COUNTRY,
     DEFAULT_LANG,
     DEFAULT_LATITUDE,
     DEFAULT_LONGITUDE,
+    DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
     PLATFORMS,
 )
@@ -36,7 +38,6 @@ from .utils import get_country_code_map
 
 DEBUG = True
 _LOGGER = logging.getLogger(__name__)
-SCAN_INTERVAL = timedelta(hours=8)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -66,17 +67,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     lang = entry.data.get(CONF_LANG, DEFAULT_LANG)
     apikey = entry.data.get(CONF_APIKEY, DEFAULT_APIKEY)
 
+    # Options override data for update_interval
+    update_interval_hours = entry.options.get(
+        CONF_UPDATE_INTERVAL,
+        entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
+    )
+    scan_interval = timedelta(hours=update_interval_hours)
+
     if DEBUG:
         _LOGGER.debug(
-            "INIT: Setup entry with lat=%s, lon=%s, country=%s, lang=%s",
+            "INIT: Setup entry with lat=%s, lon=%s, country=%s, lang=%s, interval=%sh",
             lat,
             lon,
             country,
             lang,
+            update_interval_hours,
         )
 
     coordinator = PollenInformationDataUpdateCoordinator(
-        hass, lat, lon, country, lang, apikey
+        hass, lat, lon, country, lang, apikey, scan_interval
     )
 
     # First refresh to populate data
@@ -103,9 +112,11 @@ async def _async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
 class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):
     """Coordinator to fetch data from polleninformation.at."""
 
-    def __init__(self, hass: HomeAssistant, lat, lon, country, lang, apikey):
+    def __init__(
+        self, hass: HomeAssistant, lat, lon, country, lang, apikey, scan_interval
+    ):
         """Initialize the data coordinator with API parameters."""
-        super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=SCAN_INTERVAL)
+        super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=scan_interval)
         self.lat = lat
         self.lon = lon
         self.country = country

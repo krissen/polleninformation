@@ -12,7 +12,14 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.helpers.selector import LocationSelector, LocationSelectorConfig
 
-from .const import API_KEY_REQUEST_URL, DEFAULT_LANG
+from .const import (
+    API_KEY_REQUEST_URL,
+    CONF_UPDATE_INTERVAL,
+    DEFAULT_LANG,
+    DEFAULT_UPDATE_INTERVAL,
+    MAX_UPDATE_INTERVAL,
+    MIN_UPDATE_INTERVAL,
+)
 from .utils import async_get_country_options, async_get_language_options
 
 _LOGGER = logging.getLogger(__name__)
@@ -59,6 +66,9 @@ class OptionsFlowHandler(config_entries.OptionsFlowWithConfigEntry):
         default_language = defaults.get("lang", default_lang_code)
         default_apikey = defaults.get("apikey", "")
         default_location_name = defaults.get("location", "")
+        default_update_interval = defaults.get(
+            CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL
+        )
 
         data_schema = vol.Schema(
             {
@@ -78,6 +88,12 @@ class OptionsFlowHandler(config_entries.OptionsFlowWithConfigEntry):
                 ),
                 vol.Required("apikey", default=default_apikey): str,
                 vol.Optional("location_name", default=default_location_name): str,
+                vol.Required(
+                    CONF_UPDATE_INTERVAL, default=default_update_interval
+                ): vol.All(
+                    vol.Coerce(int),
+                    vol.Range(min=MIN_UPDATE_INTERVAL, max=MAX_UPDATE_INTERVAL),
+                ),
             }
         )
 
@@ -137,6 +153,9 @@ class OptionsFlowHandler(config_entries.OptionsFlowWithConfigEntry):
                 )
 
             if not errors:
+                update_interval = user_input.get(
+                    CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL
+                )
                 return self.async_create_entry(
                     title=entry_title,
                     data={
@@ -148,6 +167,7 @@ class OptionsFlowHandler(config_entries.OptionsFlowWithConfigEntry):
                         "location": location_name,
                         "location_title": location_title,
                         "location_slug": location_slug,
+                        CONF_UPDATE_INTERVAL: update_interval,
                     },
                 )
         return self.async_show_form(

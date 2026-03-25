@@ -25,6 +25,10 @@ DEFAULT_COUNTRY = "AT"  # ISO alpha-2 country code
 DEFAULT_LANG = "en"
 DEFAULT_NAME = "Polleninformation"
 DEFAULT_APIKEY = ""  # Empty by default; must be set by user
+DEFAULT_UPDATE_INTERVAL = 8  # Hours between API updates
+MIN_UPDATE_INTERVAL = 1
+MAX_UPDATE_INTERVAL = 24
+CONF_UPDATE_INTERVAL = "update_interval"
 
 # URL for requesting an API key
 API_KEY_REQUEST_URL = (
