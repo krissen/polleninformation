@@ -20,7 +20,14 @@ from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DEFAULT_LANG, DOMAIN
+from .const import (
+    CONF_COUNTRY,
+    CONF_LANG,
+    CONF_LATITUDE,
+    CONF_LONGITUDE,
+    DEFAULT_LANG,
+    DOMAIN,
+)
 from .const_levels import LEVELS
 from .utils import (
     async_get_language_block,
@@ -142,10 +149,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
     def _opt(key, default=None):
         return entry.options.get(key, entry.data.get(key, default))
 
-    lat = _opt("latitude")
-    lon = _opt("longitude")
-    country = _opt("country")
-    lang = _opt("lang", DEFAULT_LANG)
+    lat = _opt(CONF_LATITUDE)
+    lon = _opt(CONF_LONGITUDE)
+    country = _opt(CONF_COUNTRY)
+    lang = _opt(CONF_LANG, DEFAULT_LANG)
     location_title = _opt("location_title")
 
     if not location_title or location_title.strip() == "":
