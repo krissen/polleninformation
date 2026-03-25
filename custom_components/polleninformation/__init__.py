@@ -32,6 +32,8 @@ from .const import (
     DEFAULT_LATITUDE,
     DEFAULT_LONGITUDE,
     DEFAULT_UPDATE_INTERVAL,
+    MAX_UPDATE_INTERVAL,
+    MIN_UPDATE_INTERVAL,
     DOMAIN,
     PLATFORMS,
 )
@@ -68,10 +70,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     lang = entry.data.get(CONF_LANG, DEFAULT_LANG)
     apikey = entry.data.get(CONF_APIKEY, DEFAULT_APIKEY)
 
-    # Options override data for update_interval
-    update_interval_hours = entry.options.get(
-        CONF_UPDATE_INTERVAL,
-        entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
+    # Options override data for update_interval; clamp to valid range
+    try:
+        update_interval_hours = int(
+            float(
+                entry.options.get(
+                    CONF_UPDATE_INTERVAL,
+                    entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
+                )
+            )
+        )
+    except (TypeError, ValueError):
+        update_interval_hours = DEFAULT_UPDATE_INTERVAL
+    update_interval_hours = max(
+        MIN_UPDATE_INTERVAL, min(MAX_UPDATE_INTERVAL, update_interval_hours)
     )
     scan_interval = timedelta(hours=update_interval_hours)
 
