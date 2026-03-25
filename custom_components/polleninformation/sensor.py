@@ -138,12 +138,15 @@ async def async_setup_entry(hass, entry, async_add_entities):
             len(existing_unique_ids),
         )
 
-    data = entry.data
-    lat = data["latitude"]
-    lon = data["longitude"]
-    country = data["country"]
-    lang = data.get("lang", DEFAULT_LANG)
-    location_title = data.get("location_title")
+    # Options override data (options flow writes to entry.options)
+    def _opt(key, default=None):
+        return entry.options.get(key, entry.data.get(key, default))
+
+    lat = _opt("latitude")
+    lon = _opt("longitude")
+    country = _opt("country")
+    lang = _opt("lang", DEFAULT_LANG)
+    location_title = _opt("location_title")
 
     if not location_title or location_title.strip() == "":
         from .utils import async_get_country_options
