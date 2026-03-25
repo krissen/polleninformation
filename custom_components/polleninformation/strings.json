@@ -2,39 +2,55 @@
   "config": {
     "step": {
       "user": {
-        "description": "Enter the API url to use (ask around to find out what URL to use)",
+        "title": "Add Pollen Information",
+        "description": "Select the country and location where you want to monitor the pollen forecast and the language you want your sensors configured as. You need an API key for polleninformation.at. Request it at: {api_key_url}",
         "data": {
-          "conf_url": "API URL"
-        }
-      },
-      "fetch_cities": {
-        "title": "Pollenprognos - Loading...",
-        "description": "Retrieves pollen forecasts"
-      },
-      "select_city": {
-        "title": "Pollenprognos - City",
-        "description": "Choose which city you want to monitor",
-        "data": {
-          "conf_city": "Select city"
-        }
-      },
-      "select_pollen": {
-        "title": "Pollenprognos - Pollen",
-        "description": "Choose which pollen you want to monitor",
-        "data": {
-          "conf_pollen": "Select pollen"
+          "country": "Country",
+          "location": "Location (select on map)",
+          "location_name": "Location name (optional)",
+          "latitude": "Latitude",
+          "longitude": "Longitude",
+          "language": "Language",
+          "apikey": "API key"
         }
       }
     },
-    "abort": {
-      "already_configured": "[%key:common::config_flow::abort::already_configured_account%]",
-      "fetch_data_failed": "Fetching data failed"
+    "error": {
+      "invalid_latitude": "Invalid latitude",
+      "invalid_longitude": "Invalid longitude",
+      "invalid_language": "Invalid language",
+      "invalid_country": "Invalid country",
+      "missing_apikey": "Missing API key",
+      "invalid_api_key": "Invalid API key",
+      "connection_error": "Could not connect to the pollen service",
+      "api_error": "The pollen service returned an error",
+      "suggested_country": "No data found for selected country at this location. Try changing country or location.",
+      "no_sensors_for_country": "No sensors found for selected country at this location.",
+      "no_pollen_data": "No pollen data returned for this location."
     },
-    "progress": {
-      "fetch_cities": "Retrieves pollen forecasts"
+    "abort": {
+      "already_configured": "This location is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Pollen Information Options",
+        "description": "Update your settings. API key request: {api_key_url}",
+        "data": {
+          "country": "Country",
+          "location": "Location (select on map)",
+          "location_name": "Location name (optional)",
+          "language": "Language",
+          "apikey": "API key",
+          "update_interval": "Update interval (hours)"
+        }
+      }
     },
     "error": {
-      "bad_host": "Invalid API host URL"
+      "missing_apikey": "Missing API key",
+      "invalid_country": "Invalid country",
+      "invalid_language": "Invalid language"
     }
   }
 }
