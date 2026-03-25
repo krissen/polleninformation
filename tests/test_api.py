@@ -7,13 +7,14 @@ import pytest
 from homeassistant.core import HomeAssistant
 
 from custom_components.polleninformation.api import (
+    API_URL,
     PollenApiAuthError,
     PollenApiConnectionError,
     PollenApiError,
     async_get_pollenat_data,
 )
 
-API_URL_PREFIX = "https://www.polleninformation.at/api/forecast/public"
+API_URL_PREFIX = API_URL.split("?")[0]
 
 CALL_KWARGS = {
     "latitude": 53.5289,
