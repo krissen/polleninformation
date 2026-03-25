@@ -1,6 +1,5 @@
 """Tests for utility functions (pure, no HA dependency)."""
 
-
 from custom_components.polleninformation.utils import (
     extract_place_slug,
     find_best_lang_code_for_locale_sync,
