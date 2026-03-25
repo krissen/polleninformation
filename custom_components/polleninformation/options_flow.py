@@ -10,7 +10,13 @@ import logging
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.helpers.selector import LocationSelector, LocationSelectorConfig
+from homeassistant.helpers.selector import (
+    LocationSelector,
+    LocationSelectorConfig,
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
+)
 
 from .const import (
     API_KEY_REQUEST_URL,
@@ -90,9 +96,14 @@ class OptionsFlowHandler(config_entries.OptionsFlowWithConfigEntry):
                 vol.Optional("location_name", default=default_location_name): str,
                 vol.Required(
                     CONF_UPDATE_INTERVAL, default=default_update_interval
-                ): vol.All(
-                    vol.Coerce(int),
-                    vol.Range(min=MIN_UPDATE_INTERVAL, max=MAX_UPDATE_INTERVAL),
+                ): NumberSelector(
+                    NumberSelectorConfig(
+                        min=MIN_UPDATE_INTERVAL,
+                        max=MAX_UPDATE_INTERVAL,
+                        step=1,
+                        mode=NumberSelectorMode.BOX,
+                        unit_of_measurement="h",
+                    )
                 ),
             }
         )
