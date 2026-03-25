@@ -66,6 +66,12 @@
 - **Defensive interval validation** — persisted `update_interval` is cast,
   clamped to `[1, 24]` and falls back to default on corrupt values.
 
+- **Idempotent unload** — `async_unload_entry` guards against missing keys
+  and cleans up empty `hass.data[DOMAIN]`.
+
+- **Config key constants** — sensor setup uses `CONF_*` constants instead of
+  raw strings, matching coordinator and config flow.
+
 ---
 
 ## v0.5.0-beta1 (2026-01-05)
