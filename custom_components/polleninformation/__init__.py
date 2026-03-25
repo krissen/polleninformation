@@ -63,22 +63,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.data.setdefault(DOMAIN, {})
 
-    # Fetch all required parameters, falling back to defaults
-    lat = entry.data.get(CONF_LATITUDE, DEFAULT_LATITUDE)
-    lon = entry.data.get(CONF_LONGITUDE, DEFAULT_LONGITUDE)
-    country = entry.data.get(CONF_COUNTRY, DEFAULT_COUNTRY)
-    lang = entry.data.get(CONF_LANG, DEFAULT_LANG)
-    apikey = entry.data.get(CONF_APIKEY, DEFAULT_APIKEY)
+    # Fetch parameters: options override data (options flow writes to entry.options)
+    def _opt(key, default=None):
+        return entry.options.get(key, entry.data.get(key, default))
 
-    # Options override data for update_interval; clamp to valid range
+    lat = _opt(CONF_LATITUDE, DEFAULT_LATITUDE)
+    lon = _opt(CONF_LONGITUDE, DEFAULT_LONGITUDE)
+    country = _opt(CONF_COUNTRY, DEFAULT_COUNTRY)
+    lang = _opt(CONF_LANG, DEFAULT_LANG)
+    apikey = _opt(CONF_APIKEY, DEFAULT_APIKEY)
+
+    # Clamp update_interval to valid range
     try:
         update_interval_hours = int(
-            float(
-                entry.options.get(
-                    CONF_UPDATE_INTERVAL,
-                    entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
-                )
-            )
+            float(_opt(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL))
         )
     except (TypeError, ValueError):
         update_interval_hours = DEFAULT_UPDATE_INTERVAL
