@@ -134,3 +134,51 @@ class TestUpdateIntervalClamping:
         await hass.async_block_till_done()
         coordinator = hass.data[DOMAIN][entry.entry_id]
         assert coordinator.update_interval == timedelta(hours=DEFAULT_UPDATE_INTERVAL)
+
+
+class TestOptionsReloadConsistency:
+    """Test that coordinator and sensors use the same effective config."""
+
+    @patch(
+        "custom_components.polleninformation.async_get_pollenat_data",
+        new_callable=AsyncMock,
+    )
+    async def test_coordinator_uses_options_over_data(
+        self, mock_api, hass: HomeAssistant
+    ):
+        """Coordinator should reflect options when they differ from data."""
+        mock_api.return_value = {"contamination": []}
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            title="Hamburg",
+            data={
+                "country": "DE",
+                "latitude": 53.5,
+                "longitude": 10.0,
+                "lang": "en",
+                "apikey": "old-key",
+                "location_title": "Hamburg",
+                "location_slug": "hamburg",
+            },
+            options={
+                "country": "SE",
+                "latitude": 59.3,
+                "longitude": 18.0,
+                "lang": "sv",
+                "apikey": "new-key",
+                "location_title": "Stockholm",
+                "location_slug": "stockholm",
+                "update_interval": 4,
+            },
+        )
+        entry.add_to_hass(hass)
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+        coordinator = hass.data[DOMAIN][entry.entry_id]
+        assert coordinator.country == "SE"
+        assert coordinator.lang == "sv"
+        assert coordinator.lat == 59.3
+        assert coordinator.lon == 18.0
+        assert coordinator.apikey == "new-key"
+        assert coordinator.update_interval == timedelta(hours=4)
