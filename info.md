@@ -47,7 +47,7 @@ is available per forecast entry as `level_raw`.
 
 ## Update Interval & Manual Refresh
 
-Data updates every **8 hours** by default. You can change this in the integration options (1–24 hours).
+Data updates every **8 hours** by default. You can change this in the integration options under **Polleninformation EU → Configure** (1–24 hours).
 
 To trigger an immediate refresh, use the `homeassistant.update_entity` service targeting any of your pollen sensors. This works in automations and scripts.
 
