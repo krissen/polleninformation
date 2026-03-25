@@ -49,6 +49,15 @@
 - **Manual refresh via `homeassistant.update_entity`** — documented the
   built-in service for on-demand data refresh in automations and scripts.
 
+### Breaking changes
+
+- **`last_updated` attribute is now a `datetime` object** — previously a
+  formatted string (`%Y-%m-%d %H:%M:%S`). HA serializes this to ISO 8601
+  with timezone offset, which is more accurate but may require updating
+  templates that parsed the old format. Note: the old value was always the
+  time of attribute *read*, not the actual last fetch — so any template
+  relying on it was already unreliable.
+
 ### Internal
 
 - **Test suite** — 84 tests covering API client, coordinator, sensors, utility
