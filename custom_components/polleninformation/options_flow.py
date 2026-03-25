@@ -46,7 +46,7 @@ class OptionsFlowHandler(config_entries.OptionsFlowWithConfigEntry):
         lang_options = await async_get_language_options(hass)
         _LOGGER.debug("country_options: %r", country_options)
         _LOGGER.debug("lang_options: %r", lang_options)
-        defaults = self.config_entry.options or self.config_entry.data or {}
+        defaults = {**self.config_entry.data, **self.config_entry.options}
 
         ha_lang = None
         ha_config = getattr(hass, "config", None)
