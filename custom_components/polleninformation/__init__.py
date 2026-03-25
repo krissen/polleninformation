@@ -5,12 +5,13 @@ All legacy parameters and imports have been removed.
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
 from .api import (
     PollenApiAuthError,
@@ -160,7 +161,7 @@ class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):
                     f"Invalid API response for {self.country}: missing or malformed data"
                 )
 
-            self.last_updated = datetime.now()
+            self.last_updated = dt_util.now()
             if DEBUG:
                 _LOGGER.debug(
                     "COORDINATOR: API result keys: %s",
