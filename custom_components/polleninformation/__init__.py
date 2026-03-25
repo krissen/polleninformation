@@ -96,7 +96,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
     coordinator = PollenInformationDataUpdateCoordinator(
-        hass, lat, lon, country, lang, apikey, scan_interval
+        hass, entry, lat, lon, country, lang, apikey, scan_interval
     )
 
     # First refresh to populate data
@@ -124,10 +124,24 @@ class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):
     """Coordinator to fetch data from polleninformation.at."""
 
     def __init__(
-        self, hass: HomeAssistant, lat, lon, country, lang, apikey, scan_interval
+        self,
+        hass: HomeAssistant,
+        config_entry: ConfigEntry,
+        lat,
+        lon,
+        country,
+        lang,
+        apikey,
+        scan_interval,
     ):
         """Initialize the data coordinator with API parameters."""
-        super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=scan_interval)
+        super().__init__(
+            hass,
+            _LOGGER,
+            config_entry=config_entry,
+            name=DOMAIN,
+            update_interval=scan_interval,
+        )
         self.lat = lat
         self.lon = lon
         self.country = country
