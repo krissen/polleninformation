@@ -424,8 +424,10 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
             "icon": self._attr_icon,
             "levels_current": self._levels_current,
             "levels_en": self._levels_en,
-            "update_success": self.coordinator.data is not None,
-            "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "update_success": self.coordinator.last_update_success,
+            "last_updated": self.coordinator.last_updated.strftime("%Y-%m-%d %H:%M:%S")
+            if self.coordinator.last_updated
+            else None,
         }
         if self._is_stale:
             attrs["data_stale"] = True
@@ -522,8 +524,10 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
             "location_title": self._location_title,
             "location_slug": self._location_slug,
             "attribution": "Austrian Pollen Information Service",
-            "update_success": self.coordinator.data is not None,
-            "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "update_success": self.coordinator.last_update_success,
+            "last_updated": self.coordinator.last_updated.strftime("%Y-%m-%d %H:%M:%S")
+            if self.coordinator.last_updated
+            else None,
         }
 
 
@@ -629,6 +633,8 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
             "location_title": self._location_title,
             "location_slug": self._location_slug,
             "attribution": "Austrian Pollen Information Service",
-            "update_success": self.coordinator.data is not None,
-            "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "update_success": self.coordinator.last_update_success,
+            "last_updated": self.coordinator.last_updated.strftime("%Y-%m-%d %H:%M:%S")
+            if self.coordinator.last_updated
+            else None,
         }
