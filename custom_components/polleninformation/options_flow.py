@@ -71,8 +71,14 @@ class OptionsFlowHandler(config_entries.OptionsFlowWithConfigEntry):
         default_language = defaults.get("lang", default_lang_code)
         default_apikey = defaults.get("apikey", "")
         default_location_name = defaults.get("location", "")
-        default_update_interval = defaults.get(
-            CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL
+        try:
+            default_update_interval = int(
+                float(defaults.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL))
+            )
+        except (TypeError, ValueError):
+            default_update_interval = DEFAULT_UPDATE_INTERVAL
+        default_update_interval = max(
+            MIN_UPDATE_INTERVAL, min(MAX_UPDATE_INTERVAL, default_update_interval)
         )
 
         data_schema = vol.Schema(
