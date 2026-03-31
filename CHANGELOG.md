@@ -74,6 +74,11 @@
 - **Options translations incomplete** — added `options` section with
   proper translations to all 15 non-English language files.
 
+- **Duplicate detection ignored options overrides** — config flow checked
+  only `entry.data` for existing coordinates, so after changing location
+  via options flow a duplicate entry could be created for the same active
+  location. Now uses options-over-data fallback for the comparison.
+
 ### New features
 
 - **Configurable update interval** — users can now set the API polling interval
