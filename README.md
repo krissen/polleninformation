@@ -1,4 +1,4 @@
-# Home Assistant: Pollen Information EU
+# Home Assistant: Polleninformation EU
 
 [![GitHub Release][releases-shield]][releases]
 [![License][license-shield]](LICENSE)
@@ -45,7 +45,7 @@ A Home Assistant integration for monitoring pollen across Europe, data provided 
 
 ## Installation (HACS recommended)
 
-1. Search for and install **Pollen Information EU**.
+1. Search for and install **Polleninformation EU**.
 3. Restart Home Assistant when prompted.
 
 ---
@@ -53,7 +53,7 @@ A Home Assistant integration for monitoring pollen across Europe, data provided 
 ## Configuration
 
 1. Go to **Settings → Devices & Services → Add Integration**.
-2. Search for `Pollen Information EU` and follow the setup flow:
+2. Search for `Polleninformation EU` and follow the setup flow:
 3. Choose a country;
 4. enter a place name (free text);
 5. set location through the map or by entering coordinates;
@@ -125,7 +125,7 @@ You **must request a personal API key** to use the integration—get your key [h
 
 The upstream API does not always provide data for all countries. Check the **[API Status Page](https://krissen.github.io/polleninformation/)** for current availability per country.
 
-When the API is unavailable for your location, sensors will show as **unavailable** until data becomes available again.
+When the API is unavailable for your location, sensors will remain available but show **unknown** state until data becomes available again.
 
 ---
 

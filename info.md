@@ -1,8 +1,8 @@
-# Home Assistant: Pollen Information EU
+# Home Assistant: Polleninformation EU
 
 [![API Status](https://img.shields.io/endpoint?url=https://krissen.github.io/polleninformation/badge.json)](https://krissen.github.io/polleninformation/)
 
-Pollen Information EU is a Home Assistant integration that provides up-to-date pollen data for any location in Europe, powered by the Austrian Pollen Information Service.
+Polleninformation EU is a Home Assistant integration that provides up-to-date pollen data for any location in Europe, powered by the Austrian Pollen Information Service.
 
 ## Features
 
@@ -13,13 +13,13 @@ Pollen Information EU is a Home Assistant integration that provides up-to-date p
 ## Installation (Recommended: HACS)
 
 1. Add this repository as a "Custom Repository" under "Integrations" in HACS.
-2. Install the "Pollen Information EU" integration.
+2. Install the "Polleninformation EU" integration.
 3. Restart Home Assistant if prompted.
 
 ## Configuration
 
 1. Go to **Settings → Devices & Services → Add Integration**.
-2. Search for `Pollen Information EU` and add the integration.
+2. Search for `Polleninformation EU` and add the integration.
 3. Select your country and enter your desired location (latitude/longitude).
 4. Sensors will be created automatically for all available allergens at the selected location.
 
