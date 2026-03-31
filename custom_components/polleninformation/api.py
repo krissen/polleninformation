@@ -12,14 +12,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 _LOGGER = logging.getLogger(__name__)
 
-API_URL = (
-    "https://www.polleninformation.at/api/forecast/public"
-    "?country={country}"
-    "&lang={lang}"
-    "&latitude={latitude}"
-    "&longitude={longitude}"
-    "&apikey={apikey}"
-)
+API_URL = "https://www.polleninformation.at/api/forecast/public"
 
 
 class PollenApiError(Exception):
@@ -61,26 +54,25 @@ async def async_get_pollenat_data(
         PollenApiConnectionError: If network request fails.
         PollenApiError: For other API errors.
     """
-    url = API_URL.format(
-        country=country,
-        lang=lang,
-        latitude=latitude,
-        longitude=longitude,
-        apikey=apikey,
-    )
+    params = {
+        "country": country,
+        "lang": lang,
+        "latitude": latitude,
+        "longitude": longitude,
+        "apikey": apikey,
+    }
 
     _LOGGER.debug(
-        "Calling polleninformation.at for country=%s, lat=%s, lon=%s",
+        "Calling polleninformation.at for country=%s",
         country,
-        latitude,
-        longitude,
     )
 
     try:
         session = async_get_clientsession(hass)
         async with async_timeout.timeout(15):
             async with session.get(
-                url,
+                API_URL,
+                params=params,
                 headers={
                     "Accept": "application/json, text/plain, */*",
                     "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",

@@ -35,16 +35,6 @@ API_KEY_REQUEST_URL = (
     "https://www.polleninformation.at/en/data-interface/request-an-api-key"
 )
 
-# API URL for polleninformation.at (new structure)
-POLLENAT_API_URL = (
-    "https://www.polleninformation.at/api/forecast/public"
-    "?country={country}"
-    "&lang={lang}"
-    "&latitude={latitude}"
-    "&longitude={longitude}"
-    "&apikey={apikey}"
-)
-
 # Supported ISO 3166-1 alpha-2 country codes
 SUPPORTED_COUNTRIES = [
     "AT",
