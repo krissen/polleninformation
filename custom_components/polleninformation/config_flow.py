@@ -257,9 +257,15 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     }
                     existing_entries = self._async_current_entries()
                     already_exists = any(
-                        e.data.get("country") == country_code
-                        and round(e.data.get("latitude", 0), 3) == round(latitude, 3)
-                        and round(e.data.get("longitude", 0), 3) == round(longitude, 3)
+                        e.options.get("country", e.data.get("country")) == country_code
+                        and round(
+                            e.options.get("latitude", e.data.get("latitude", 0)), 3
+                        )
+                        == round(latitude, 3)
+                        and round(
+                            e.options.get("longitude", e.data.get("longitude", 0)), 3
+                        )
+                        == round(longitude, 3)
                         for e in existing_entries
                     )
                     if already_exists:
