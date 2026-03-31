@@ -40,6 +40,26 @@
 - **Integration name in docs** — navigation instructions said "Pollen
   Information EU" but manifest uses "Polleninformation EU".
 
+- **Allergy risk sensors used stale snapshot data** — `AllergyRiskSensor`
+  and `AllergyRiskHourlySensor` read from init-time data instead of
+  current `coordinator.data`. After coordinator refresh, these sensors
+  still showed the original values. Now reads dynamically from the
+  coordinator, matching `PolleninformationSensor` behaviour.
+
+- **Stale risk sensors could not recover** — sensors created with
+  `is_stale=True` (empty API response at startup) permanently returned
+  `None` even after fresh data arrived. Stale status now only applies
+  when the coordinator actually lacks data.
+
+- **README claimed sensors become "unavailable"** — but sensors remain
+  available with unknown state when API data is missing. Docs now match
+  actual behaviour.
+
+- **Options flow fallback title had extra prefix** — options flow
+  generated `"Polleninformation {country} ({lat}, {lon})"` while config
+  flow used `"{country} ({lat}, {lon})"`, causing entry title to change
+  unexpectedly after reconfigure.
+
 ### New features
 
 - **Configurable update interval** — users can now set the API polling interval
