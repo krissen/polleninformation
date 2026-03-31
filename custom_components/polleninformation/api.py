@@ -12,14 +12,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 _LOGGER = logging.getLogger(__name__)
 
-API_URL = (
-    "https://www.polleninformation.at/api/forecast/public"
-    "?country={country}"
-    "&lang={lang}"
-    "&latitude={latitude}"
-    "&longitude={longitude}"
-    "&apikey={apikey}"
-)
+API_URL = "https://www.polleninformation.at/api/forecast/public"
 
 
 class PollenApiError(Exception):
@@ -61,26 +54,25 @@ async def async_get_pollenat_data(
         PollenApiConnectionError: If network request fails.
         PollenApiError: For other API errors.
     """
-    url = API_URL.format(
-        country=country,
-        lang=lang,
-        latitude=latitude,
-        longitude=longitude,
-        apikey=apikey,
-    )
+    params = {
+        "country": country,
+        "lang": lang,
+        "latitude": latitude,
+        "longitude": longitude,
+        "apikey": apikey,
+    }
 
     _LOGGER.debug(
-        "Calling polleninformation.at for country=%s, lat=%s, lon=%s",
+        "Calling polleninformation.at for country=%s",
         country,
-        latitude,
-        longitude,
     )
 
     try:
         session = async_get_clientsession(hass)
         async with async_timeout.timeout(15):
             async with session.get(
-                url,
+                API_URL,
+                params=params,
                 headers={
                     "Accept": "application/json, text/plain, */*",
                     "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
@@ -92,7 +84,24 @@ async def async_get_pollenat_data(
                     raise PollenApiAuthError("API key not authorized for this resource")
                 resp.raise_for_status()
 
-                data = await resp.json()
+                content_type = resp.content_type or ""
+                if "json" not in content_type:
+                    body_preview = (await resp.read())[:200]
+                    _LOGGER.error(
+                        "API returned non-JSON content-type %r, body: %s",
+                        content_type,
+                        body_preview,
+                    )
+                    raise PollenApiError(
+                        f"API returned non-JSON response ({content_type})"
+                    )
+
+                try:
+                    data = await resp.json()
+                except ValueError as e:
+                    body_preview = (await resp.read())[:200]
+                    _LOGGER.error("API returned invalid JSON, body: %s", body_preview)
+                    raise PollenApiError(f"API returned invalid JSON: {e}") from e
 
                 if isinstance(data, dict) and "error" in data:
                     error_msg = data.get("error", "Unknown error")
@@ -111,5 +120,5 @@ async def async_get_pollenat_data(
     except aiohttp.ClientError as e:
         raise PollenApiConnectionError(f"HTTP client error: {e}") from e
     except Exception as e:
-        _LOGGER.error("Error calling polleninformation.at: %s", e)
+        _LOGGER.error("Unexpected error calling polleninformation.at: %s", e)
         raise PollenApiConnectionError(f"Connection error: {e}") from e

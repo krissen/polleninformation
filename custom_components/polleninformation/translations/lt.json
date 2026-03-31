@@ -31,5 +31,26 @@
     "abort": {
       "already_configured": "Ši vieta jau sukonfigūruota."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Žiedadulkių informacijos parinktys",
+        "description": "Atnaujinkite savo nustatymus. API rakto užklausa: {api_key_url}",
+        "data": {
+          "country": "Šalis",
+          "location": "Vieta (pasirinkite žemėlapyje)",
+          "location_name": "Vietos pavadinimas (neprivaloma)",
+          "language": "Kalba",
+          "apikey": "API raktas",
+          "update_interval": "Atnaujinimo intervalas (valandos)"
+        }
+      }
+    },
+    "error": {
+      "missing_apikey": "Trūksta API rakto",
+      "invalid_country": "Neteisinga šalis",
+      "invalid_language": "Neteisinga kalba"
+    }
   }
 }

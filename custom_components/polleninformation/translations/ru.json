@@ -31,5 +31,26 @@
     "abort": {
       "already_configured": "Это местоположение уже настроено."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Параметры информации о пыльце",
+        "description": "Обновите настройки. Запрос API-ключа: {api_key_url}",
+        "data": {
+          "country": "Страна",
+          "location": "Местоположение (выберите на карте)",
+          "location_name": "Название местоположения (необязательно)",
+          "language": "Язык",
+          "apikey": "API-ключ",
+          "update_interval": "Интервал обновления (часы)"
+        }
+      }
+    },
+    "error": {
+      "missing_apikey": "API-ключ отсутствует",
+      "invalid_country": "Недопустимая страна",
+      "invalid_language": "Недопустимый язык"
+    }
   }
 }

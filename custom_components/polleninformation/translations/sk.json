@@ -31,5 +31,26 @@
     "abort": {
       "already_configured": "Toto miesto je už nakonfigurované."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Možnosti informácií o peľoch",
+        "description": "Aktualizujte svoje nastavenia. Žiadosť o API kľúč: {api_key_url}",
+        "data": {
+          "country": "Krajina",
+          "location": "Poloha (vyberte na mape)",
+          "location_name": "Názov lokality (voliteľné)",
+          "language": "Jazyk",
+          "apikey": "API kľúč",
+          "update_interval": "Interval aktualizácie (hodiny)"
+        }
+      }
+    },
+    "error": {
+      "missing_apikey": "Chýba API kľúč",
+      "invalid_country": "Neplatná krajina",
+      "invalid_language": "Neplatný jazyk"
+    }
   }
 }

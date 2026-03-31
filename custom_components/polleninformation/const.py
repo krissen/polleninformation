@@ -25,20 +25,14 @@ DEFAULT_COUNTRY = "AT"  # ISO alpha-2 country code
 DEFAULT_LANG = "en"
 DEFAULT_NAME = "Polleninformation"
 DEFAULT_APIKEY = ""  # Empty by default; must be set by user
+DEFAULT_UPDATE_INTERVAL = 8  # Hours between API updates
+MIN_UPDATE_INTERVAL = 1
+MAX_UPDATE_INTERVAL = 24
+CONF_UPDATE_INTERVAL = "update_interval"
 
 # URL for requesting an API key
 API_KEY_REQUEST_URL = (
     "https://www.polleninformation.at/en/data-interface/request-an-api-key"
-)
-
-# API URL for polleninformation.at (new structure)
-POLLENAT_API_URL = (
-    "https://www.polleninformation.at/api/forecast/public"
-    "?country={country}"
-    "&lang={lang}"
-    "&latitude={latitude}"
-    "&longitude={longitude}"
-    "&apikey={apikey}"
 )
 
 # Supported ISO 3166-1 alpha-2 country codes

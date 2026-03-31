@@ -19,6 +19,16 @@ We appreciate all kinds of contributions, including code, documentation, transla
 
 ---
 
+## Running Tests
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r requirements_test.txt
+.venv/bin/pytest tests/
+```
+
+---
+
 ## Code of Conduct
 
 We are committed to providing a welcoming, friendly, and harassment-free environment for all. Please treat everyone with respect and be constructive in discussions.

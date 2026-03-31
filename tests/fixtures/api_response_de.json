@@ -1,0 +1,37 @@
+{
+  "contamination": [
+    {
+      "poll_title": "Erle (Alnus)",
+      "contamination_1": 1,
+      "contamination_2": 1,
+      "contamination_3": 2,
+      "contamination_4": 1
+    },
+    {
+      "poll_title": "Birke (Betula)",
+      "contamination_1": 0,
+      "contamination_2": 0,
+      "contamination_3": 1,
+      "contamination_4": 1
+    },
+    {
+      "poll_title": "Gräser (Poaceae)",
+      "contamination_1": 3,
+      "contamination_2": 3,
+      "contamination_3": 2,
+      "contamination_4": 2
+    }
+  ],
+  "allergyrisk": {
+    "allergyrisk_1": 5.0,
+    "allergyrisk_2": 4.5,
+    "allergyrisk_3": 3.0,
+    "allergyrisk_4": 2.5
+  },
+  "allergyrisk_hourly": {
+    "allergyrisk_hourly_1": [0, 0, 0, 0, 0, 0, 1.0, 2.0, 3.0, 4.0, 5.0, 5.5, 6.0, 5.5, 5.0, 4.0, 3.0, 2.0, 1.0, 0, 0, 0, 0, 0],
+    "allergyrisk_hourly_2": [0, 0, 0, 0, 0, 0, 1.0, 2.0, 3.0, 4.0, 4.5, 4.5, 5.0, 4.5, 4.0, 3.0, 2.0, 1.0, 0, 0, 0, 0, 0, 0],
+    "allergyrisk_hourly_3": [0, 0, 0, 0, 0, 0, 0, 1.0, 2.0, 3.0, 3.0, 3.0, 3.0, 3.0, 2.0, 1.0, 0, 0, 0, 0, 0, 0, 0, 0],
+    "allergyrisk_hourly_4": [0, 0, 0, 0, 0, 0, 0, 0, 1.0, 2.0, 2.5, 2.5, 2.5, 2.0, 1.0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  }
+}

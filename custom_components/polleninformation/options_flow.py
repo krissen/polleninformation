@@ -10,13 +10,25 @@ import logging
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.helpers.selector import LocationSelector, LocationSelectorConfig
+from homeassistant.helpers.selector import (
+    LocationSelector,
+    LocationSelectorConfig,
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
+)
 
-from .const import API_KEY_REQUEST_URL, DEFAULT_LANG
+from .const import (
+    API_KEY_REQUEST_URL,
+    CONF_UPDATE_INTERVAL,
+    DEFAULT_LANG,
+    DEFAULT_UPDATE_INTERVAL,
+    MAX_UPDATE_INTERVAL,
+    MIN_UPDATE_INTERVAL,
+)
 from .utils import async_get_country_options, async_get_language_options
 
 _LOGGER = logging.getLogger(__name__)
-DEBUG = True
 
 
 class OptionsFlowHandler(config_entries.OptionsFlowWithConfigEntry):
@@ -33,7 +45,7 @@ class OptionsFlowHandler(config_entries.OptionsFlowWithConfigEntry):
         lang_options = await async_get_language_options(hass)
         _LOGGER.debug("country_options: %r", country_options)
         _LOGGER.debug("lang_options: %r", lang_options)
-        defaults = self.config_entry.options or self.config_entry.data or {}
+        defaults = {**self.config_entry.data, **self.config_entry.options}
 
         ha_lang = None
         ha_config = getattr(hass, "config", None)
@@ -59,6 +71,15 @@ class OptionsFlowHandler(config_entries.OptionsFlowWithConfigEntry):
         default_language = defaults.get("lang", default_lang_code)
         default_apikey = defaults.get("apikey", "")
         default_location_name = defaults.get("location", "")
+        try:
+            default_update_interval = int(
+                float(defaults.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL))
+            )
+        except (TypeError, ValueError):
+            default_update_interval = DEFAULT_UPDATE_INTERVAL
+        default_update_interval = max(
+            MIN_UPDATE_INTERVAL, min(MAX_UPDATE_INTERVAL, default_update_interval)
+        )
 
         data_schema = vol.Schema(
             {
@@ -78,6 +99,17 @@ class OptionsFlowHandler(config_entries.OptionsFlowWithConfigEntry):
                 ),
                 vol.Required("apikey", default=default_apikey): str,
                 vol.Optional("location_name", default=default_location_name): str,
+                vol.Required(
+                    CONF_UPDATE_INTERVAL, default=default_update_interval
+                ): NumberSelector(
+                    NumberSelectorConfig(
+                        min=MIN_UPDATE_INTERVAL,
+                        max=MAX_UPDATE_INTERVAL,
+                        step=1,
+                        mode=NumberSelectorMode.BOX,
+                        unit_of_measurement="h",
+                    )
+                ),
             }
         )
 
@@ -108,7 +140,7 @@ class OptionsFlowHandler(config_entries.OptionsFlowWithConfigEntry):
             else:
                 lat_str = f"{latitude:.4f}" if latitude is not None else "?"
                 lon_str = f"{longitude:.4f}" if longitude is not None else "?"
-                entry_title = f"Polleninformation {country_name} ({lat_str}, {lon_str})"
+                entry_title = f"{country_name} ({lat_str}, {lon_str})"
                 location_title = entry_title
                 location_slug = (
                     f"{country_name}_{lat_str}_{lon_str}".lower()
@@ -137,6 +169,9 @@ class OptionsFlowHandler(config_entries.OptionsFlowWithConfigEntry):
                 )
 
             if not errors:
+                update_interval = user_input.get(
+                    CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL
+                )
                 return self.async_create_entry(
                     title=entry_title,
                     data={
@@ -148,6 +183,7 @@ class OptionsFlowHandler(config_entries.OptionsFlowWithConfigEntry):
                         "location": location_name,
                         "location_title": location_title,
                         "location_slug": location_slug,
+                        CONF_UPDATE_INTERVAL: update_interval,
                     },
                 )
         return self.async_show_form(

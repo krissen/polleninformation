@@ -31,5 +31,26 @@
     "abort": {
       "already_configured": "Tämä sijainti on jo määritetty."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Siitepölytietojen asetukset",
+        "description": "Päivitä asetukset. API-avaimen pyyntö: {api_key_url}",
+        "data": {
+          "country": "Maa",
+          "location": "Sijainti (valitse kartalta)",
+          "location_name": "Sijainnin nimi (valinnainen)",
+          "language": "Kieli",
+          "apikey": "API-avain",
+          "update_interval": "Päivitysväli (tunnit)"
+        }
+      }
+    },
+    "error": {
+      "missing_apikey": "API-avain puuttuu",
+      "invalid_country": "Virheellinen maa",
+      "invalid_language": "Virheellinen kieli"
+    }
   }
 }
