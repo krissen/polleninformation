@@ -60,6 +60,20 @@
   flow used `"{country} ({lat}, {lon})"`, causing entry title to change
   unexpectedly after reconfigure.
 
+- **Options flow update_interval not sanitized** — corrupted persisted
+  value could crash the NumberSelector form. Now cast + clamped before
+  rendering, matching the defensive logic in `__init__.py`.
+
+- **API non-JSON response logged as generic error** — if the API
+  returned HTML or an empty body, the JSON parse error was caught by the
+  generic exception handler and mis-classified as a connection error. Now
+  checks content-type before parsing, logs a body preview on failure, and
+  raises `PollenApiError` (server issue) instead of
+  `PollenApiConnectionError`.
+
+- **Options translations incomplete** — added `options` section with
+  proper translations to all 15 non-English language files.
+
 ### New features
 
 - **Configurable update interval** — users can now set the API polling interval
