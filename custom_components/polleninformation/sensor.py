@@ -208,7 +208,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
     if allergyrisk:
         sensor = AllergyRiskSensor(
             coordinator=coordinator,
-            allergyrisk=allergyrisk,
             levels_current=levels_current,
             location_slug=location_slug,
             location_title=location_title,
@@ -226,7 +225,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
     if allergyrisk_hourly:
         sensor = AllergyRiskHourlySensor(
             coordinator=coordinator,
-            allergyrisk_hourly=allergyrisk_hourly,
             levels_current=levels_current,
             location_slug=location_slug,
             location_title=location_title,
@@ -252,7 +250,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
             if allergen_slug == "allergy_risk":
                 sensor = AllergyRiskSensor(
                     coordinator=coordinator,
-                    allergyrisk={},
                     levels_current=levels_current,
                     location_slug=location_slug,
                     location_title=location_title,
@@ -262,7 +259,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
             elif allergen_slug == "allergy_risk_hourly":
                 sensor = AllergyRiskHourlySensor(
                     coordinator=coordinator,
-                    allergyrisk_hourly={},
                     levels_current=levels_current,
                     location_slug=location_slug,
                     location_title=location_title,
@@ -441,7 +437,6 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
     def __init__(
         self,
         coordinator,
-        allergyrisk: dict,
         levels_current: list,
         location_slug: str,
         location_title: str,
@@ -449,7 +444,6 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
         stale_since: str | None = None,
     ) -> None:
         super().__init__(coordinator)
-        self._allergyrisk = allergyrisk
         self._levels_current = levels_current
         self._location_slug = location_slug
         self._location_title = location_title
@@ -471,9 +465,14 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self) -> str | None:
-        if self._is_stale or not self._allergyrisk:
+        allergyrisk = (
+            self.coordinator.data.get("allergyrisk", {})
+            if self.coordinator.data
+            else {}
+        )
+        if not allergyrisk:
             return None
-        value = self._allergyrisk.get("allergyrisk_1", None)
+        value = allergyrisk.get("allergyrisk_1", None)
         scaled = scale_allergy_risk(value) if value is not None else None
         if scaled is not None and scaled < len(self._levels_current):
             return self._levels_current[scaled]
@@ -481,7 +480,12 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        if self._is_stale or not self._allergyrisk:
+        allergyrisk = (
+            self.coordinator.data.get("allergyrisk", {})
+            if self.coordinator.data
+            else {}
+        )
+        if not allergyrisk:
             attrs: dict[str, Any] = {
                 "location_title": self._location_title,
                 "location_slug": self._location_slug,
@@ -495,7 +499,7 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
         forecast = []
         base_date = dt_util.now().replace(hour=0, minute=0, second=0, microsecond=0)
         for day in range(1, 5):
-            value_raw = self._allergyrisk.get(f"allergyrisk_{day}", None)
+            value_raw = allergyrisk.get(f"allergyrisk_{day}", None)
             scaled = scale_allergy_risk(value_raw) if value_raw is not None else None
             level_name = (
                 self._levels_current[scaled]
@@ -512,7 +516,7 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
                     "level_raw": value_raw,
                 }
             )
-        raw_value = self._allergyrisk.get("allergyrisk_1", None)
+        raw_value = allergyrisk.get("allergyrisk_1", None)
         scaled_today = scale_allergy_risk(raw_value) if raw_value is not None else None
         return {
             "named_state": self.native_value,
@@ -537,7 +541,6 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
     def __init__(
         self,
         coordinator,
-        allergyrisk_hourly: dict,
         levels_current: list,
         location_slug: str,
         location_title: str,
@@ -545,7 +548,6 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
         stale_since: str | None = None,
     ) -> None:
         super().__init__(coordinator)
-        self._allergyrisk_hourly = allergyrisk_hourly
         self._levels_current = levels_current
         self._location_slug = location_slug
         self._location_title = location_title
@@ -567,10 +569,15 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self) -> str | None:
-        if self._is_stale or not self._allergyrisk_hourly:
+        allergyrisk_hourly = (
+            self.coordinator.data.get("allergyrisk_hourly", {})
+            if self.coordinator.data
+            else {}
+        )
+        if not allergyrisk_hourly:
             return None
         now_hour = dt_util.now().hour
-        values = self._allergyrisk_hourly.get("allergyrisk_hourly_1", [])
+        values = allergyrisk_hourly.get("allergyrisk_hourly_1", [])
         if 0 <= now_hour < len(values):
             raw = values[now_hour]
             scaled = scale_allergy_risk(raw)
@@ -580,7 +587,12 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        if self._is_stale or not self._allergyrisk_hourly:
+        allergyrisk_hourly = (
+            self.coordinator.data.get("allergyrisk_hourly", {})
+            if self.coordinator.data
+            else {}
+        )
+        if not allergyrisk_hourly:
             attrs: dict[str, Any] = {
                 "location_title": self._location_title,
                 "location_slug": self._location_slug,
@@ -594,7 +606,7 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
         base_time = dt_util.utcnow().replace(minute=0, second=0, microsecond=0)
         forecast = []
         for day in range(1, 5):
-            values = self._allergyrisk_hourly.get(f"allergyrisk_hourly_{day}", [])
+            values = allergyrisk_hourly.get(f"allergyrisk_hourly_{day}", [])
             for hour, raw in enumerate(values):
                 dt = base_time + timedelta(days=day - 1, hours=hour)
                 scaled = scale_allergy_risk(raw)
@@ -613,7 +625,7 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
                 )
 
         now_hour = dt_util.now().hour
-        values_today = self._allergyrisk_hourly.get("allergyrisk_hourly_1", [])
+        values_today = allergyrisk_hourly.get("allergyrisk_hourly_1", [])
         raw_now = values_today[now_hour] if 0 <= now_hour < len(values_today) else None
         scaled_now = scale_allergy_risk(raw_now) if raw_now is not None else None
         named_now = (

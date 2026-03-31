@@ -199,10 +199,9 @@ class TestPolleninformationSensor:
 
 
 class TestAllergyRiskSensor:
-    def _make_sensor(self, coordinator, allergyrisk):
+    def _make_sensor(self, coordinator):
         return AllergyRiskSensor(
             coordinator=coordinator,
-            allergyrisk=allergyrisk,
             levels_current=["none", "low", "moderate", "high", "very high"],
             location_slug="hamburg",
             location_title="Hamburg",
@@ -210,15 +209,13 @@ class TestAllergyRiskSensor:
 
     def test_native_value(self, mock_api_response):
         coordinator = _make_coordinator(mock_api_response)
-        allergyrisk = mock_api_response["allergyrisk"]
-        sensor = self._make_sensor(coordinator, allergyrisk)
+        sensor = self._make_sensor(coordinator)
         # 5.0 / 2.5 = 2.0 -> "moderate"
         assert sensor.native_value == "moderate"
 
     def test_native_value_stale(self):
         sensor = AllergyRiskSensor(
             coordinator=_make_coordinator(None),
-            allergyrisk={},
             levels_current=["none", "low", "moderate", "high", "very high"],
             location_slug="hamburg",
             location_title="Hamburg",
@@ -226,10 +223,21 @@ class TestAllergyRiskSensor:
         )
         assert sensor.native_value is None
 
+    def test_native_value_recovers_from_stale(self, mock_api_response):
+        coordinator = _make_coordinator(mock_api_response)
+        sensor = AllergyRiskSensor(
+            coordinator=coordinator,
+            levels_current=["none", "low", "moderate", "high", "very high"],
+            location_slug="hamburg",
+            location_title="Hamburg",
+            is_stale=True,
+        )
+        # Even though created as stale, fresh coordinator data is used
+        assert sensor.native_value == "moderate"
+
     def test_attributes_forecast(self, mock_api_response):
         coordinator = _make_coordinator(mock_api_response)
-        allergyrisk = mock_api_response["allergyrisk"]
-        sensor = self._make_sensor(coordinator, allergyrisk)
+        sensor = self._make_sensor(coordinator)
         attrs = sensor.extra_state_attributes
         assert len(attrs["forecast"]) == 4
         assert attrs["numeric_state"] == 2
@@ -237,10 +245,9 @@ class TestAllergyRiskSensor:
 
 
 class TestAllergyRiskHourlySensor:
-    def _make_sensor(self, coordinator, allergyrisk_hourly):
+    def _make_sensor(self, coordinator):
         return AllergyRiskHourlySensor(
             coordinator=coordinator,
-            allergyrisk_hourly=allergyrisk_hourly,
             levels_current=["none", "low", "moderate", "high", "very high"],
             location_slug="hamburg",
             location_title="Hamburg",
@@ -248,12 +255,12 @@ class TestAllergyRiskHourlySensor:
 
     def test_unique_id(self, mock_api_response):
         coordinator = _make_coordinator(mock_api_response)
-        sensor = self._make_sensor(coordinator, mock_api_response["allergyrisk_hourly"])
+        sensor = self._make_sensor(coordinator)
         assert sensor.unique_id == "polleninformation_hamburg_allergy_risk_hourly"
 
     def test_attributes_forecast(self, mock_api_response):
         coordinator = _make_coordinator(mock_api_response)
-        sensor = self._make_sensor(coordinator, mock_api_response["allergyrisk_hourly"])
+        sensor = self._make_sensor(coordinator)
         attrs = sensor.extra_state_attributes
         assert "forecast" in attrs
         assert len(attrs["forecast"]) > 0
