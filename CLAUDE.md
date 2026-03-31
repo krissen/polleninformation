@@ -61,7 +61,7 @@ Format: `(scope) Beskrivning`
 
 ## Key Guidelines
 
-- **Translations**: Only modify `translations/en.json` - other languages are handled separately
+- **Translations**: Keep all `translations/*.json` files structurally complete (same keys as `en.json`). Translate where you can; use English as placeholder otherwise.
 - **API Key Required**: Users must obtain their own key from polleninformation.at
 - **Code Style**: Follow KISS/DRY principles; all comments in English
 - **Dependencies**: Uses `aiohttp`, `async-timeout`, `Unidecode` (defined in manifest.json)
