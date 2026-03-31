@@ -39,7 +39,6 @@ from .const import (
 )
 from .utils import get_country_code_map
 
-DEBUG = True
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -85,15 +84,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
     scan_interval = timedelta(hours=update_interval_hours)
 
-    if DEBUG:
-        _LOGGER.debug(
-            "INIT: Setup entry with lat=%s, lon=%s, country=%s, lang=%s, interval=%sh",
-            lat,
-            lon,
-            country,
-            lang,
-            update_interval_hours,
-        )
+    _LOGGER.debug(
+        "Setup entry with country=%s, lang=%s, interval=%sh",
+        country,
+        lang,
+        update_interval_hours,
+    )
 
     coordinator = PollenInformationDataUpdateCoordinator(
         hass, entry, lat, lon, country, lang, apikey, scan_interval
@@ -174,14 +170,11 @@ class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> dict:
         """Fetch latest pollen data from API."""
-        if DEBUG:
-            _LOGGER.debug(
-                "COORDINATOR: Update data with lat=%s, lon=%s, country=%s, lang=%s",
-                self.lat,
-                self.lon,
-                self.country,
-                self.lang,
-            )
+        _LOGGER.debug(
+            "Fetching data for country=%s, lang=%s",
+            self.country,
+            self.lang,
+        )
         try:
             result = await async_get_pollenat_data(
                 self.hass,
@@ -198,11 +191,6 @@ class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):
                 )
 
             self.last_updated = dt_util.now()
-            if DEBUG:
-                _LOGGER.debug(
-                    "COORDINATOR: API result keys: %s",
-                    list(result.keys()),  # type: ignore[union-attr]
-                )
             return result  # type: ignore[return-value]
         except UpdateFailed:
             raise

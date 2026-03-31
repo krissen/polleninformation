@@ -27,7 +27,6 @@ from .utils import (
 )
 
 _LOGGER = logging.getLogger(__name__)
-DEBUG = True
 
 # Mapping from country code to central coordinates and radius for map zoom
 COUNTRY_CENTER = {

@@ -29,7 +29,6 @@ from .const import (
 from .utils import async_get_country_options, async_get_language_options
 
 _LOGGER = logging.getLogger(__name__)
-DEBUG = True
 
 
 class OptionsFlowHandler(config_entries.OptionsFlowWithConfigEntry):
