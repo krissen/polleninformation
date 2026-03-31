@@ -31,5 +31,26 @@
     "abort": {
       "already_configured": "Šī vieta jau ir konfigurēta."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Ziedputekšņu informācijas opcijas",
+        "description": "Atjauniniet savus iestatījumus. API atslēgas pieprasījums: {api_key_url}",
+        "data": {
+          "country": "Valsts",
+          "location": "Atrašanās vieta (izvēlieties kartē)",
+          "location_name": "Vietas nosaukums (nav obligāts)",
+          "language": "Valoda",
+          "apikey": "API atslēga",
+          "update_interval": "Atjaunināšanas intervāls (stundas)"
+        }
+      }
+    },
+    "error": {
+      "missing_apikey": "Trūkst API atslēgas",
+      "invalid_country": "Nederīga valsts",
+      "invalid_language": "Nederīga valoda"
+    }
   }
 }

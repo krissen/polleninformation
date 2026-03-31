@@ -31,5 +31,26 @@
     "abort": {
       "already_configured": "Este local já está configurado."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opções de informações de pólen",
+        "description": "Atualize as suas definições. Pedido de chave API: {api_key_url}",
+        "data": {
+          "country": "País",
+          "location": "Localização (selecione no mapa)",
+          "location_name": "Nome da localização (opcional)",
+          "language": "Idioma",
+          "apikey": "Chave API",
+          "update_interval": "Intervalo de atualização (horas)"
+        }
+      }
+    },
+    "error": {
+      "missing_apikey": "Chave API ausente",
+      "invalid_country": "País inválido",
+      "invalid_language": "Idioma inválido"
+    }
   }
 }

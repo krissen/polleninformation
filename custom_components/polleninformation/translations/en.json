@@ -31,5 +31,26 @@
     "abort": {
       "already_configured": "This location is already configured."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Pollen Information Options",
+        "description": "Update your settings. API key request: {api_key_url}",
+        "data": {
+          "country": "Country",
+          "location": "Location (select on map)",
+          "location_name": "Location name (optional)",
+          "language": "Language",
+          "apikey": "API key",
+          "update_interval": "Update interval (hours)"
+        }
+      }
+    },
+    "error": {
+      "missing_apikey": "Missing API key",
+      "invalid_country": "Invalid country",
+      "invalid_language": "Invalid language"
+    }
   }
 }

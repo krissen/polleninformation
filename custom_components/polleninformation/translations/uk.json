@@ -31,5 +31,26 @@
     "abort": {
       "already_configured": "Це місце вже налаштовано."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Параметри інформації про пилок",
+        "description": "Оновіть налаштування. Запит API-ключа: {api_key_url}",
+        "data": {
+          "country": "Країна",
+          "location": "Місцезнаходження (виберіть на карті)",
+          "location_name": "Назва місця (необов'язково)",
+          "language": "Мова",
+          "apikey": "API-ключ",
+          "update_interval": "Інтервал оновлення (години)"
+        }
+      }
+    },
+    "error": {
+      "missing_apikey": "API-ключ відсутній",
+      "invalid_country": "Неприпустима країна",
+      "invalid_language": "Неприпустима мова"
+    }
   }
 }

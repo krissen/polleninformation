@@ -5,12 +5,13 @@ All legacy parameters and imports have been removed.
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
 from .api import (
     PollenApiAuthError,
@@ -24,19 +25,21 @@ from .const import (
     CONF_LANG,
     CONF_LATITUDE,
     CONF_LONGITUDE,
+    CONF_UPDATE_INTERVAL,
     DEFAULT_APIKEY,
     DEFAULT_COUNTRY,
     DEFAULT_LANG,
     DEFAULT_LATITUDE,
     DEFAULT_LONGITUDE,
+    DEFAULT_UPDATE_INTERVAL,
+    MAX_UPDATE_INTERVAL,
+    MIN_UPDATE_INTERVAL,
     DOMAIN,
     PLATFORMS,
 )
 from .utils import get_country_code_map
 
-DEBUG = True
 _LOGGER = logging.getLogger(__name__)
-SCAN_INTERVAL = timedelta(hours=8)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -59,24 +62,37 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.data.setdefault(DOMAIN, {})
 
-    # Fetch all required parameters, falling back to defaults
-    lat = entry.data.get(CONF_LATITUDE, DEFAULT_LATITUDE)
-    lon = entry.data.get(CONF_LONGITUDE, DEFAULT_LONGITUDE)
-    country = entry.data.get(CONF_COUNTRY, DEFAULT_COUNTRY)
-    lang = entry.data.get(CONF_LANG, DEFAULT_LANG)
-    apikey = entry.data.get(CONF_APIKEY, DEFAULT_APIKEY)
+    # Fetch parameters: options override data (options flow writes to entry.options)
+    def _opt(key, default=None):
+        return entry.options.get(key, entry.data.get(key, default))
 
-    if DEBUG:
-        _LOGGER.debug(
-            "INIT: Setup entry with lat=%s, lon=%s, country=%s, lang=%s",
-            lat,
-            lon,
-            country,
-            lang,
+    lat = _opt(CONF_LATITUDE, DEFAULT_LATITUDE)
+    lon = _opt(CONF_LONGITUDE, DEFAULT_LONGITUDE)
+    country = _opt(CONF_COUNTRY, DEFAULT_COUNTRY)
+    lang = _opt(CONF_LANG, DEFAULT_LANG)
+    apikey = _opt(CONF_APIKEY, DEFAULT_APIKEY)
+
+    # Clamp update_interval to valid range
+    try:
+        update_interval_hours = int(
+            float(_opt(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL))
         )
+    except (TypeError, ValueError):
+        update_interval_hours = DEFAULT_UPDATE_INTERVAL
+    update_interval_hours = max(
+        MIN_UPDATE_INTERVAL, min(MAX_UPDATE_INTERVAL, update_interval_hours)
+    )
+    scan_interval = timedelta(hours=update_interval_hours)
+
+    _LOGGER.debug(
+        "Setup entry with country=%s, lang=%s, interval=%sh",
+        country,
+        lang,
+        update_interval_hours,
+    )
 
     coordinator = PollenInformationDataUpdateCoordinator(
-        hass, lat, lon, country, lang, apikey
+        hass, entry, lat, lon, country, lang, apikey, scan_interval
     )
 
     # First refresh to populate data
@@ -91,8 +107,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Forward setup to platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    entry.add_update_listener(_async_reload_entry)
+    entry.async_on_unload(entry.add_update_listener(_async_reload_entry))
     return True
+
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload a config entry."""
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unload_ok:
+        domain_data = hass.data.get(DOMAIN)
+        if domain_data is not None:
+            domain_data.pop(entry.entry_id, None)
+            if not domain_data:
+                hass.data.pop(DOMAIN, None)
+    return unload_ok
 
 
 async def _async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -103,9 +131,25 @@ async def _async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
 class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):
     """Coordinator to fetch data from polleninformation.at."""
 
-    def __init__(self, hass: HomeAssistant, lat, lon, country, lang, apikey):
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        config_entry: ConfigEntry,
+        lat,
+        lon,
+        country,
+        lang,
+        apikey,
+        scan_interval,
+    ):
         """Initialize the data coordinator with API parameters."""
-        super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=SCAN_INTERVAL)
+        super().__init__(
+            hass,
+            _LOGGER,
+            config_entry=config_entry,
+            name=DOMAIN,
+            update_interval=scan_interval,
+        )
         self.lat = lat
         self.lon = lon
         self.country = country
@@ -126,14 +170,11 @@ class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> dict:
         """Fetch latest pollen data from API."""
-        if DEBUG:
-            _LOGGER.debug(
-                "COORDINATOR: Update data with lat=%s, lon=%s, country=%s, lang=%s",
-                self.lat,
-                self.lon,
-                self.country,
-                self.lang,
-            )
+        _LOGGER.debug(
+            "Fetching data for country=%s, lang=%s",
+            self.country,
+            self.lang,
+        )
         try:
             result = await async_get_pollenat_data(
                 self.hass,
@@ -149,12 +190,7 @@ class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):
                     f"Invalid API response for {self.country}: missing or malformed data"
                 )
 
-            self.last_updated = datetime.now()
-            if DEBUG:
-                _LOGGER.debug(
-                    "COORDINATOR: API result keys: %s",
-                    list(result.keys()),  # type: ignore[union-attr]
-                )
+            self.last_updated = dt_util.now()
             return result  # type: ignore[return-value]
         except UpdateFailed:
             raise

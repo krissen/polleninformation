@@ -31,5 +31,26 @@
     "abort": {
       "already_configured": "Ez a hely már konfigurálva van."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Polleninformáció beállítások",
+        "description": "Frissítse beállításait. API-kulcs igénylése: {api_key_url}",
+        "data": {
+          "country": "Ország",
+          "location": "Helyszín (válassza ki a térképen)",
+          "location_name": "Helyszín neve (opcionális)",
+          "language": "Nyelv",
+          "apikey": "API-kulcs",
+          "update_interval": "Frissítési időköz (óra)"
+        }
+      }
+    },
+    "error": {
+      "missing_apikey": "Hiányzó API-kulcs",
+      "invalid_country": "Érvénytelen ország",
+      "invalid_language": "Érvénytelen nyelv"
+    }
   }
 }

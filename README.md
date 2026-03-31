@@ -1,4 +1,4 @@
-# Home Assistant: Pollen Information EU
+# Home Assistant: Polleninformation EU
 
 [![GitHub Release][releases-shield]][releases]
 [![License][license-shield]](LICENSE)
@@ -45,7 +45,7 @@ A Home Assistant integration for monitoring pollen across Europe, data provided 
 
 ## Installation (HACS recommended)
 
-1. Search for and install **Pollen Information EU**.
+1. Search for and install **Polleninformation EU**.
 3. Restart Home Assistant when prompted.
 
 ---
@@ -53,7 +53,7 @@ A Home Assistant integration for monitoring pollen across Europe, data provided 
 ## Configuration
 
 1. Go to **Settings → Devices & Services → Add Integration**.
-2. Search for `Pollen Information EU` and follow the setup flow:
+2. Search for `Polleninformation EU` and follow the setup flow:
 3. Choose a country;
 4. enter a place name (free text);
 5. set location through the map or by entering coordinates;
@@ -96,7 +96,23 @@ attribute of both the `allergy_risk` and `allergy_risk_hourly`
 sensors. Within their forecast attribute the same raw value is exposed
 as `level_raw` for each forecast entry.
 
-**The integration updates sensor data every 8 hours.** Which is more than enough, as the data usually does not change more frequently than once every 24 hours.
+### Update interval
+
+The integration updates sensor data every **8 hours** by default. This is usually more than enough, as the data typically does not change more frequently than once every 24 hours.
+
+You can change the update interval in **Settings → Devices & Services → Polleninformation EU → Configure** (1–24 hours).
+
+### Manual refresh
+
+To trigger an immediate data refresh, call the built-in `homeassistant.update_entity` service:
+
+```yaml
+service: homeassistant.update_entity
+target:
+  entity_id: sensor.polleninformation_stockholm_birch
+```
+
+This works in automations, scripts, and the Developer Tools → Services panel.
 
 ### API usage
 
@@ -109,7 +125,7 @@ You **must request a personal API key** to use the integration—get your key [h
 
 The upstream API does not always provide data for all countries. Check the **[API Status Page](https://krissen.github.io/polleninformation/)** for current availability per country.
 
-When the API is unavailable for your location, sensors will show as **unavailable** until data becomes available again.
+When the API is unavailable for your location, sensors will remain available but show **unknown** state until data becomes available again.
 
 ---
 

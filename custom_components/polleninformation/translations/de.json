@@ -31,5 +31,26 @@
     "abort": {
       "already_configured": "Dieser Standort ist bereits konfiguriert."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Polleninformationen – Optionen",
+        "description": "Einstellungen aktualisieren. API-Schlüssel beantragen: {api_key_url}",
+        "data": {
+          "country": "Land",
+          "location": "Standort (auf der Karte auswählen)",
+          "location_name": "Standortname (optional)",
+          "language": "Sprache",
+          "apikey": "API-Schlüssel",
+          "update_interval": "Aktualisierungsintervall (Stunden)"
+        }
+      }
+    },
+    "error": {
+      "missing_apikey": "API-Schlüssel fehlt",
+      "invalid_country": "Ungültiges Land",
+      "invalid_language": "Ungültige Sprache"
+    }
   }
 }
