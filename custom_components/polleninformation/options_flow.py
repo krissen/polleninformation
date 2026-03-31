@@ -134,7 +134,7 @@ class OptionsFlowHandler(config_entries.OptionsFlowWithConfigEntry):
             else:
                 lat_str = f"{latitude:.4f}" if latitude is not None else "?"
                 lon_str = f"{longitude:.4f}" if longitude is not None else "?"
-                entry_title = f"Polleninformation {country_name} ({lat_str}, {lon_str})"
+                entry_title = f"{country_name} ({lat_str}, {lon_str})"
                 location_title = entry_title
                 location_slug = (
                     f"{country_name}_{lat_str}_{lon_str}".lower()
