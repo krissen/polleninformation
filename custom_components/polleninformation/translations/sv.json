@@ -31,5 +31,26 @@
     "abort": {
       "already_configured": "Denna plats är redan konfigurerad."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Alternativ för polleninformation",
+        "description": "Uppdatera dina inställningar. Begär API-nyckel: {api_key_url}",
+        "data": {
+          "country": "Land",
+          "location": "Plats (välj på karta)",
+          "location_name": "Platsnamn (valfritt)",
+          "language": "Språk",
+          "apikey": "API-nyckel",
+          "update_interval": "Uppdateringsintervall (timmar)"
+        }
+      }
+    },
+    "error": {
+      "missing_apikey": "API-nyckel saknas",
+      "invalid_country": "Ogiltigt land",
+      "invalid_language": "Ogiltigt språk"
+    }
   }
 }

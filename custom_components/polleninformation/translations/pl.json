@@ -31,5 +31,26 @@
     "abort": {
       "already_configured": "Ta lokalizacja jest już skonfigurowana."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opcje informacji o pyłkach",
+        "description": "Zaktualizuj swoje ustawienia. Wniosek o klucz API: {api_key_url}",
+        "data": {
+          "country": "Kraj",
+          "location": "Lokalizacja (wybierz na mapie)",
+          "location_name": "Nazwa lokalizacji (opcjonalnie)",
+          "language": "Język",
+          "apikey": "Klucz API",
+          "update_interval": "Interwał aktualizacji (godziny)"
+        }
+      }
+    },
+    "error": {
+      "missing_apikey": "Brak klucza API",
+      "invalid_country": "Nieprawidłowy kraj",
+      "invalid_language": "Nieprawidłowy język"
+    }
   }
 }

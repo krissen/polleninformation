@@ -31,5 +31,26 @@
     "abort": {
       "already_configured": "Bu konum zaten yapılandırılmış."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Polen Bilgisi Seçenekleri",
+        "description": "Ayarlarınızı güncelleyin. API anahtarı talebi: {api_key_url}",
+        "data": {
+          "country": "Ülke",
+          "location": "Konum (haritadan seçin)",
+          "location_name": "Konum adı (isteğe bağlı)",
+          "language": "Dil",
+          "apikey": "API anahtarı",
+          "update_interval": "Güncelleme aralığı (saat)"
+        }
+      }
+    },
+    "error": {
+      "missing_apikey": "API anahtarı eksik",
+      "invalid_country": "Geçersiz ülke",
+      "invalid_language": "Geçersiz dil"
+    }
   }
 }

@@ -31,5 +31,26 @@
     "abort": {
       "already_configured": "Cet emplacement est déjà configuré."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options d'informations sur le pollen",
+        "description": "Mettez à jour vos paramètres. Demande de clé API : {api_key_url}",
+        "data": {
+          "country": "Pays",
+          "location": "Emplacement (sélectionner sur la carte)",
+          "location_name": "Nom de l'emplacement (optionnel)",
+          "language": "Langue",
+          "apikey": "Clé API",
+          "update_interval": "Intervalle de mise à jour (heures)"
+        }
+      }
+    },
+    "error": {
+      "missing_apikey": "Clé API manquante",
+      "invalid_country": "Pays invalide",
+      "invalid_language": "Langue invalide"
+    }
   }
 }

@@ -31,5 +31,26 @@
     "abort": {
       "already_configured": "Esta ubicación ya está configurada."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opciones de información del polen",
+        "description": "Actualice su configuración. Solicitar clave API: {api_key_url}",
+        "data": {
+          "country": "País",
+          "location": "Ubicación (seleccione en el mapa)",
+          "location_name": "Nombre de la ubicación (opcional)",
+          "language": "Idioma",
+          "apikey": "Clave API",
+          "update_interval": "Intervalo de actualización (horas)"
+        }
+      }
+    },
+    "error": {
+      "missing_apikey": "Falta la clave API",
+      "invalid_country": "País no válido",
+      "invalid_language": "Idioma no válido"
+    }
   }
 }

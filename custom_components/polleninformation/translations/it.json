@@ -31,5 +31,26 @@
     "abort": {
       "already_configured": "Questa posizione è già configurata."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opzioni informazioni sul polline",
+        "description": "Aggiorna le impostazioni. Richiesta chiave API: {api_key_url}",
+        "data": {
+          "country": "Paese",
+          "location": "Posizione (seleziona sulla mappa)",
+          "location_name": "Nome posizione (opzionale)",
+          "language": "Lingua",
+          "apikey": "Chiave API",
+          "update_interval": "Intervallo di aggiornamento (ore)"
+        }
+      }
+    },
+    "error": {
+      "missing_apikey": "Chiave API mancante",
+      "invalid_country": "Paese non valido",
+      "invalid_language": "Lingua non valida"
+    }
   }
 }
