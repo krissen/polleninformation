@@ -72,6 +72,16 @@
 - **Config key constants** — sensor setup uses `CONF_*` constants instead of
   raw strings, matching coordinator and config flow.
 
+- **Timezone-aware datetimes throughout** — all remaining `datetime.now()`
+  calls in sensor.py replaced with `dt_util.now()` / `dt_util.utcnow()`.
+
+- **Remove hardcoded `DEBUG = True`** — four files had debug flags wrapping
+  `_LOGGER.debug()` calls that are already controlled by HA logging config.
+
+- **API key no longer in URL string** — API calls use `params` dict instead
+  of string formatting, preventing the key from leaking into stack traces
+  or logs. Removed unused `POLLENAT_API_URL` from const.py.
+
 ---
 
 ## v0.5.0-beta1 (2026-01-05)
