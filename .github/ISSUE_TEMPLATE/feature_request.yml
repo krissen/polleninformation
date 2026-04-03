@@ -1,0 +1,30 @@
+name: Feature Request
+description: Suggest a new feature or improvement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What would you like the integration to do?
+      placeholder: |
+        I would like the integration to support a new country / expose additional data / add a config option for...
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case
+      description: Why is this feature useful? What problem does it solve?
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Any examples, mockups, or further details.
+    validations:
+      required: false
