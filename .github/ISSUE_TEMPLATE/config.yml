@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Troubleshooting Guide
+    url: https://github.com/krissen/polleninformation/blob/HEAD/docs/troubleshooting.md
+    about: Check the troubleshooting guide before opening an issue
+  - name: API Status Page
+    url: https://krissen.github.io/polleninformation/
+    about: Check if the API is available for your country
