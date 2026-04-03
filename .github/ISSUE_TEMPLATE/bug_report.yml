@@ -29,7 +29,7 @@ body:
       label: Integration version
       description: |
         Settings > Devices & Services > click Polleninformation EU > three-dot menu > About.
-      placeholder: "v0.5.1"
+      placeholder: "2025.6.10"
     validations:
       required: true
 

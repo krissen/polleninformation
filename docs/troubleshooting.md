@@ -20,7 +20,7 @@ If the issue persists after these steps, open an issue with the diagnostic info 
 
 ### No sensors / sensors disappeared
 
-**This is the most frequently reported issue.** In nearly all cases, the root cause is the upstream API (polleninformation.eu) being temporarily unavailable. The integration fetches data from an external server maintained by the Austrian Pollen Information Service; when that server has problems, the integration cannot create or update sensors.
+**This is the most frequently reported issue.** In nearly all cases, the root cause is the upstream API at `polleninformation.at` being temporarily unavailable. The integration fetches forecast data from the Austrian Pollen Information Service (`polleninformation.eu` is the service website; the actual API endpoint is on `polleninformation.at`). When that API server has problems, the integration cannot create or update sensors.
 
 **Symptoms:**
 - "No pollen data returned for this location" during setup
@@ -77,7 +77,7 @@ If data appears stale:
 2. Trigger a manual refresh by calling `homeassistant.update_entity` in Developer Tools > Services.
 3. If neither works, check the logs for API errors.
 
-> **Note:** In versions before v0.5.1, the `last_updated` attribute was incorrect (it showed the time you viewed the sensor, not the actual last fetch). Update to v0.5.1 or later for accurate timestamps.
+> **Note:** In older releases, the `last_updated` attribute was incorrect (it showed the time you viewed the sensor, not the actual last fetch). Update to the latest available version in HACS for accurate timestamps.
 
 ### HACS download or update failures
 
