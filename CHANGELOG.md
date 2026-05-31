@@ -1,6 +1,16 @@
 # Changelog
 
-## v0.5.1 — Configurable update interval and attribute fixes (unreleased)
+## v0.5.2 (unreleased)
+
+### Bug fixes
+
+- **Broken logo on the API status page** — the page hot-linked the
+  Polleninformation logo from polleninformation.at, whose asset path changed
+  (cache-busting hash), breaking the image. The logo is now vendored locally
+  under `docs/` and referenced relatively, so the status page no longer depends
+  on their site.
+
+## v0.5.1 — Configurable update interval and attribute fixes (2026-03-31)
 
 ### Bug fixes
 
