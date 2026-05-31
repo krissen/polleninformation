@@ -10,6 +10,13 @@
   under `docs/` and referenced relatively, so the status page no longer depends
   on their site.
 
+### Internal
+
+- **CI: bump first-party GitHub Actions to Node 24 majors** — `actions/checkout`
+  → v5, `actions/setup-python` → v6, `actions/upload-pages-artifact` → v5,
+  `actions/deploy-pages` → v5. Drops the Node.js 20 runtime deprecation ahead of
+  GitHub's forced Node 24 cutover (2026-06-16).
+
 ## v0.5.1 — Configurable update interval and attribute fixes (2026-03-31)
 
 ### Bug fixes
