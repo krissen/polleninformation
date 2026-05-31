@@ -239,7 +239,7 @@ def generate_html(results: list[CountryStatus], timestamp: str) -> str:
 </head>
 <body>
     <header style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
-        <img src="https://www.polleninformation.at/typo3conf/ext/sc_template/Resources/Public/Images/logo_polleninformation.svg" alt="Polleninformation Logo" style="height: 50px;">
+        <img src="logo_polleninformation.svg" alt="Polleninformation Logo" style="height: 50px;">
         <h1 style="margin: 0;">API Status</h1>
     </header>
     <div class="badge">
