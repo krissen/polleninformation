@@ -18,6 +18,12 @@
   the Node.js 20/16 runtime deprecation ahead of GitHub's forced Node 24 cutover
   (2026-06-16).
 
+- **Modernize options flow** — `OptionsFlowHandler` now subclasses the plain
+  `OptionsFlow` base and drops the custom `__init__(config_entry)`, relying on
+  the `self.config_entry` property that Home Assistant provides automatically
+  since 2024.11. `OptionsFlowWithConfigEntry` is deprecated and should be
+  avoided in new code.
+
 ## v0.5.1 — Configurable update interval and attribute fixes (2026-03-31)
 
 ### Bug fixes
