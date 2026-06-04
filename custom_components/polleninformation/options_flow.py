@@ -31,11 +31,8 @@ from .utils import async_get_country_options, async_get_language_options
 _LOGGER = logging.getLogger(__name__)
 
 
-class OptionsFlowHandler(config_entries.OptionsFlowWithConfigEntry):
+class OptionsFlowHandler(config_entries.OptionsFlow):
     """Options flow handler for polleninformation.at integration."""
-
-    def __init__(self, config_entry):
-        super().__init__(config_entry)
 
     async def async_step_init(self, user_input=None):
         """Initial step for options flow."""
