@@ -1,6 +1,7 @@
 """Tests for the polleninformation.at API client."""
 
 import asyncio
+import json
 
 import aiohttp
 import pytest
@@ -25,9 +26,18 @@ CALL_KWARGS = {
 }
 
 
+def mock_json_response(aioclient_mock, payload):
+    """Mock a JSON API response with an explicit JSON content type."""
+    aioclient_mock.get(
+        API_URL_PREFIX,
+        text=json.dumps(payload),
+        headers={"Content-Type": "application/json"},
+    )
+
+
 async def test_successful_response(hass: HomeAssistant, aioclient_mock):
     payload = {"contamination": [{"poll_title": "Birch", "contamination_1": 1}]}
-    aioclient_mock.get(API_URL_PREFIX, json=payload)
+    mock_json_response(aioclient_mock, payload)
     result = await async_get_pollenat_data(hass, **CALL_KWARGS)
     assert result == payload
 
@@ -65,12 +75,12 @@ async def test_client_error_raises_connection_error(
 
 
 async def test_json_error_apikey_raises_auth_error(hass: HomeAssistant, aioclient_mock):
-    aioclient_mock.get(API_URL_PREFIX, json={"error": "invalid api key"})
+    mock_json_response(aioclient_mock, {"error": "invalid api key"})
     with pytest.raises(PollenApiAuthError):
         await async_get_pollenat_data(hass, **CALL_KWARGS)
 
 
 async def test_json_error_other_raises_api_error(hass: HomeAssistant, aioclient_mock):
-    aioclient_mock.get(API_URL_PREFIX, json={"error": "rate limit exceeded"})
+    mock_json_response(aioclient_mock, {"error": "rate limit exceeded"})
     with pytest.raises(PollenApiError):
         await async_get_pollenat_data(hass, **CALL_KWARGS)
