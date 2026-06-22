@@ -10,6 +10,7 @@ from custom_components.polleninformation.sensor import (
     PolleninformationSensor,
     capitalize_first,
     extract_allergen_slug_from_unique_id,
+    level_name_for_value,
     pollen_forecast_for_allergen,
     scale_allergy_risk,
 )
@@ -53,6 +54,18 @@ class TestScaleAllergyRisk:
 
     def test_string(self):
         assert scale_allergy_risk("abc") is None
+
+
+class TestLevelNameForValue:
+    def test_valid_level(self):
+        levels = ["none", "low", "moderate", "high", "very high"]
+
+        assert level_name_for_value(levels, 1) == "low"
+
+    def test_negative_level_is_invalid(self):
+        levels = ["none", "low", "moderate", "high", "very high"]
+
+        assert level_name_for_value(levels, -1) is None
 
 
 class TestExtractAllergenSlug:
@@ -197,6 +210,12 @@ class TestPolleninformationSensor:
         )
         assert sensor.available is False
 
+    def test_negative_native_value_is_invalid(self, mock_api_response):
+        mock_api_response["contamination"][0]["contamination_1"] = -1
+
+        sensor = self._make_sensor(_make_coordinator(mock_api_response))
+
+        assert sensor.native_value is None
 
 class TestAllergyRiskSensor:
     def _make_sensor(self, coordinator):

@@ -100,11 +100,7 @@ def pollen_forecast_for_allergen(
         if poll_title == allergen_name_lower:
             for day in range(1, 5):
                 val = item.get(f"contamination_{day}", 0)
-                level_name = (
-                    levels[val]
-                    if isinstance(val, int) and val < len(levels)
-                    else str(val)
-                )
+                level_name = level_name_for_value(levels, val) or str(val)
                 out.append({"day": day, "level_name": level_name, "level": val})
             break
     return out
@@ -115,6 +111,15 @@ def scale_allergy_risk(value: Any) -> int | None:
         return int(round(value / 2.5))
     except Exception:
         return None
+
+
+def level_name_for_value(levels: list[str], value: Any) -> str | None:
+    """Return the level name for a valid level index."""
+    if not isinstance(value, int):
+        return None
+    if 0 <= value < len(levels):
+        return levels[value]
+    return None
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -359,10 +364,7 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
         if not found:
             return None
         raw_val = found.get("contamination_1", 0)
-        try:
-            return self._levels_current[raw_val]
-        except (IndexError, TypeError):
-            return None
+        return level_name_for_value(self._levels_current, raw_val)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -381,11 +383,7 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
             if poll_title.lower() == self._allergen_name.lower():
                 for day in range(1, 5):
                     val = item.get(f"contamination_{day}", 0)
-                    level_name = (
-                        self._levels_current[val]
-                        if isinstance(val, int) and val < len(self._levels_current)
-                        else str(val)
-                    )
+                    level_name = level_name_for_value(self._levels_current, val) or str(val)
                     forecast.append(
                         {
                             "time": (base_date + timedelta(days=day - 1)).strftime(
@@ -474,9 +472,7 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
             return None
         value = allergyrisk.get("allergyrisk_1", None)
         scaled = scale_allergy_risk(value) if value is not None else None
-        if scaled is not None and scaled < len(self._levels_current):
-            return self._levels_current[scaled]
-        return None
+        return level_name_for_value(self._levels_current, scaled)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -501,11 +497,7 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
         for day in range(1, 5):
             value_raw = allergyrisk.get(f"allergyrisk_{day}", None)
             scaled = scale_allergy_risk(value_raw) if value_raw is not None else None
-            level_name = (
-                self._levels_current[scaled]
-                if scaled is not None and scaled < len(self._levels_current)
-                else None
-            )
+            level_name = level_name_for_value(self._levels_current, scaled)
             forecast.append(
                 {
                     "time": (base_date + timedelta(days=day - 1)).strftime(
@@ -581,8 +573,7 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
         if 0 <= now_hour < len(values):
             raw = values[now_hour]
             scaled = scale_allergy_risk(raw)
-            if scaled is not None and scaled < len(self._levels_current):
-                return self._levels_current[scaled]
+            return level_name_for_value(self._levels_current, scaled)
         return None
 
     @property
@@ -610,11 +601,7 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
             for hour, raw in enumerate(values):
                 dt = base_time + timedelta(days=day - 1, hours=hour)
                 scaled = scale_allergy_risk(raw)
-                named = (
-                    self._levels_current[scaled]
-                    if scaled is not None and scaled < len(self._levels_current)
-                    else None
-                )
+                named = level_name_for_value(self._levels_current, scaled)
                 forecast.append(
                     {
                         "time": dt.isoformat(),
@@ -628,11 +615,7 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
         values_today = allergyrisk_hourly.get("allergyrisk_hourly_1", [])
         raw_now = values_today[now_hour] if 0 <= now_hour < len(values_today) else None
         scaled_now = scale_allergy_risk(raw_now) if raw_now is not None else None
-        named_now = (
-            self._levels_current[scaled_now]
-            if scaled_now is not None and scaled_now < len(self._levels_current)
-            else None
-        )
+        named_now = level_name_for_value(self._levels_current, scaled_now)
         return {
             "named_state": named_now,
             "numeric_state": scaled_now,
