@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.5.2 (unreleased)
+## v0.5.2 — Status page logo fix and options-flow modernization (2026-06-22)
 
 ### Bug fixes
 
