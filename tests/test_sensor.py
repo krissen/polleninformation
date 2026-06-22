@@ -1,7 +1,7 @@
 """Tests for sensor helper functions and sensor classes."""
 
 from datetime import datetime, timezone
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 
 from custom_components.polleninformation.sensor import (
@@ -264,3 +264,20 @@ class TestAllergyRiskHourlySensor:
         attrs = sensor.extra_state_attributes
         assert "forecast" in attrs
         assert len(attrs["forecast"]) > 0
+
+    def test_forecast_times_start_at_local_midnight(self, mock_api_response):
+        coordinator = _make_coordinator(mock_api_response)
+        sensor = self._make_sensor(coordinator)
+
+        fake_now = datetime(2026, 6, 22, 16, 30, tzinfo=timezone.utc)
+
+        with patch(
+                "custom_components.polleninformation.sensor.dt_util.now",
+                return_value=fake_now,
+        ):
+            forecast = sensor.extra_state_attributes["forecast"]
+
+        assert forecast[0]["time"] == "2026-06-23T00:00:00+00:00"
+        assert forecast[1]["time"] == "2026-06-23T01:00:00+00:00"
+        assert forecast[23]["time"] == "2026-06-23T23:00:00+00:00"
+        assert forecast[24]["time"] == "2026-06-24T00:00:00+00:00"
