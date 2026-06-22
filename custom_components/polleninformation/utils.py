@@ -6,6 +6,7 @@ import re
 import unicodedata
 
 import aiohttp
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
     COUNTRY_DISPLAY_NAMES,
@@ -31,11 +32,16 @@ async def async_get_country_code_from_latlon(hass, lat, lon):
         "addressdetails": 1,
     }
     headers = {"User-Agent": "Home Assistant Polleninformation Integration"}
-    async with aiohttp.ClientSession() as session:
+    session = async_get_clientsession(hass)
+
+    try:
         async with session.get(url, params=params, headers=headers, timeout=5) as resp:
             if resp.status == 200:
                 result = await resp.json()
                 return result.get("address", {}).get("country_code", "").upper()
+    except (aiohttp.ClientError, TimeoutError, ValueError):
+        return None
+
     return None
 
 
