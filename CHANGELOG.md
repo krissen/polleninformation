@@ -1,5 +1,35 @@
 # Changelog
 
+## Unreleased
+
+### Internal
+
+- **Dependabot** — added `.github/dependabot.yml` with monthly grouped updates
+  for two ecosystems: `pip` (test dependencies) and `github-actions`. A breaking
+  upstream release now surfaces as a red check on the bump PR instead of a
+  surprise failure on `main`. Home Assistant is tracked via the exact
+  `pytest-homeassistant-custom-component` pin in `requirements_test.txt`, which
+  is version-locked to a specific HA release.
+
+- **Pin CI test dependencies exactly** — `requirements_test.txt` now pins
+  `pytest-homeassistant-custom-component==0.13.345` (HA 2026.7.1). The package
+  drives the whole matching pytest stack transitively, so pytest/pytest-cov are
+  no longer listed separately (they would conflict with its exact pins).
+
+- **SHA-pin all GitHub Actions** — every `uses:` ref across the workflows is now
+  pinned to a full commit SHA with a version comment, so Dependabot manages the
+  bumps and third-party actions (notably `verify-pr-label-action` under
+  `pull_request_target`) can no longer change under us.
+
+- **CI: run the test suite on push and PR** — new `test.yaml` workflow runs
+  `pytest` on Python 3.14 (HA 2026.7.1 requires ≥3.14.2), so a breaking HA bump
+  shows up as a red check on the Dependabot PR.
+
+- **Fix test mocks for newer aiohttp** — the API client rejects non-JSON
+  responses; the JSON mocks in `test_api.py` now advertise an
+  `application/json` content-type, which recent aiohttp no longer defaults.
+  Surfaced by the HA 2026.7.1 bump.
+
 ## v0.5.2 — Status page logo fix and options-flow modernization (2026-06-22)
 
 ### Bug fixes
