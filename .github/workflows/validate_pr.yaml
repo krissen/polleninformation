@@ -10,10 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: PR Label Validation
-        uses: jesusvasquez333/verify-pr-label-action@v1.4.0
+        uses: jesusvasquez333/verify-pr-label-action@657d111bbbe13e22bbd55870f1813c699bde1401  # v1.4.0
         with:
           github-token: '${{ secrets.GITHUB_TOKEN }}'
-          valid-labels: 'bug, enhancement'
+          valid-labels: 'bug, enhancement, dependencies'
           invalid-labels: 'help wanted, invalid, question'
           pull-request-number: '${{ github.event.pull_request.number }}'
           disable-reviews: true
