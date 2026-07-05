@@ -1,0 +1,33 @@
+version: 2
+updates:
+  # Test/CI Python dependencies (requirements_test.txt). Pinned exact so a
+  # breaking upstream release (Home Assistant, pytest) lands as a red check on
+  # the bump PR, not on main. Dependabot only bumps `==` pins; requirements.txt
+  # (unpinned runtime deps resolved by HA) is left untouched.
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "(deps)"
+    labels:
+      - "dependencies"
+    groups:
+      test-deps:
+        patterns:
+          - "*"
+
+  # Keep the SHA-pinned GitHub Actions (checkout, setup-python, hassfest, hacs,
+  # release-drafter, ...) from silently drifting out of date.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "(deps)"
+    labels:
+      - "dependencies"
+    groups:
+      actions:
+        patterns:
+          - "*"
