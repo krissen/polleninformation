@@ -17,9 +17,12 @@
   no longer listed separately (they would conflict with its exact pins).
 
 - **SHA-pin all GitHub Actions** — every `uses:` ref across the workflows is now
-  pinned to a full commit SHA with a version comment, so Dependabot manages the
-  bumps and third-party actions (notably `verify-pr-label-action` under
-  `pull_request_target`) can no longer change under us.
+  pinned to a full commit SHA with a version comment, so third-party actions
+  (notably `verify-pr-label-action` under `pull_request_target`) can no longer
+  change under us. Dependabot proposes bumps for the released actions;
+  `home-assistant/actions/*` and `hacs/action` ship no releases, so they stay
+  frozen at a reviewed SHA (previously floating `@master`/`@main`) and are
+  refreshed manually.
 
 - **CI: run the test suite on push and PR** — new `test.yaml` workflow runs
   `pytest` on Python 3.14 (HA 2026.7.1 requires ≥3.14.2), so a breaking HA bump

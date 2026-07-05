@@ -17,8 +17,12 @@ updates:
         patterns:
           - "*"
 
-  # Keep the SHA-pinned GitHub Actions (checkout, setup-python, hassfest, hacs,
-  # release-drafter, ...) from silently drifting out of date.
+  # Propose bumps for the SHA-pinned, released GitHub Actions (checkout,
+  # setup-python, release-drafter, ...) instead of letting them drift.
+  # NOTE: home-assistant/actions/* and hacs/action ship no releases (they are
+  # normally used as @master/@main); pinned to a branch-head SHA here, Dependabot
+  # has no release to bump them to, so they stay frozen at a reviewed SHA -- the
+  # supply-chain win -- and are refreshed manually when needed.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
