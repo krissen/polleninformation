@@ -10,11 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd  # v5
 
       - name: Get version
         id: version
-        uses: home-assistant/actions/helpers/version@master
+        uses: home-assistant/actions/helpers/version@f4ca6f671bd429efb108c0f2fa0ae8af0215986c  # master 2026-06-22
 
       - name: "Set version number"
         run: |
@@ -26,7 +26,7 @@ jobs:
           zip polleninformation.zip -r ./
 
       - name: Upload zip to release
-        uses: svenstaro/upload-release-action@v1-release
+        uses: svenstaro/upload-release-action@14569a2d348419d066e34e5dfa65071ecd30b64b  # v1-release
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ./custom_components/polleninformation/polleninformation.zip
