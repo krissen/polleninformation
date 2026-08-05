@@ -487,6 +487,12 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
         }
 
     @property
+    def suggested_object_id(self) -> str:
+        # Pins the object_id to the English slug so the entity_id does not
+        # follow the translated or explicitly set name.
+        return "allergy_risk"
+
+    @property
     def available(self) -> bool:
         return self.coordinator.last_update_success is not False
 
@@ -594,6 +600,12 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
             "name": f"Polleninformation ({location_title})",
             "manufacturer": "Austrian Pollen Information Service",
         }
+
+    @property
+    def suggested_object_id(self) -> str:
+        # Pins the object_id to the English slug so the entity_id does not
+        # follow the translated or explicitly set name.
+        return "allergy_risk_hourly"
 
     @property
     def available(self) -> bool:

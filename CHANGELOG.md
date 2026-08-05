@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.5.3 — Entity IDs for the allergy risk sensors (2026-08-05)
+
+### Bug fixes
+
+- **Allergy risk sensors get English entity IDs again** (issue #63) — v0.5.2
+  gave the two allergy risk sensors translatable names, and Home Assistant
+  derives an entity ID from the name it sees when the entity is first created.
+  A new installation on a non-English Home Assistant therefore ended up with
+  entity IDs such as `sensor.polleninformation_<location>_allergierisiko`
+  instead of `..._allergy_risk`, which breaks dashboards and the pollen
+  forecast card. The entity ID is now pinned to the English slug and no longer
+  follows the displayed name. Installations that upgraded from an earlier
+  version were never affected. The names themselves are still translated.
+
 ## v0.5.2 — Entity name translations, contributor fixes, CI (2026-08-05)
 
 ### New features

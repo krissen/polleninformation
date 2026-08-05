@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from zoneinfo import ZoneInfo
 
 import pytest
+from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.polleninformation.const import DOMAIN
@@ -412,9 +413,8 @@ RAGWEED_LANGUAGE_BLOCK = {
 }
 
 
-async def _setup_entities(hass, lang, options=None):
-    """Run sensor setup for a Ragweed-only response and return the entities."""
-    entry = MockConfigEntry(
+def _make_entry(lang, options=None):
+    return MockConfigEntry(
         domain=DOMAIN,
         title="Hamburg",
         data={
@@ -428,6 +428,11 @@ async def _setup_entities(hass, lang, options=None):
         },
         options=options or {},
     )
+
+
+async def _setup_entities(hass, lang, options=None):
+    """Run sensor setup for a Ragweed-only response and return the entities."""
+    entry = _make_entry(lang, options)
     entry.add_to_hass(hass)
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = _make_coordinator(
         RAGWEED_RESPONSE
@@ -489,3 +494,84 @@ class TestSetupEntryNaming:
             hass, "xx", options={"names_in_integration_language": True}
         )
         assert _by_type(entities, AllergyRiskSensor).name == "Allergy risk"
+
+
+# --- entity_id stability for the risk sensors (issue #63) ---
+
+
+DAILY_UNIQUE_ID = "polleninformation_hamburg_allergy_risk"
+HOURLY_UNIQUE_ID = "polleninformation_hamburg_allergy_risk_hourly"
+
+
+class TestRiskSensorSuggestedObjectId:
+    """The object_id must stay English regardless of the displayed name."""
+
+    def _kwargs(self):
+        return {
+            "coordinator": _make_coordinator(None),
+            "levels_current": ["none", "low", "moderate", "high", "very high"],
+            "location_slug": "hamburg",
+            "location_title": "Hamburg",
+        }
+
+    def test_daily(self):
+        sensor = AllergyRiskSensor(**self._kwargs())
+        assert sensor.suggested_object_id == "allergy_risk"
+
+    def test_hourly(self):
+        sensor = AllergyRiskHourlySensor(**self._kwargs())
+        assert sensor.suggested_object_id == "allergy_risk_hourly"
+
+    def test_daily_with_explicit_name(self):
+        sensor = AllergyRiskSensor(name="Allergierisiko", **self._kwargs())
+        assert sensor.suggested_object_id == "allergy_risk"
+
+    def test_hourly_with_explicit_name(self):
+        sensor = AllergyRiskHourlySensor(
+            name="Allergierisiko (stündlich)", **self._kwargs()
+        )
+        assert sensor.suggested_object_id == "allergy_risk_hourly"
+
+    async def test_setup_entry_keeps_object_id(self, hass):
+        """Also with the integration-language option, which sets a name."""
+        entities = await _setup_entities(
+            hass, "de", options={"names_in_integration_language": True}
+        )
+        assert _by_type(entities, AllergyRiskSensor).suggested_object_id == (
+            "allergy_risk"
+        )
+        assert _by_type(entities, AllergyRiskHourlySensor).suggested_object_id == (
+            "allergy_risk_hourly"
+        )
+
+
+class TestRiskSensorEntityIdCreation:
+    """Newly created risk sensors get English entity_ids in a localized HA."""
+
+    @pytest.mark.parametrize("language", ["en", "de"])
+    @patch(
+        "custom_components.polleninformation.async_get_pollenat_data",
+        new_callable=AsyncMock,
+    )
+    async def test_entity_ids(self, mock_api, hass, language):
+        mock_api.return_value = RAGWEED_RESPONSE
+        hass.config.language = language
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+
+        with patch(
+            "custom_components.polleninformation.sensor.async_get_language_block",
+            AsyncMock(return_value=RAGWEED_LANGUAGE_BLOCK),
+        ):
+            await hass.config_entries.async_setup(entry.entry_id)
+            await hass.async_block_till_done()
+
+        ent_reg = er.async_get(hass)
+        assert (
+            ent_reg.async_get_entity_id("sensor", DOMAIN, DAILY_UNIQUE_ID)
+            == "sensor.polleninformation_hamburg_allergy_risk"
+        )
+        assert (
+            ent_reg.async_get_entity_id("sensor", DOMAIN, HOURLY_UNIQUE_ID)
+            == "sensor.polleninformation_hamburg_allergy_risk_hourly"
+        )
