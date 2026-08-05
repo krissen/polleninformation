@@ -10,16 +10,20 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.polleninformation.const import DOMAIN
 from custom_components.polleninformation.sensor import (
+    ALLERGEN_ICON_MAP,
+    LATIN_TO_ENGLISH_NAME,
     AllergyRiskHourlySensor,
     AllergyRiskSensor,
     PolleninformationSensor,
     async_setup_entry,
     capitalize_first,
+    english_name_for_latin,
     extract_allergen_slug_from_unique_id,
     localized_risk_object_id_suffixes,
     pollen_forecast_for_allergen,
     scale_allergy_risk,
 )
+from custom_components.polleninformation.utils import slugify
 
 
 # --- Helper function tests (pure, no HA dependency) ---
@@ -431,13 +435,15 @@ def _make_entry(lang, options=None):
     )
 
 
-async def _setup_entities(hass, lang, options=None, entry=None):
+async def _setup_entities(
+    hass, lang, options=None, entry=None, response=None, language_block=None
+):
     """Run sensor setup for a Ragweed-only response and return the entities."""
     if entry is None:
         entry = _make_entry(lang, options)
         entry.add_to_hass(hass)
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = _make_coordinator(
-        RAGWEED_RESPONSE
+        RAGWEED_RESPONSE if response is None else response
     )
 
     entities = []
@@ -447,7 +453,11 @@ async def _setup_entities(hass, lang, options=None, entry=None):
 
     with patch(
         "custom_components.polleninformation.sensor.async_get_language_block",
-        AsyncMock(return_value=RAGWEED_LANGUAGE_BLOCK),
+        AsyncMock(
+            return_value=RAGWEED_LANGUAGE_BLOCK
+            if language_block is None
+            else language_block
+        ),
     ):
         await async_setup_entry(hass, entry, _add)
     return entities
@@ -702,3 +712,154 @@ class TestMigrateLocalizedRiskEntityIds:
             )
             == "sensor.polleninformation_hamburg_allergy_risk"
         )
+
+
+# --- Allergen slugs come from the latin name, not the localized name ---
+
+
+# Latin name and English name for every allergen the API returns, sampled from
+# the live API for AT, SE, DE and IT with lang=en.
+API_LATIN_NAMES = {
+    "Ailanthus altissima": "tree of heaven",
+    "Alnus": "alder",
+    "Alternaria": "fungal spores",
+    "Ambrosia": "ragweed",
+    "Artemisia": "mugwort",
+    "Betula": "birch",
+    "Castanea": "sweet chestnut",
+    "Corylus": "hazel",
+    "Cupressaceae": "cypress family",
+    "Fagus": "beech",
+    "Fraxinus": "ash",
+    "Olea": "olive",
+    "Plantago": "plantain",
+    "Platanus": "plane tree",
+    "Poaceae": "grasses",
+    "Quercus": "oak",
+    "Rumex": "dock/sorrel",
+    "Salix": "willow",
+    "Secale": "rye",
+    "Tilia": "linden",
+    "Ulmus": "elm",
+    "Urticaceae": "nettle family",
+}
+
+# German response for the allergens that language_map.json does not cover, so
+# the pre-fix code fell back to the German name for the slug.
+GERMAN_TREE_RESPONSE = {
+    "contamination": [
+        {
+            "poll_title": "Esche (Fraxinus)",
+            "contamination_1": 2,
+            "contamination_2": 1,
+            "contamination_3": 0,
+            "contamination_4": 0,
+        },
+        {
+            "poll_title": "Götterbaum (Ailanthus altissima)",
+            "contamination_1": 1,
+            "contamination_2": 1,
+            "contamination_3": 0,
+            "contamination_4": 0,
+        },
+    ],
+    "allergyrisk": {"allergyrisk_1": 5.0},
+    "allergyrisk_hourly": {"allergyrisk_hourly_1": [5.0] * 24},
+}
+
+# language_map.json has no entry for these, which is what the fix works around.
+EMPTY_LANGUAGE_BLOCK = {"poll_titles": []}
+
+
+class TestEnglishNameForLatin:
+    def test_exact(self):
+        assert english_name_for_latin("Fraxinus") == "ash"
+
+    def test_case_insensitive(self):
+        assert english_name_for_latin("fraxinus") == "ash"
+
+    def test_surrounding_whitespace(self):
+        assert english_name_for_latin("  Tilia ") == "linden"
+
+    def test_genus_and_species_falls_back_to_genus(self):
+        assert english_name_for_latin("Ambrosia artemisiifolia") == "ragweed"
+
+    def test_genus_only_for_a_species_keyed_entry(self):
+        assert english_name_for_latin("Ailanthus") == "tree of heaven"
+
+    def test_unknown(self):
+        assert english_name_for_latin("Pinus") is None
+
+    def test_empty(self):
+        assert english_name_for_latin("") is None
+
+    def test_whitespace_only(self):
+        assert english_name_for_latin("   ") is None
+
+    def test_none(self):
+        assert english_name_for_latin(None) is None
+
+
+class TestLatinMapCoverage:
+    def test_every_api_latin_name_is_mapped(self):
+        assert LATIN_TO_ENGLISH_NAME == API_LATIN_NAMES
+
+    @pytest.mark.parametrize(("latin", "name"), sorted(API_LATIN_NAMES.items()))
+    def test_every_allergen_has_an_icon(self, latin, name):
+        """A missing icon silently degrades to the generic pollen icon."""
+        assert slugify(name) in ALLERGEN_ICON_MAP
+
+    def test_slugs_are_distinct(self):
+        slugs = [slugify(name) for name in LATIN_TO_ENGLISH_NAME.values()]
+        assert len(slugs) == len(set(slugs))
+
+
+class TestAllergenSlugFromLatin:
+    async def test_slug_is_english_for_german_response(self, hass):
+        entities = await _setup_entities(
+            hass,
+            "de",
+            response=GERMAN_TREE_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        unique_ids = {e.unique_id for e in entities}
+        assert "polleninformation_hamburg_ash" in unique_ids
+        assert "polleninformation_hamburg_tree_of_heaven" in unique_ids
+
+    async def test_display_name_stays_localized(self, hass):
+        entities = await _setup_entities(
+            hass,
+            "de",
+            response=GERMAN_TREE_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        names = {e.name for e in entities if isinstance(e, PolleninformationSensor)}
+        assert "Esche" in names
+
+    async def test_english_name_attribute_and_icon(self, hass):
+        entities = await _setup_entities(
+            hass,
+            "de",
+            response=GERMAN_TREE_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        ash = next(
+            e for e in entities if e.unique_id == "polleninformation_hamburg_ash"
+        )
+        assert ash.extra_state_attributes["name_en"] == "ash"
+        assert ash.extra_state_attributes["allergen_slug"] == "ash"
+        assert ash.icon == "mdi:tree"
+
+    async def test_state_still_resolves(self, hass):
+        """The value lookup matches on the name the API sent, not the slug."""
+        entities = await _setup_entities(
+            hass,
+            "de",
+            response=GERMAN_TREE_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        ash = next(
+            e for e in entities if e.unique_id == "polleninformation_hamburg_ash"
+        )
+        # German levels, because the entry is configured for German.
+        assert ash.native_value == "mäßig"

@@ -46,6 +46,37 @@ from .utils import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# English allergen name per latin name, as the API returns it for lang=en.
+# This is the source of the allergen slug, and therefore of the unique_id and
+# the entity_id. Deriving the slug from the localized response instead would
+# give a different unique_id per interface language. language_map.json only
+# covers the twelve allergens that had a localized name when it was
+# generated, so the API is the authority here.
+LATIN_TO_ENGLISH_NAME = {
+    "Ailanthus altissima": "tree of heaven",
+    "Alnus": "alder",
+    "Alternaria": "fungal spores",
+    "Ambrosia": "ragweed",
+    "Artemisia": "mugwort",
+    "Betula": "birch",
+    "Castanea": "sweet chestnut",
+    "Corylus": "hazel",
+    "Cupressaceae": "cypress family",
+    "Fagus": "beech",
+    "Fraxinus": "ash",
+    "Olea": "olive",
+    "Plantago": "plantain",
+    "Platanus": "plane tree",
+    "Poaceae": "grasses",
+    "Quercus": "oak",
+    "Rumex": "dock/sorrel",
+    "Salix": "willow",
+    "Secale": "rye",
+    "Tilia": "linden",
+    "Ulmus": "elm",
+    "Urticaceae": "nettle family",
+}
+
 ALLERGEN_ICON_MAP = {
     "alder": "mdi:tree-outline",
     "ash": "mdi:tree",
@@ -53,24 +84,32 @@ ALLERGEN_ICON_MAP = {
     "birch": "mdi:tree",
     "cypress_family": "mdi:pine-tree",
     "default": "mdi:flower-pollen",
+    "dock_sorrel": "mdi:leaf",
     "elm": "mdi:tree",
     "grasses": "mdi:grass",
     "hazel": "mdi:nature",
-    "lime": "mdi:leaf",
+    "linden": "mdi:leaf",
     "fungal_spores": "mdi:cloud-alert",
     "mugwort": "mdi:flower-pollen",
     "nettle_family": "mdi:leaf",
     "oak": "mdi:leaf",
     "olive": "mdi:leaf",
     "plane_tree": "mdi:tree",
+    "plantain": "mdi:leaf",
     "ragweed": "mdi:flower-pollen",
     "rye": "mdi:grain",
+    "sweet_chestnut": "mdi:tree",
+    "tree_of_heaven": "mdi:tree",
     "willow": "mdi:tree",
 }
 
 RISK_SLUGS = ("allergy_risk", "allergy_risk_hourly")
 
-KNOWN_ALLERGEN_SLUGS = set(ALLERGEN_ICON_MAP.keys()) - {"default"} | set(RISK_SLUGS)
+KNOWN_ALLERGEN_SLUGS = (
+    set(ALLERGEN_ICON_MAP.keys()) - {"default"}
+    | {slugify(name) for name in LATIN_TO_ENGLISH_NAME.values()}
+    | set(RISK_SLUGS)
+)
 
 
 def capitalize_first(s: str) -> str:
@@ -93,6 +132,35 @@ def extract_allergen_slug_from_unique_id(unique_id: str) -> str | None:
         if unique_id.endswith(suffix):
             return slug
     return None
+
+
+@lru_cache(maxsize=1)
+def _latin_name_index() -> dict[str, str]:
+    """Case-insensitive latin lookup, extended with genus-only keys.
+
+    The API spells a latin name with the genus alone for most allergens but
+    with genus and species for others, and the case is not consistent between
+    languages.
+    """
+    index = {latin.lower(): name for latin, name in LATIN_TO_ENGLISH_NAME.items()}
+    for latin, name in LATIN_TO_ENGLISH_NAME.items():
+        index.setdefault(latin.split()[0].lower(), name)
+    return index
+
+
+def english_name_for_latin(latin: str | None) -> str | None:
+    """Return the English allergen name for a latin name, or None if unknown.
+
+    A latin name that carries a species falls back to its genus, so both
+    "Ambrosia" and "Ambrosia artemisiifolia" resolve.
+    """
+    if not latin:
+        return None
+    index = _latin_name_index()
+    key = latin.strip().lower()
+    if name := index.get(key):
+        return name
+    return index.get(key.split()[0]) if key.split() else None
 
 
 @lru_cache(maxsize=1)
@@ -268,10 +336,15 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 if allergen.get("name") == poll_title_local:
                     latin = allergen.get("latin")
                     break
+        # Resolution order: the static latin map, then the English language
+        # block, then the name the API sent in the configured language. Only
+        # the last of these varies with the language, so it stays a last
+        # resort for an allergen no released map knows about.
         allergen_en_obj = (
             get_allergen_info_by_latin(latin, language_block_en) if latin else None
         )
-        allergen_en = allergen_en_obj["name"] if allergen_en_obj else poll_title_local
+        legacy_en = allergen_en_obj["name"] if allergen_en_obj else poll_title_local
+        allergen_en = english_name_for_latin(latin) or legacy_en
         allergen_la = latin if latin else ""
         slug_en = slugify(allergen_en) if allergen_en else slugify(poll_title_local)
         icon = ALLERGEN_ICON_MAP.get(slug_en, ALLERGEN_ICON_MAP["default"])

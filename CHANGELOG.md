@@ -1,8 +1,24 @@
 # Changelog
 
-## v0.5.3 — Entity IDs for the allergy risk sensors (2026-08-05)
+## v0.5.3 — English entity IDs in every language (2026-08-05)
 
 ### Bug fixes
+
+- **Allergen entity IDs are English again** (issue #63) — the allergen slug,
+  which decides both the unique ID and the entity ID, came from an English name
+  looked up by latin name in `language_map.json`. That file only covers twelve
+  allergens, so the ten it does not know about fell back to the name the API
+  sent in the configured language: a German installation got
+  `sensor.polleninformation_<location>_esche` rather than `..._ash`, and a
+  Swedish one `..._ask`. The slug now comes from a static latin-to-English map
+  covering every allergen the API returns, with the old lookup kept as a
+  fallback. The displayed name is unaffected and stays in the configured
+  language.
+
+- **Icons for the allergens the API has added** — dock/sorrel, plantain, sweet
+  chestnut and tree of heaven had no icon and fell back to the generic pollen
+  icon. Linden was listed under a slug the API never returns (`lime`), so it
+  had no icon either.
 
 - **Allergy risk sensors get English entity IDs again** (issue #63) — v0.5.2
   gave the two allergy risk sensors translatable names, and Home Assistant
