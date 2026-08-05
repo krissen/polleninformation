@@ -52,5 +52,15 @@
       "invalid_country": "Érvénytelen ország",
       "invalid_language": "Érvénytelen nyelv"
     }
+  },
+  "entity": {
+    "sensor": {
+      "allergy_risk": {
+        "name": "Allergiakockázat"
+      },
+      "allergy_risk_hourly": {
+        "name": "Allergiakockázat (óránkénti)"
+      }
+    }
   }
 }

@@ -52,5 +52,15 @@
       "invalid_country": "Nederīga valsts",
       "invalid_language": "Nederīga valoda"
     }
+  },
+  "entity": {
+    "sensor": {
+      "allergy_risk": {
+        "name": "Alerģijas risks"
+      },
+      "allergy_risk_hourly": {
+        "name": "Alerģijas risks (pa stundām)"
+      }
+    }
   }
 }

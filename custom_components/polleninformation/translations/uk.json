@@ -52,5 +52,15 @@
       "invalid_country": "Неприпустима країна",
       "invalid_language": "Неприпустима мова"
     }
+  },
+  "entity": {
+    "sensor": {
+      "allergy_risk": {
+        "name": "Ризик алергії"
+      },
+      "allergy_risk_hourly": {
+        "name": "Ризик алергії (погодинний)"
+      }
+    }
   }
 }

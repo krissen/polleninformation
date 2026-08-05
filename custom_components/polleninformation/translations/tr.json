@@ -52,5 +52,15 @@
       "invalid_country": "Geçersiz ülke",
       "invalid_language": "Geçersiz dil"
     }
+  },
+  "entity": {
+    "sensor": {
+      "allergy_risk": {
+        "name": "Alerji riski"
+      },
+      "allergy_risk_hourly": {
+        "name": "Alerji riski (saatlik)"
+      }
+    }
   }
 }

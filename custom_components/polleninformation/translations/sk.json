@@ -52,5 +52,15 @@
       "invalid_country": "Neplatná krajina",
       "invalid_language": "Neplatný jazyk"
     }
+  },
+  "entity": {
+    "sensor": {
+      "allergy_risk": {
+        "name": "Riziko alergie"
+      },
+      "allergy_risk_hourly": {
+        "name": "Riziko alergie (hodinové)"
+      }
+    }
   }
 }

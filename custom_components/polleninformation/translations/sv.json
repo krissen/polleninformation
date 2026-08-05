@@ -52,5 +52,15 @@
       "invalid_country": "Ogiltigt land",
       "invalid_language": "Ogiltigt språk"
     }
+  },
+  "entity": {
+    "sensor": {
+      "allergy_risk": {
+        "name": "Allergirisk"
+      },
+      "allergy_risk_hourly": {
+        "name": "Allergirisk (per timme)"
+      }
+    }
   }
 }

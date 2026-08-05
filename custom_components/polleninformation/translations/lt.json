@@ -52,5 +52,15 @@
       "invalid_country": "Neteisinga šalis",
       "invalid_language": "Neteisinga kalba"
     }
+  },
+  "entity": {
+    "sensor": {
+      "allergy_risk": {
+        "name": "Alergijos rizika"
+      },
+      "allergy_risk_hourly": {
+        "name": "Alergijos rizika (kas valandą)"
+      }
+    }
   }
 }

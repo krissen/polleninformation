@@ -52,5 +52,15 @@
       "invalid_country": "Virheellinen maa",
       "invalid_language": "Virheellinen kieli"
     }
+  },
+  "entity": {
+    "sensor": {
+      "allergy_risk": {
+        "name": "Allergiariski"
+      },
+      "allergy_risk_hourly": {
+        "name": "Allergiariski (tunneittain)"
+      }
+    }
   }
 }
