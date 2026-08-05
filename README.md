@@ -57,8 +57,24 @@ A Home Assistant integration for monitoring pollen across Europe, data provided 
 3. Choose a country;
 4. enter a place name (free text);
 5. set location through the map or by entering coordinates;
-6. enter your API key.
-7. Sensors will be automatically created for each available allergen at your chosen location.
+6. choose the language the pollen data should be requested in;
+7. enter your API key.
+8. Sensors will be automatically created for each available allergen at your chosen location.
+
+### Options
+
+All settings can be changed afterwards under **Settings → Devices &
+Services → Polleninformation EU → Configure**:
+
+| Option | Description |
+|--------|-------------|
+| Country | Country used when querying the API |
+| Location | Coordinates, set on the map |
+| Location name | Free-text name used in entity names (optional) |
+| Language | Language the API returns allergen names and level names in |
+| API key | Your personal polleninformation.at key |
+| Update interval | How often data is fetched, 1–24 hours (default 8) |
+| Name entities in the integration language | See [Entity names and languages](#entity-names-and-languages) |
 
 ---
 
@@ -95,6 +111,23 @@ The original `0`–`10` value is available as the `numeric_state_raw`
 attribute of both the `allergy_risk` and `allergy_risk_hourly`
 sensors. Within their forecast attribute the same raw value is exposed
 as `level_raw` for each forecast entry.
+
+### Entity names and languages
+
+Allergen sensors (birch, grasses, …) are named in the **language selected for
+the integration**, because those names come from the API. Two allergen names
+are corrected locally: Ragweed is shown as **Ambrosia** in German and
+**Ambrózia** in Slovak, since the API returns the English name there. This only
+affects the displayed name — entity IDs and the matching against the API
+response are unchanged.
+
+The two allergy risk sensors are named through Home Assistant's own
+translations, so by default they follow the **Home Assistant interface
+language** and are translated into all 16 supported languages.
+
+If you would rather have them named in the integration's language as well,
+enable **Name entities in the integration language** in the options. It is off
+by default and does not affect the allergen sensors.
 
 ### Update interval
 

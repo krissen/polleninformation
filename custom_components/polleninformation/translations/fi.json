@@ -43,7 +43,11 @@
           "location_name": "Sijainnin nimi (valinnainen)",
           "language": "Kieli",
           "apikey": "API-avain",
-          "update_interval": "Päivitysväli (tunnit)"
+          "update_interval": "Päivitysväli (tunnit)",
+          "names_in_integration_language": "Nimeä entiteetit integraation kielellä"
+        },
+        "data_description": {
+          "names_in_integration_language": "Kun tämä on käytössä, allergiariskisensorit nimetään yllä valitulla kielellä Home Assistantin käyttöliittymän kielen sijaan. Allergeenien nimet noudattavat aina valittua kieltä, koska ne tulevat rajapinnasta."
         }
       }
     },
@@ -51,6 +55,16 @@
       "missing_apikey": "API-avain puuttuu",
       "invalid_country": "Virheellinen maa",
       "invalid_language": "Virheellinen kieli"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "allergy_risk": {
+        "name": "Allergiariski"
+      },
+      "allergy_risk_hourly": {
+        "name": "Allergiariski (tunneittain)"
+      }
     }
   }
 }

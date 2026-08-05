@@ -20,8 +20,10 @@ from homeassistant.helpers.selector import (
 
 from .const import (
     API_KEY_REQUEST_URL,
+    CONF_NAMES_IN_INTEGRATION_LANG,
     CONF_UPDATE_INTERVAL,
     DEFAULT_LANG,
+    DEFAULT_NAMES_IN_INTEGRATION_LANG,
     DEFAULT_UPDATE_INTERVAL,
     MAX_UPDATE_INTERVAL,
     MIN_UPDATE_INTERVAL,
@@ -77,6 +79,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         default_update_interval = max(
             MIN_UPDATE_INTERVAL, min(MAX_UPDATE_INTERVAL, default_update_interval)
         )
+        default_names_in_integration_lang = bool(
+            defaults.get(
+                CONF_NAMES_IN_INTEGRATION_LANG, DEFAULT_NAMES_IN_INTEGRATION_LANG
+            )
+        )
 
         data_schema = vol.Schema(
             {
@@ -107,6 +114,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         unit_of_measurement="h",
                     )
                 ),
+                vol.Optional(
+                    CONF_NAMES_IN_INTEGRATION_LANG,
+                    default=default_names_in_integration_lang,
+                ): bool,
             }
         )
 
@@ -181,6 +192,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         "location_title": location_title,
                         "location_slug": location_slug,
                         CONF_UPDATE_INTERVAL: update_interval,
+                        CONF_NAMES_IN_INTEGRATION_LANG: bool(
+                            user_input.get(
+                                CONF_NAMES_IN_INTEGRATION_LANG,
+                                DEFAULT_NAMES_IN_INTEGRATION_LANG,
+                            )
+                        ),
                     },
                 )
         return self.async_show_form(

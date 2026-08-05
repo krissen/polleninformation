@@ -43,7 +43,11 @@
           "location_name": "Назва місця (необов'язково)",
           "language": "Мова",
           "apikey": "API-ключ",
-          "update_interval": "Інтервал оновлення (години)"
+          "update_interval": "Інтервал оновлення (години)",
+          "names_in_integration_language": "Іменувати сутності мовою інтеграції"
+        },
+        "data_description": {
+          "names_in_integration_language": "Якщо ввімкнено, датчики ризику алергії іменуються обраною вище мовою, а не мовою інтерфейсу Home Assistant. Назви алергенів завжди відповідають обраній мові, оскільки надходять з API."
         }
       }
     },
@@ -51,6 +55,16 @@
       "missing_apikey": "API-ключ відсутній",
       "invalid_country": "Неприпустима країна",
       "invalid_language": "Неприпустима мова"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "allergy_risk": {
+        "name": "Ризик алергії"
+      },
+      "allergy_risk_hourly": {
+        "name": "Ризик алергії (погодинний)"
+      }
     }
   }
 }

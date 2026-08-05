@@ -1,8 +1,40 @@
 # Changelog
 
-## v0.5.2 — Status page logo fix and options-flow modernization (2026-06-22)
+## v0.5.2 — Entity name translations, contributor fixes, CI (2026-08-05)
+
+### New features
+
+- **Option: name entities in the integration language** — a new toggle in the
+  options flow names the allergy risk sensors in the language configured for
+  the integration rather than in the Home Assistant interface language. Off by
+  default. Allergen names are unaffected; they already follow the configured
+  language because the API supplies them.
 
 ### Bug fixes
+
+- **Allergy risk sensor names are now translatable** (issue #63) — the two
+  allergy risk sensors used a hardcoded English name. They now use Home
+  Assistant translation keys, so their names follow the Home Assistant UI
+  language instead of always reading "Allergy risk" / "Allergy risk hourly".
+  Names are translated into all 16 supported languages.
+
+- **Ragweed is now named "Ambrosia" in German and "Ambrózia" in Slovak**
+  (issue #63) — the API returns the English name "Ragweed" for these two
+  languages. The sensor display name is corrected locally; the value lookup
+  still matches on the name the API sends, so the sensor keeps its state.
+
+- **Config flow no longer aborts when reverse geocoding fails** — country
+  detection via Nominatim now returns `None` on connection errors, timeouts and
+  malformed responses instead of raising, and it uses Home Assistant's shared
+  aiohttp session rather than opening its own (PR #60 by @IoannisArmamentos).
+  A response without a country code now also yields `None` rather than an empty
+  string.
+
+- **Hourly allergy risk forecast timestamps** — the forecast now starts at local
+  midnight instead of the current UTC hour, so each entry carries the timestamp
+  its value actually describes (PR #58 by @IoannisArmamentos). As a consequence,
+  day-1 entries earlier than the current hour are now in the past; that is
+  intentional and lets a full day be charted.
 
 - **Broken logo on the API status page** — the page hot-linked the
   Polleninformation logo from polleninformation.at, whose asset path changed
@@ -11,6 +43,40 @@
   on their site.
 
 ### Internal
+
+- **Tests for entity naming** — new cases cover the allergy risk translation
+  keys, the German and Slovak Ragweed display names, and the options toggle,
+  including the regression where an overridden display name must not stop a
+  sensor from matching the name the API sends.
+
+- **Dependabot** — added `.github/dependabot.yml` with monthly grouped updates
+  for two ecosystems: `pip` (test dependencies) and `github-actions`. A breaking
+  upstream release now surfaces as a red check on the bump PR instead of a
+  surprise failure on `main`. Home Assistant is tracked via the exact
+  `pytest-homeassistant-custom-component` pin in `requirements_test.txt`, which
+  is version-locked to a specific HA release.
+
+- **Pin CI test dependencies exactly** — `requirements_test.txt` now pins
+  `pytest-homeassistant-custom-component==0.13.345` (HA 2026.7.1). The package
+  drives the whole matching pytest stack transitively, so pytest/pytest-cov are
+  no longer listed separately (they would conflict with its exact pins).
+
+- **SHA-pin all GitHub Actions** — every `uses:` ref across the workflows is now
+  pinned to a full commit SHA with a version comment, so third-party actions
+  (notably `verify-pr-label-action` under `pull_request_target`) can no longer
+  change under us. Dependabot proposes bumps for the released actions;
+  `home-assistant/actions/*` and `hacs/action` ship no releases, so they stay
+  frozen at a reviewed SHA (previously floating `@master`/`@main`) and are
+  refreshed manually.
+
+- **CI: run the test suite on push and PR** — new `test.yaml` workflow runs
+  `pytest` on Python 3.14 (HA 2026.7.1 requires ≥3.14.2), so a breaking HA bump
+  shows up as a red check on the Dependabot PR.
+
+- **Fix test mocks for newer aiohttp** — the API client rejects non-JSON
+  responses; the JSON mocks in `test_api.py` now advertise an
+  `application/json` content-type, which recent aiohttp no longer defaults.
+  Surfaced by the HA 2026.7.1 bump.
 
 - **CI: bump GitHub Actions to Node 24 runtimes** — `actions/checkout` → v5,
   `actions/setup-python` → v6, `actions/upload-pages-artifact` → v5,
@@ -26,6 +92,14 @@
   from HA 2024.11, `hacs.json` now declares `2024.11.0` as the minimum supported
   Home Assistant version so HACS blocks installs/upgrades on older cores that
   would hit a broken options flow.
+
+- **`manifest.json` version follows the release tags** — the manifest version
+  had drifted from the tagged releases; it now states the released version
+  (`0.5.2`), which is what HACS and the diagnostics report.
+
+- **Documentation** — the README and `info.md` now describe the full options
+  list (including the language selection, the update interval and the new
+  naming toggle) and how entity names are localized.
 
 ## v0.5.1 — Configurable update interval and attribute fixes (2026-03-31)
 

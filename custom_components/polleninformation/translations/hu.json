@@ -43,7 +43,11 @@
           "location_name": "Helyszín neve (opcionális)",
           "language": "Nyelv",
           "apikey": "API-kulcs",
-          "update_interval": "Frissítési időköz (óra)"
+          "update_interval": "Frissítési időköz (óra)",
+          "names_in_integration_language": "Az entitások elnevezése az integráció nyelvén"
+        },
+        "data_description": {
+          "names_in_integration_language": "Bekapcsolva az allergiakockázat-érzékelők a fent kiválasztott nyelven kapnak nevet a Home Assistant felületének nyelve helyett. Az allergénnevek mindig a kiválasztott nyelvet követik, mivel az API-ból származnak."
         }
       }
     },
@@ -51,6 +55,16 @@
       "missing_apikey": "Hiányzó API-kulcs",
       "invalid_country": "Érvénytelen ország",
       "invalid_language": "Érvénytelen nyelv"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "allergy_risk": {
+        "name": "Allergiakockázat"
+      },
+      "allergy_risk_hourly": {
+        "name": "Allergiakockázat (óránkénti)"
+      }
     }
   }
 }

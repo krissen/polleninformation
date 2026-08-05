@@ -1,0 +1,29 @@
+name: "Tests"
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pytest:
+    name: pytest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd  # v5
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
+        with:
+          # Range, not "3.14": HA 2026.7.1 (pinned via requirements_test.txt)
+          # requires Python >=3.14.2, and a bare "3.14" may resolve lower.
+          python-version: ">=3.14.2 <3.15"
+
+      - name: Install dependencies
+        # requirements_test.txt pins the HA + pytest stack as well as the
+        # integration's own manifest requirements (async-timeout, Unidecode),
+        # which Home Assistant does not provide.
+        run: pip install -r requirements_test.txt
+
+      - name: Run pytest
+        run: pytest

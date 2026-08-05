@@ -43,7 +43,11 @@
           "location_name": "Nombre de la ubicación (opcional)",
           "language": "Idioma",
           "apikey": "Clave API",
-          "update_interval": "Intervalo de actualización (horas)"
+          "update_interval": "Intervalo de actualización (horas)",
+          "names_in_integration_language": "Nombrar las entidades en el idioma de la integración"
+        },
+        "data_description": {
+          "names_in_integration_language": "Cuando se activa, los sensores de riesgo de alergia se nombran en el idioma seleccionado arriba en lugar del idioma de la interfaz de Home Assistant. Los nombres de los alérgenos siguen siempre el idioma seleccionado, ya que provienen de la API."
         }
       }
     },
@@ -51,6 +55,16 @@
       "missing_apikey": "Falta la clave API",
       "invalid_country": "País no válido",
       "invalid_language": "Idioma no válido"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "allergy_risk": {
+        "name": "Riesgo de alergia"
+      },
+      "allergy_risk_hourly": {
+        "name": "Riesgo de alergia (por hora)"
+      }
     }
   }
 }

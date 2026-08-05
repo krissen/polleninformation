@@ -1,6 +1,12 @@
-"""Tests for utility functions (pure, no HA dependency)."""
+"""Tests for utility functions."""
+
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import aiohttp
+import pytest
 
 from custom_components.polleninformation.utils import (
+    async_get_country_code_from_latlon,
     extract_place_slug,
     find_best_lang_code_for_locale_sync,
     get_allergen_info_by_latin,
@@ -148,3 +154,55 @@ class TestGetLanguageOptionsSync:
         result = get_language_options_sync()
         for code in SUPPORTED_LANGUAGES:
             assert code in result
+
+
+class TestGetCountryCodeFromLatLon:
+    @pytest.mark.asyncio
+    async def test_returns_country_code(self):
+        hass = MagicMock()
+        response = AsyncMock()
+        response.status = 200
+        response.json.return_value = {"address": {"country_code": "be"}}
+
+        session = MagicMock()
+        session.get.return_value.__aenter__.return_value = response
+
+        with patch(
+            "custom_components.polleninformation.utils.async_get_clientsession",
+            return_value=session,
+        ):
+            result = await async_get_country_code_from_latlon(hass, 50.85, 4.35)
+
+        assert result == "BE"
+
+    @pytest.mark.asyncio
+    async def test_returns_none_when_response_lacks_country_code(self):
+        hass = MagicMock()
+        response = AsyncMock()
+        response.status = 200
+        response.json.return_value = {"address": {"city": "Brussels"}}
+
+        session = MagicMock()
+        session.get.return_value.__aenter__.return_value = response
+
+        with patch(
+            "custom_components.polleninformation.utils.async_get_clientsession",
+            return_value=session,
+        ):
+            result = await async_get_country_code_from_latlon(hass, 50.85, 4.35)
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_returns_none_on_connection_error(self):
+        hass = MagicMock()
+        session = MagicMock()
+        session.get.side_effect = aiohttp.ClientError
+
+        with patch(
+            "custom_components.polleninformation.utils.async_get_clientsession",
+            return_value=session,
+        ):
+            result = await async_get_country_code_from_latlon(hass, 50.85, 4.35)
+
+        assert result is None

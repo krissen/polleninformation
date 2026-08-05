@@ -43,7 +43,11 @@
           "location_name": "Názov lokality (voliteľné)",
           "language": "Jazyk",
           "apikey": "API kľúč",
-          "update_interval": "Interval aktualizácie (hodiny)"
+          "update_interval": "Interval aktualizácie (hodiny)",
+          "names_in_integration_language": "Pomenovať entity v jazyku integrácie"
+        },
+        "data_description": {
+          "names_in_integration_language": "Ak je táto možnosť zapnutá, senzory rizika alergie sa pomenujú v jazyku vybranom vyššie namiesto jazyka rozhrania Home Assistant. Názvy alergénov vždy zodpovedajú vybranému jazyku, pretože pochádzajú z API."
         }
       }
     },
@@ -51,6 +55,16 @@
       "missing_apikey": "Chýba API kľúč",
       "invalid_country": "Neplatná krajina",
       "invalid_language": "Neplatný jazyk"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "allergy_risk": {
+        "name": "Riziko alergie"
+      },
+      "allergy_risk_hourly": {
+        "name": "Riziko alergie (hodinové)"
+      }
     }
   }
 }
