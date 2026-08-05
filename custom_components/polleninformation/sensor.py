@@ -97,7 +97,7 @@ ALLERGEN_ICON_MAP = {
     "plane_tree": "mdi:tree",
     "plantain": "mdi:leaf",
     "ragweed": "mdi:flower-pollen",
-    "rye": "mdi:grain",
+    "rye": "mdi:barley",
     "sweet_chestnut": "mdi:tree",
     "tree_of_heaven": "mdi:tree",
     "willow": "mdi:tree",

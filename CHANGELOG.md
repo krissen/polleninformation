@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.5.4 — Allergen icons (2026-08-05)
+
+### Bug fixes
+
+- **Rye now uses the barley icon** — `mdi:barley` reads as a cereal ear, where
+  the previous `mdi:grain` is a film-grain icon from Material Design Icons'
+  photography set and looked like nothing in particular at sensor size
+  (thanks @zeus86).
+
 ## v0.5.3 — English entity IDs in every language (2026-08-05)
 
 ### Bug fixes
