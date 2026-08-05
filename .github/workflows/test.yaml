@@ -20,12 +20,10 @@ jobs:
           python-version: ">=3.14.2 <3.15"
 
       - name: Install dependencies
-        # requirements_test.txt pins the HA + pytest stack; the integration's
-        # own manifest requirements (async-timeout, Unidecode) are not provided
-        # by Home Assistant, so install them too. aiohttp/voluptuous come with HA.
-        run: |
-          pip install -r requirements_test.txt
-          pip install async-timeout Unidecode
+        # requirements_test.txt pins the HA + pytest stack as well as the
+        # integration's own manifest requirements (async-timeout, Unidecode),
+        # which Home Assistant does not provide.
+        run: pip install -r requirements_test.txt
 
       - name: Run pytest
         run: pytest

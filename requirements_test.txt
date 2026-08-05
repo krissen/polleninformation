@@ -12,3 +12,10 @@
 # add explicit pytest/pytest-cov pins here, they would conflict with the exact
 # versions this package requires.
 pytest-homeassistant-custom-component==0.13.345
+
+# The integration's own manifest.json requirements. Home Assistant does not
+# provide these (aiohttp/voluptuous it does), so the tests need them installed
+# explicitly. Pinned exact for the same reproducibility reason as above; both
+# satisfy the manifest ranges (async-timeout>=4.0.0, Unidecode>=1.3.6).
+async-timeout==5.0.1
+Unidecode==1.4.0
