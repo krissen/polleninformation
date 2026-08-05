@@ -21,6 +21,7 @@ from custom_components.polleninformation.sensor import (
     async_setup_entry,
     capitalize_first,
     english_name_for_latin,
+    entity_id_available,
     extract_allergen_slug_from_unique_id,
     localized_risk_object_id_suffixes,
     pollen_forecast_for_allergen,
@@ -1294,4 +1295,78 @@ class TestOnlyGeneratedEntityIdsAreRenamed:
         assert (
             ent_reg.async_get_entity_id("sensor", DOMAIN, DAILY_UNIQUE_ID)
             == "sensor.polleninformation_hamburg_allergy_risk"
+        )
+
+
+class TestStateMachineCollision:
+    """A YAML or template entity holds an entity_id without a registry entry.
+
+    The registry refuses to move an entity_id onto one that is occupied in the
+    state machine, so a registry-only check let async_update_entity raise and
+    abort setup.
+    """
+
+    def _seed(self, hass, entry, unique_id, object_id):
+        return er.async_get(hass).async_get_or_create(
+            "sensor",
+            DOMAIN,
+            unique_id,
+            suggested_object_id=object_id,
+            config_entry=entry,
+        )
+
+    def test_availability_sees_the_state_machine(self, hass):
+        ent_reg = er.async_get(hass)
+        hass.states.async_set("sensor.polleninformation_hamburg_ash", "low")
+        assert not entity_id_available(
+            hass, ent_reg, "sensor.polleninformation_hamburg_ash"
+        )
+        assert entity_id_available(
+            hass, ent_reg, "sensor.polleninformation_hamburg_birch"
+        )
+
+    async def test_allergen_setup_survives_a_state_only_collision(self, hass):
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        self._seed(
+            hass,
+            entry,
+            "polleninformation_hamburg_esche",
+            "polleninformation_hamburg_esche",
+        )
+        hass.states.async_set("sensor.polleninformation_hamburg_ash", "low")
+
+        # Must not raise.
+        await _setup_entities(
+            hass,
+            "de",
+            entry=entry,
+            response=GERMAN_TREE_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+
+        ent_reg = er.async_get(hass)
+        # unique_id corrected, entity_id kept because the target is occupied.
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_ash"
+            )
+            == "sensor.polleninformation_hamburg_esche"
+        )
+
+    async def test_risk_setup_survives_a_state_only_collision(self, hass):
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        self._seed(
+            hass, entry, DAILY_UNIQUE_ID, "polleninformation_hamburg_allergierisiko"
+        )
+        hass.states.async_set("sensor.polleninformation_hamburg_allergy_risk", "low")
+
+        # Must not raise.
+        await _setup_entities(hass, "de", entry=entry)
+
+        ent_reg = er.async_get(hass)
+        assert (
+            ent_reg.async_get_entity_id("sensor", DOMAIN, DAILY_UNIQUE_ID)
+            == "sensor.polleninformation_hamburg_allergierisiko"
         )

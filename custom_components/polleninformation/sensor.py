@@ -163,6 +163,19 @@ def english_name_for_latin(latin: str | None) -> str | None:
     return index.get(key.split()[0]) if key.split() else None
 
 
+def entity_id_available(hass, ent_reg, entity_id: str) -> bool:
+    """Return True when the registry would accept this entity_id.
+
+    Mirrors the registry's own rule: async_update_entity raises when the
+    target is registered OR occupied in the state machine. A YAML or template
+    entity holds an entity_id without a registry entry, so checking the
+    registry alone lets that call raise and abort setup.
+    """
+    return not ent_reg.async_is_registered(entity_id) and hass.states.async_available(
+        entity_id
+    )
+
+
 def migrate_localized_allergen_ids(hass, location_slug, renames) -> None:
     """Rename allergen ids that were derived from a localized allergen name.
 
@@ -197,14 +210,14 @@ def migrate_localized_allergen_ids(hass, location_slug, renames) -> None:
         prefix = f"polleninformation_{location_slug}_"
         if entity_id == f"sensor.{prefix}{legacy_slug}":
             new_entity_id = f"sensor.{prefix}{canonical_slug}"
-            if ent_reg.async_get(new_entity_id) is not None:
+            if entity_id_available(hass, ent_reg, new_entity_id):
+                updates["new_entity_id"] = new_entity_id
+            else:
                 _LOGGER.warning(
                     "Keeping entity_id %s: %s is already taken",
                     entity_id,
                     new_entity_id,
                 )
-            else:
-                updates["new_entity_id"] = new_entity_id
         else:
             _LOGGER.debug(
                 "Keeping entity_id %s: it is not the generated one for %s",
@@ -284,7 +297,7 @@ async def async_migrate_localized_risk_entity_ids(hass, entry, location_slug) ->
             continue
 
         new_entity_id = f"{reg_entry.domain}.{prefix}{slug}"
-        if ent_reg.async_get(new_entity_id) is not None:
+        if not entity_id_available(hass, ent_reg, new_entity_id):
             _LOGGER.warning(
                 "Cannot rename %s to %s: target entity_id already exists",
                 reg_entry.entity_id,
