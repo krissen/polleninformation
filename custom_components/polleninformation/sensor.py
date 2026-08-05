@@ -27,10 +27,12 @@ from .const import (
     CONF_LANG,
     CONF_LATITUDE,
     CONF_LONGITUDE,
+    CONF_NAMES_IN_INTEGRATION_LANG,
     DEFAULT_LANG,
+    DEFAULT_NAMES_IN_INTEGRATION_LANG,
     DOMAIN,
 )
-from .const_levels import ALLERGEN_DISPLAY_OVERRIDES, LEVELS
+from .const_levels import ALLERGEN_DISPLAY_OVERRIDES, LEVELS, RISK_SENSOR_NAMES
 from .utils import (
     async_get_language_block,
     get_allergen_info_by_latin,
@@ -161,6 +163,16 @@ async def async_setup_entry(hass, entry, async_add_entities):
     levels_en = LEVELS.get("en", ["none", "low", "moderate", "high", "very high"])
     display_overrides = ALLERGEN_DISPLAY_OVERRIDES.get(lang, {})
 
+    # When names follow the integration language, an explicit name is passed
+    # to the risk sensors; otherwise they keep their translation key and are
+    # named in the Home Assistant UI language.
+    if _opt(CONF_NAMES_IN_INTEGRATION_LANG, DEFAULT_NAMES_IN_INTEGRATION_LANG):
+        risk_names = RISK_SENSOR_NAMES.get(lang, RISK_SENSOR_NAMES["en"])
+    else:
+        risk_names = {}
+    risk_name = risk_names.get("allergy_risk")
+    risk_name_hourly = risk_names.get("allergy_risk_hourly")
+
     entities: list[SensorEntity] = []
     new_unique_ids: set[str] = set()
 
@@ -213,6 +225,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
             levels_current=levels_current,
             location_slug=location_slug,
             location_title=location_title,
+            name=risk_name,
         )
         entities.append(sensor)
         if sensor.unique_id:
@@ -230,6 +243,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
             levels_current=levels_current,
             location_slug=location_slug,
             location_title=location_title,
+            name=risk_name_hourly,
         )
         entities.append(sensor)
         if sensor.unique_id:
@@ -255,6 +269,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
                     levels_current=levels_current,
                     location_slug=location_slug,
                     location_title=location_title,
+                    name=risk_name,
                     is_stale=True,
                     stale_since=stale_since,
                 )
@@ -264,6 +279,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
                     levels_current=levels_current,
                     location_slug=location_slug,
                     location_title=location_title,
+                    name=risk_name_hourly,
                     is_stale=True,
                     stale_since=stale_since,
                 )
@@ -447,6 +463,7 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
         levels_current: list,
         location_slug: str,
         location_title: str,
+        name: str | None = None,
         is_stale: bool = False,
         stale_since: str | None = None,
     ) -> None:
@@ -457,6 +474,10 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
         self._is_stale = is_stale
         self._stale_since = stale_since
 
+        # An explicit name wins over the translation key; leaving it unset
+        # lets the name follow the Home Assistant UI language.
+        if name:
+            self._attr_name = name
         self._attr_unique_id = f"polleninformation_{location_slug}_allergy_risk"
         self._attr_icon = "mdi:alert"
         self._attr_device_info = {
@@ -551,6 +572,7 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
         levels_current: list,
         location_slug: str,
         location_title: str,
+        name: str | None = None,
         is_stale: bool = False,
         stale_since: str | None = None,
     ) -> None:
@@ -561,6 +583,10 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
         self._is_stale = is_stale
         self._stale_since = stale_since
 
+        # An explicit name wins over the translation key; leaving it unset
+        # lets the name follow the Home Assistant UI language.
+        if name:
+            self._attr_name = name
         self._attr_unique_id = f"polleninformation_{location_slug}_allergy_risk_hourly"
         self._attr_icon = "mdi:timeline-clock"
         self._attr_device_info = {

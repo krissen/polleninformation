@@ -30,6 +30,11 @@ MIN_UPDATE_INTERVAL = 1
 MAX_UPDATE_INTERVAL = 24
 CONF_UPDATE_INTERVAL = "update_interval"
 
+# Name the allergy risk sensors in the integration's configured language
+# instead of following the Home Assistant UI language.
+CONF_NAMES_IN_INTEGRATION_LANG = "names_in_integration_language"
+DEFAULT_NAMES_IN_INTEGRATION_LANG = False
+
 # URL for requesting an API key
 API_KEY_REQUEST_URL = (
     "https://www.polleninformation.at/en/data-interface/request-an-api-key"

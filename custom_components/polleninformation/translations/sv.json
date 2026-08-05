@@ -43,7 +43,11 @@
           "location_name": "Platsnamn (valfritt)",
           "language": "Språk",
           "apikey": "API-nyckel",
-          "update_interval": "Uppdateringsintervall (timmar)"
+          "update_interval": "Uppdateringsintervall (timmar)",
+          "names_in_integration_language": "Namnge entiteter på integrationens språk"
+        },
+        "data_description": {
+          "names_in_integration_language": "När detta är aktiverat namnges allergirisksensorerna på språket som valts ovan i stället för på Home Assistants gränssnittsspråk. Allergennamnen följer alltid det valda språket eftersom de kommer från API:et."
         }
       }
     },

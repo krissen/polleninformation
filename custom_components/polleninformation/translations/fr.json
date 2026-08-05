@@ -43,7 +43,11 @@
           "location_name": "Nom de l'emplacement (optionnel)",
           "language": "Langue",
           "apikey": "Clé API",
-          "update_interval": "Intervalle de mise à jour (heures)"
+          "update_interval": "Intervalle de mise à jour (heures)",
+          "names_in_integration_language": "Nommer les entités dans la langue de l'intégration"
+        },
+        "data_description": {
+          "names_in_integration_language": "Lorsque cette option est activée, les capteurs de risque d'allergie sont nommés dans la langue sélectionnée ci-dessus plutôt que dans la langue de l'interface Home Assistant. Les noms d'allergènes suivent toujours la langue sélectionnée, car ils proviennent de l'API."
         }
       }
     },

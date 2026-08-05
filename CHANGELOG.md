@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Added
+
+- **Option: name entities in the integration language** — a new toggle in the
+  options flow names the allergy risk sensors in the language configured for
+  the integration rather than in the Home Assistant interface language. Off by
+  default. Allergen names are unaffected; they already follow the configured
+  language because the API supplies them.
+
 ### Fixed
 
 - **Allergy risk sensor names are now translatable** (issue #63) — the two

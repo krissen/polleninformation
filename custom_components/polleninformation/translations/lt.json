@@ -43,7 +43,11 @@
           "location_name": "Vietos pavadinimas (neprivaloma)",
           "language": "Kalba",
           "apikey": "API raktas",
-          "update_interval": "Atnaujinimo intervalas (valandos)"
+          "update_interval": "Atnaujinimo intervalas (valandos)",
+          "names_in_integration_language": "Name entities in the integration language"
+        },
+        "data_description": {
+          "names_in_integration_language": "When enabled, the allergy risk sensors are named in the language selected above instead of the Home Assistant interface language. Allergen names always follow the selected language, because they come from the API."
         }
       }
     },

@@ -43,7 +43,11 @@
           "location_name": "Konum adı (isteğe bağlı)",
           "language": "Dil",
           "apikey": "API anahtarı",
-          "update_interval": "Güncelleme aralığı (saat)"
+          "update_interval": "Güncelleme aralığı (saat)",
+          "names_in_integration_language": "Varlıkları entegrasyon dilinde adlandır"
+        },
+        "data_description": {
+          "names_in_integration_language": "Etkinleştirildiğinde alerji riski sensörleri, Home Assistant arayüz dili yerine yukarıda seçilen dilde adlandırılır. Alerjen adları API'den geldiği için her zaman seçilen dili izler."
         }
       }
     },

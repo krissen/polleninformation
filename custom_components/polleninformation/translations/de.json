@@ -43,7 +43,11 @@
           "location_name": "Standortname (optional)",
           "language": "Sprache",
           "apikey": "API-Schlüssel",
-          "update_interval": "Aktualisierungsintervall (Stunden)"
+          "update_interval": "Aktualisierungsintervall (Stunden)",
+          "names_in_integration_language": "Entitäten in der Sprache der Integration benennen"
+        },
+        "data_description": {
+          "names_in_integration_language": "Wenn aktiviert, werden die Allergierisiko-Sensoren in der oben ausgewählten Sprache benannt statt in der Sprache der Home-Assistant-Oberfläche. Die Allergennamen folgen ohnehin immer der ausgewählten Sprache, da sie von der API stammen."
         }
       }
     },
