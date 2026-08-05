@@ -1,8 +1,8 @@
 # Changelog
 
-## Unreleased
+## v0.5.2 — Entity name translations, contributor fixes, CI (2026-08-05)
 
-### Added
+### New features
 
 - **Option: name entities in the integration language** — a new toggle in the
   options flow names the allergy risk sensors in the language configured for
@@ -10,7 +10,7 @@
   default. Allergen names are unaffected; they already follow the configured
   language because the API supplies them.
 
-### Fixed
+### Bug fixes
 
 - **Allergy risk sensor names are now translatable** (issue #63) — the two
   allergy risk sensors used a hardcoded English name. They now use Home
@@ -33,6 +33,12 @@
   its value actually describes (PR #58 by @IoannisArmamentos). As a consequence,
   day-1 entries earlier than the current hour are now in the past; that is
   intentional and lets a full day be charted.
+
+- **Broken logo on the API status page** — the page hot-linked the
+  Polleninformation logo from polleninformation.at, whose asset path changed
+  (cache-busting hash), breaking the image. The logo is now vendored locally
+  under `docs/` and referenced relatively, so the status page no longer depends
+  on their site.
 
 ### Internal
 
@@ -69,18 +75,6 @@
   responses; the JSON mocks in `test_api.py` now advertise an
   `application/json` content-type, which recent aiohttp no longer defaults.
   Surfaced by the HA 2026.7.1 bump.
-
-## v0.5.2 — Status page logo fix and options-flow modernization (2026-06-22)
-
-### Bug fixes
-
-- **Broken logo on the API status page** — the page hot-linked the
-  Polleninformation logo from polleninformation.at, whose asset path changed
-  (cache-busting hash), breaking the image. The logo is now vendored locally
-  under `docs/` and referenced relatively, so the status page no longer depends
-  on their site.
-
-### Internal
 
 - **CI: bump GitHub Actions to Node 24 runtimes** — `actions/checkout` → v5,
   `actions/setup-python` → v6, `actions/upload-pages-artifact` → v5,
