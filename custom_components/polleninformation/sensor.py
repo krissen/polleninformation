@@ -603,7 +603,7 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
                 attrs["stale_since"] = self._stale_since
             return attrs
 
-        base_time = dt_util.utcnow().replace(minute=0, second=0, microsecond=0)
+        base_time = dt_util.now().replace(hour=0, minute=0, second=0, microsecond=0)
         forecast = []
         for day in range(1, 5):
             values = allergyrisk_hourly.get(f"allergyrisk_hourly_{day}", [])
