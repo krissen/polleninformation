@@ -863,3 +863,154 @@ class TestAllergenSlugFromLatin:
         )
         # German levels, because the entry is configured for German.
         assert ash.native_value == "mäßig"
+
+
+class TestMigrateLocalizedAllergenIds:
+    """Localized allergen unique_ids and entity_ids are renamed (issue #63)."""
+
+    def _seed(self, hass, entry, unique_id, object_id):
+        return er.async_get(hass).async_get_or_create(
+            "sensor",
+            DOMAIN,
+            unique_id,
+            suggested_object_id=object_id,
+            config_entry=entry,
+        )
+
+    async def _run(self, hass, seeds):
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        for unique_id, object_id in seeds:
+            self._seed(hass, entry, unique_id, object_id)
+        await _setup_entities(
+            hass,
+            "de",
+            entry=entry,
+            response=GERMAN_TREE_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        return er.async_get(hass)
+
+    async def test_unique_id_and_entity_id_are_renamed(self, hass):
+        ent_reg = await self._run(
+            hass,
+            [
+                ("polleninformation_hamburg_esche", "polleninformation_hamburg_esche"),
+                (
+                    "polleninformation_hamburg_gotterbaum",
+                    "polleninformation_hamburg_gotterbaum",
+                ),
+            ],
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_ash"
+            )
+            == "sensor.polleninformation_hamburg_ash"
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_tree_of_heaven"
+            )
+            == "sensor.polleninformation_hamburg_tree_of_heaven"
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_esche"
+            )
+            is None
+        )
+
+    async def test_user_renamed_entity_id_is_kept(self, hass):
+        """The unique_id is still fixed, but a chosen entity_id is not touched."""
+        ent_reg = await self._run(
+            hass, [("polleninformation_hamburg_esche", "pollen_ash_tree")]
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_ash"
+            )
+            == "sensor.pollen_ash_tree"
+        )
+
+    async def test_canonical_id_is_untouched(self, hass):
+        """An English installation already has the canonical ids."""
+        ent_reg = await self._run(
+            hass, [("polleninformation_hamburg_ash", "polleninformation_hamburg_ash")]
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_ash"
+            )
+            == "sensor.polleninformation_hamburg_ash"
+        )
+
+    async def test_unrelated_entity_is_untouched(self, hass):
+        ent_reg = await self._run(
+            hass, [("polleninformation_hamburg_birch", "polleninformation_birke")]
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_birch"
+            )
+            == "sensor.polleninformation_birke"
+        )
+
+    async def test_taken_unique_id_is_skipped(self, hass):
+        ent_reg = await self._run(
+            hass,
+            [
+                ("polleninformation_hamburg_esche", "polleninformation_hamburg_esche"),
+                ("polleninformation_hamburg_ash", "polleninformation_hamburg_ash"),
+            ],
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_esche"
+            )
+            == "sensor.polleninformation_hamburg_esche"
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_ash"
+            )
+            == "sensor.polleninformation_hamburg_ash"
+        )
+
+    async def test_taken_entity_id_keeps_entity_id_but_fixes_unique_id(self, hass):
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        ent_reg.async_get_or_create(
+            "sensor",
+            "other_integration",
+            "other_unique_id",
+            suggested_object_id="polleninformation_hamburg_ash",
+        )
+        self._seed(
+            hass,
+            entry,
+            "polleninformation_hamburg_esche",
+            "polleninformation_hamburg_esche",
+        )
+
+        await _setup_entities(
+            hass,
+            "de",
+            entry=entry,
+            response=GERMAN_TREE_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_ash"
+            )
+            == "sensor.polleninformation_hamburg_esche"
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", "other_integration", "other_unique_id"
+            )
+            == "sensor.polleninformation_hamburg_ash"
+        )

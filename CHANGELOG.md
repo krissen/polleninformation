@@ -20,6 +20,13 @@
   icon. Linden was listed under a slug the API never returns (`lime`), so it
   had no icon either.
 
+- **Localized allergen IDs are renamed automatically** (issue #63) — an
+  installation that got a localized unique ID and entity ID has both renamed to
+  the English form on the next start. The rename is derived from the current API
+  response, so nothing outside this integration's own output can match it. An
+  entity ID you renamed yourself is kept, and a rename is skipped when the
+  target is already taken.
+
 - **Allergy risk sensors get English entity IDs again** (issue #63) — v0.5.2
   gave the two allergy risk sensors translatable names, and Home Assistant
   derives an entity ID from the name it sees when the entity is first created.

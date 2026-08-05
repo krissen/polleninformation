@@ -163,6 +163,55 @@ def english_name_for_latin(latin: str | None) -> str | None:
     return index.get(key.split()[0]) if key.split() else None
 
 
+def migrate_localized_allergen_ids(hass, location_slug, renames) -> None:
+    """Rename allergen ids that were derived from a localized allergen name.
+
+    The renames are (legacy_slug, canonical_slug) pairs derived from the
+    current API response, so only ids this integration can itself have
+    produced are ever considered. Both the unique_id and the entity_id are
+    migrated; either is skipped with a warning when the target is taken.
+    """
+    if not renames:
+        return
+
+    ent_reg = er.async_get(hass)
+    for legacy_slug, canonical_slug in renames:
+        legacy_unique_id = f"polleninformation_{location_slug}_{legacy_slug}"
+        entity_id = ent_reg.async_get_entity_id("sensor", DOMAIN, legacy_unique_id)
+        if entity_id is None:
+            continue
+
+        canonical_unique_id = f"polleninformation_{location_slug}_{canonical_slug}"
+        if ent_reg.async_get_entity_id("sensor", DOMAIN, canonical_unique_id):
+            _LOGGER.warning(
+                "Not migrating %s: an entity with unique_id %s already exists",
+                entity_id,
+                canonical_unique_id,
+            )
+            continue
+
+        updates: dict[str, str] = {"new_unique_id": canonical_unique_id}
+        object_id = entity_id.split(".", 1)[1]
+        if object_id.endswith(f"_{legacy_slug}"):
+            new_entity_id = f"sensor.{object_id[: -len(legacy_slug)]}{canonical_slug}"
+            if ent_reg.async_get(new_entity_id) is not None:
+                _LOGGER.warning(
+                    "Keeping entity_id %s: %s is already taken",
+                    entity_id,
+                    new_entity_id,
+                )
+            else:
+                updates["new_entity_id"] = new_entity_id
+
+        _LOGGER.info(
+            "Migrating localized allergen sensor %s (%s) to %s",
+            entity_id,
+            legacy_slug,
+            canonical_slug,
+        )
+        ent_reg.async_update_entity(entity_id, **updates)
+
+
 @lru_cache(maxsize=1)
 def localized_risk_object_id_suffixes() -> dict[str, frozenset[str]]:
     """Return the localized object_id suffixes the risk sensors can have produced.
@@ -324,6 +373,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     entities: list[SensorEntity] = []
     new_unique_ids: set[str] = set()
+    allergen_renames: list[tuple[str, str]] = []
 
     for item in contamination:
         poll_title_full = item.get("poll_title", "<unknown>")
@@ -347,6 +397,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
         allergen_en = english_name_for_latin(latin) or legacy_en
         allergen_la = latin if latin else ""
         slug_en = slugify(allergen_en) if allergen_en else slugify(poll_title_local)
+        legacy_slug = slugify(legacy_en) if legacy_en else slug_en
+        if legacy_slug and legacy_slug != slug_en:
+            allergen_renames.append((legacy_slug, slug_en))
         icon = ALLERGEN_ICON_MAP.get(slug_en, ALLERGEN_ICON_MAP["default"])
 
         sensor = PolleninformationSensor(
@@ -366,6 +419,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
         entities.append(sensor)
         if sensor.unique_id:
             new_unique_ids.add(sensor.unique_id)
+
+    migrate_localized_allergen_ids(hass, location_slug, allergen_renames)
 
     # Allergy risk daily sensor - only if contamination has data (otherwise allergyrisk is meaningless)
     allergyrisk = (
