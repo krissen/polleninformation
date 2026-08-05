@@ -15,6 +15,11 @@
   fallback. The displayed name is unaffected and stays in the configured
   language.
 
+- **An allergen no map knows about is now logged** — it still gets a sensor,
+  named and slugged from the configured language as before, but a warning names
+  it and its latin name and asks for a bug report, so an addition to the API
+  surfaces instead of quietly producing a localized entity ID.
+
 - **Icons for the allergens the API has added** — dock/sorrel, plantain, sweet
   chestnut and tree of heaven had no icon and fell back to the generic pollen
   icon. Linden was listed under a slug the API never returns (`lime`), so it

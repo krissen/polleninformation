@@ -1014,3 +1014,81 @@ class TestMigrateLocalizedAllergenIds:
             )
             == "sensor.polleninformation_hamburg_ash"
         )
+
+
+UNKNOWN_ALLERGEN_RESPONSE = {
+    "contamination": [
+        {
+            "poll_title": "Kiefer (Pinus)",
+            "contamination_1": 1,
+            "contamination_2": 0,
+            "contamination_3": 0,
+            "contamination_4": 0,
+        }
+    ],
+    "allergyrisk": {"allergyrisk_1": 5.0},
+    "allergyrisk_hourly": {"allergyrisk_hourly_1": [5.0] * 24},
+}
+
+
+class TestUnknownAllergenFallback:
+    """An allergen no map knows about still gets a sensor, plus a warning."""
+
+    async def _setup(self, hass):
+        return await _setup_entities(
+            hass,
+            "de",
+            response=UNKNOWN_ALLERGEN_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+
+    async def test_falls_back_to_the_localized_name(self, hass):
+        entities = await self._setup(hass)
+        unique_ids = {e.unique_id for e in entities}
+        assert "polleninformation_hamburg_kiefer" in unique_ids
+
+    async def test_warns_once_with_the_latin_name(self, hass, caplog):
+        await self._setup(hass)
+        warnings = [
+            r.getMessage()
+            for r in caplog.records
+            if r.levelname == "WARNING" and "Unknown allergen" in r.getMessage()
+        ]
+        assert len(warnings) == 1
+        assert "Kiefer" in warnings[0]
+        assert "Pinus" in warnings[0]
+
+    async def test_no_warning_for_a_mapped_allergen(self, hass, caplog):
+        await _setup_entities(
+            hass,
+            "de",
+            response=GERMAN_TREE_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        assert not [r for r in caplog.records if "Unknown allergen" in r.getMessage()]
+
+    async def test_no_migration_for_an_unknown_allergen(self, hass):
+        """Nothing to rename: the fallback slug is the only one we ever had."""
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            "polleninformation_hamburg_kiefer",
+            suggested_object_id="polleninformation_hamburg_kiefer",
+            config_entry=entry,
+        )
+        await _setup_entities(
+            hass,
+            "de",
+            entry=entry,
+            response=UNKNOWN_ALLERGEN_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_kiefer"
+            )
+            == "sensor.polleninformation_hamburg_kiefer"
+        )

@@ -394,7 +394,16 @@ async def async_setup_entry(hass, entry, async_add_entities):
             get_allergen_info_by_latin(latin, language_block_en) if latin else None
         )
         legacy_en = allergen_en_obj["name"] if allergen_en_obj else poll_title_local
-        allergen_en = english_name_for_latin(latin) or legacy_en
+        mapped_en = english_name_for_latin(latin)
+        if mapped_en is None and allergen_en_obj is None:
+            _LOGGER.warning(
+                "Unknown allergen %r (latin %r); its entity_id will follow the "
+                "configured language. Please report this at "
+                "https://github.com/krissen/polleninformation/issues",
+                poll_title_local,
+                latin or "",
+            )
+        allergen_en = mapped_en or legacy_en
         allergen_la = latin if latin else ""
         slug_en = slugify(allergen_en) if allergen_en else slugify(poll_title_local)
         legacy_slug = slugify(legacy_en) if legacy_en else slug_en
