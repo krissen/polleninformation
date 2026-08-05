@@ -9,6 +9,17 @@
   photography set and looked like nothing in particular at sensor size
   (thanks @zeus86).
 
+- **Distinct icons per pollen source** — the allergens went from 9 to 13
+  distinct icons, so a list of sensors can be scanned at a glance. Catkin
+  trees, broadleaf trees, evergreens, grasses, cereals, weeds, herbs and fungal
+  spores are now told apart, and several allergens got an icon of their own:
+  hazel a hop cone for its catkins, plane tree a maple-like leaf, ragweed a
+  poppy, sorrel a sprout, mugwort a flower, and fungal spores a mushroom in
+  place of a warning cloud. Mugwort also no longer shares its icon with the
+  fallback used for an unrecognized allergen. The icons that are still shared
+  are shared on purpose — Material Design Icons has no species-specific plant
+  icons, and a shared icon beats one that depicts the wrong plant.
+
 ## v0.5.3 — English entity IDs in every language (2026-08-05)
 
 ### Bug fixes
