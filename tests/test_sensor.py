@@ -11,7 +11,9 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.polleninformation.const import DOMAIN
 from custom_components.polleninformation.sensor import (
     ALLERGEN_ICON_MAP,
+    KNOWN_ALLERGEN_SLUGS,
     LATIN_TO_ENGLISH_NAME,
+    RISK_SLUGS,
     AllergyRiskHourlySensor,
     AllergyRiskSensor,
     PolleninformationSensor,
@@ -1092,3 +1094,66 @@ class TestUnknownAllergenFallback:
             )
             == "sensor.polleninformation_hamburg_kiefer"
         )
+
+
+# The canonical slug for every allergen, pinned. These slugs are a public
+# contract: they are the entity_id suffix, they are in every unique_id, and
+# the pollen forecast card matches on them. A change to an API display name or
+# to slugify() must fail here rather than silently rename entities.
+CANONICAL_ALLERGEN_SLUGS = {
+    "Ailanthus altissima": "tree_of_heaven",
+    "Alnus": "alder",
+    "Alternaria": "fungal_spores",
+    "Ambrosia": "ragweed",
+    "Artemisia": "mugwort",
+    "Betula": "birch",
+    "Castanea": "sweet_chestnut",
+    "Corylus": "hazel",
+    "Cupressaceae": "cypress_family",
+    "Fagus": "beech",
+    "Fraxinus": "ash",
+    "Olea": "olive",
+    "Plantago": "plantain",
+    "Platanus": "plane_tree",
+    "Poaceae": "grasses",
+    "Quercus": "oak",
+    "Rumex": "dock_sorrel",
+    "Salix": "willow",
+    "Secale": "rye",
+    "Tilia": "linden",
+    "Ulmus": "elm",
+    "Urticaceae": "nettle_family",
+}
+
+EXPECTED_KNOWN_SLUGS = frozenset(CANONICAL_ALLERGEN_SLUGS.values()) | {
+    "allergy_risk",
+    "allergy_risk_hourly",
+}
+
+
+class TestCanonicalSlugSet:
+    """Pins the slug set so a rename cannot happen unnoticed."""
+
+    def test_known_allergen_slugs(self):
+        assert KNOWN_ALLERGEN_SLUGS == EXPECTED_KNOWN_SLUGS
+
+    def test_slugs_from_the_latin_map(self):
+        """A set comparison, so two allergens collapsing onto one slug fails."""
+        assert {slugify(name) for name in LATIN_TO_ENGLISH_NAME.values()} == set(
+            CANONICAL_ALLERGEN_SLUGS.values()
+        )
+
+    @pytest.mark.parametrize(
+        ("latin", "slug"), sorted(CANONICAL_ALLERGEN_SLUGS.items())
+    )
+    def test_slug_per_latin_name(self, latin, slug):
+        assert slugify(english_name_for_latin(latin)) == slug
+
+    def test_icon_map_covers_exactly_the_canonical_slugs(self):
+        """An icon for a slug that cannot occur is as wrong as a missing one."""
+        assert set(ALLERGEN_ICON_MAP) - {"default"} == set(
+            CANONICAL_ALLERGEN_SLUGS.values()
+        )
+
+    def test_risk_slugs(self):
+        assert set(RISK_SLUGS) == {"allergy_risk", "allergy_risk_hourly"}
