@@ -168,8 +168,11 @@ def migrate_localized_allergen_ids(hass, location_slug, renames) -> None:
 
     The renames are (legacy_slug, canonical_slug) pairs derived from the
     current API response, so only ids this integration can itself have
-    produced are ever considered. Both the unique_id and the entity_id are
-    migrated; either is skipped with a warning when the target is taken.
+    produced are ever considered. The unique_id is always migrated; the
+    entity_id only when it is exactly what this integration would have
+    generated, so an entity_id the user chose is kept even when it happens to
+    end in the old slug. Either step is skipped with a warning when its
+    target is taken.
     """
     if not renames:
         return
@@ -191,9 +194,9 @@ def migrate_localized_allergen_ids(hass, location_slug, renames) -> None:
             continue
 
         updates: dict[str, str] = {"new_unique_id": canonical_unique_id}
-        object_id = entity_id.split(".", 1)[1]
-        if object_id.endswith(f"_{legacy_slug}"):
-            new_entity_id = f"sensor.{object_id[: -len(legacy_slug)]}{canonical_slug}"
+        prefix = f"polleninformation_{location_slug}_"
+        if entity_id == f"sensor.{prefix}{legacy_slug}":
+            new_entity_id = f"sensor.{prefix}{canonical_slug}"
             if ent_reg.async_get(new_entity_id) is not None:
                 _LOGGER.warning(
                     "Keeping entity_id %s: %s is already taken",
@@ -202,6 +205,12 @@ def migrate_localized_allergen_ids(hass, location_slug, renames) -> None:
                 )
             else:
                 updates["new_entity_id"] = new_entity_id
+        else:
+            _LOGGER.debug(
+                "Keeping entity_id %s: it is not the generated one for %s",
+                entity_id,
+                legacy_slug,
+            )
 
         _LOGGER.info(
             "Migrating localized allergen sensor %s (%s) to %s",
@@ -245,11 +254,12 @@ def localized_risk_object_id_suffixes() -> dict[str, frozenset[str]]:
     return {slug: frozenset(values) for slug, values in suffixes.items()}
 
 
-async def async_migrate_localized_risk_entity_ids(hass, entry) -> None:
+async def async_migrate_localized_risk_entity_ids(hass, entry, location_slug) -> None:
     """Rename risk sensor entity_ids that were created from a translated name.
 
-    Only entity_ids whose suffix matches a known translation of the sensor
-    name are touched; a user-chosen entity_id never matches and is left alone.
+    Only an entity_id that is exactly what this integration would itself have
+    generated from a translated name is touched, so an entity_id the user
+    chose is left alone even when it happens to end in a translated name.
     """
     ent_reg = er.async_get(hass)
     candidates = []
@@ -263,18 +273,17 @@ async def async_migrate_localized_risk_entity_ids(hass, entry) -> None:
         return
 
     suffixes = await hass.async_add_executor_job(localized_risk_object_id_suffixes)
+    prefix = f"polleninformation_{location_slug}_"
 
     for reg_entry, slug in candidates:
         object_id = reg_entry.entity_id.split(".", 1)[1]
-        if object_id.endswith(f"_{slug}"):
-            continue
         localized = next(
-            (s for s in suffixes[slug] if object_id.endswith(f"_{s}")), None
+            (s for s in suffixes[slug] if object_id == f"{prefix}{s}"), None
         )
         if localized is None:
             continue
 
-        new_entity_id = f"{reg_entry.domain}.{object_id[: -len(localized)]}{slug}"
+        new_entity_id = f"{reg_entry.domain}.{prefix}{slug}"
         if ent_reg.async_get(new_entity_id) is not None:
             _LOGGER.warning(
                 "Cannot rename %s to %s: target entity_id already exists",
@@ -318,8 +327,6 @@ def scale_allergy_risk(value: Any) -> int | None:
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
 
-    await async_migrate_localized_risk_entity_ids(hass, entry)
-
     # Get existing entities from registry to handle stale data scenarios
     ent_reg = er.async_get(hass)
     existing_entities = er.async_entries_for_config_entry(ent_reg, entry.entry_id)
@@ -352,6 +359,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
         lon_str = f"{lon:.4f}" if lon is not None else "?"
         location_title = f"{country_name} ({lat_str}, {lon_str})"
     location_slug = normalize(location_title)
+
+    # Needs location_slug: a rename only happens for the entity_id this
+    # integration would itself have generated for this location.
+    await async_migrate_localized_risk_entity_ids(hass, entry, location_slug)
 
     language_block_current = await async_get_language_block(hass, lang)
     language_block_en = await async_get_language_block(hass, "en")

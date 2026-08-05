@@ -1196,3 +1196,102 @@ class TestTranslationFileReadFailure:
             assert "allergierisiko" in suffixes["allergy_risk"]
         finally:
             localized_risk_object_id_suffixes.cache_clear()
+
+
+class TestOnlyGeneratedEntityIdsAreRenamed:
+    """A suffix match is not enough: the entity_id must be the generated one.
+
+    A user-chosen entity_id can end in the old slug without this integration
+    ever having produced it, and renaming it would be a rename the user did
+    not ask for.
+    """
+
+    def _seed(self, hass, entry, unique_id, object_id):
+        return er.async_get(hass).async_get_or_create(
+            "sensor",
+            DOMAIN,
+            unique_id,
+            suggested_object_id=object_id,
+            config_entry=entry,
+        )
+
+    async def test_allergen_entity_id_with_a_different_prefix_is_kept(self, hass):
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        # Ends with "_esche", but the prefix is not ours.
+        self._seed(
+            hass, entry, "polleninformation_hamburg_esche", "pollen_hamburg_esche"
+        )
+
+        await _setup_entities(
+            hass,
+            "de",
+            entry=entry,
+            response=GERMAN_TREE_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+
+        ent_reg = er.async_get(hass)
+        # The unique_id is still corrected; only the entity_id is left alone.
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_ash"
+            )
+            == "sensor.pollen_hamburg_esche"
+        )
+
+    async def test_allergen_entity_id_for_another_location_is_kept(self, hass):
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        self._seed(
+            hass,
+            entry,
+            "polleninformation_hamburg_esche",
+            "polleninformation_bremen_esche",
+        )
+
+        await _setup_entities(
+            hass,
+            "de",
+            entry=entry,
+            response=GERMAN_TREE_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+
+        ent_reg = er.async_get(hass)
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_ash"
+            )
+            == "sensor.polleninformation_bremen_esche"
+        )
+
+    async def test_risk_entity_id_with_a_different_prefix_is_kept(self, hass):
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        # Ends with the German translation, but we never generated it.
+        self._seed(hass, entry, DAILY_UNIQUE_ID, "my_own_allergierisiko")
+
+        await _setup_entities(hass, "de", entry=entry)
+
+        ent_reg = er.async_get(hass)
+        assert (
+            ent_reg.async_get_entity_id("sensor", DOMAIN, DAILY_UNIQUE_ID)
+            == "sensor.my_own_allergierisiko"
+        )
+
+    async def test_generated_risk_entity_id_is_still_renamed(self, hass):
+        """The strictness must not stop the migration it exists for."""
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        self._seed(
+            hass, entry, DAILY_UNIQUE_ID, "polleninformation_hamburg_allergierisiko"
+        )
+
+        await _setup_entities(hass, "de", entry=entry)
+
+        ent_reg = er.async_get(hass)
+        assert (
+            ent_reg.async_get_entity_id("sensor", DOMAIN, DAILY_UNIQUE_ID)
+            == "sensor.polleninformation_hamburg_allergy_risk"
+        )
