@@ -176,6 +176,24 @@ class TestGetCountryCodeFromLatLon:
         assert result == "BE"
 
     @pytest.mark.asyncio
+    async def test_returns_none_when_response_lacks_country_code(self):
+        hass = MagicMock()
+        response = AsyncMock()
+        response.status = 200
+        response.json.return_value = {"address": {"city": "Brussels"}}
+
+        session = MagicMock()
+        session.get.return_value.__aenter__.return_value = response
+
+        with patch(
+            "custom_components.polleninformation.utils.async_get_clientsession",
+            return_value=session,
+        ):
+            result = await async_get_country_code_from_latlon(hass, 50.85, 4.35)
+
+        assert result is None
+
+    @pytest.mark.asyncio
     async def test_returns_none_on_connection_error(self):
         hass = MagicMock()
         session = MagicMock()

@@ -43,7 +43,8 @@ async def async_get_country_code_from_latlon(hass, lat, lon):
         ) as resp:
             if resp.status == 200:
                 result = await resp.json()
-                return result.get("address", {}).get("country_code", "").upper()
+                country_code = result.get("address", {}).get("country_code")
+                return country_code.upper() if country_code else None
     except (aiohttp.ClientError, TimeoutError, ValueError):
         return None
 

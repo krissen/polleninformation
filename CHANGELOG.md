@@ -27,6 +27,8 @@
   detection via Nominatim now returns `None` on connection errors, timeouts and
   malformed responses instead of raising, and it uses Home Assistant's shared
   aiohttp session rather than opening its own (PR #60 by @IoannisArmamentos).
+  A response without a country code now also yields `None` rather than an empty
+  string.
 
 - **Hourly allergy risk forecast timestamps** — the forecast now starts at local
   midnight instead of the current UTC hour, so each entry carries the timestamp
