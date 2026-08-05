@@ -77,30 +77,40 @@ LATIN_TO_ENGLISH_NAME = {
     "Urticaceae": "nettle family",
 }
 
+# Icons group the allergens by pollen source, which is what makes a list of
+# them scannable: the name next to the icon already says which species it is.
+# Material Design Icons has no species-specific plant icons, so a shared icon
+# is preferred over one that would depict the wrong plant.
 ALLERGEN_ICON_MAP = {
+    # Catkin trees, the early-spring group
     "alder": "mdi:tree-outline",
+    "birch": "mdi:tree-outline",
+    "willow": "mdi:tree-outline",
+    "hazel": "mdi:hops",  # a hazel catkin has the shape of a hop cone
+    # Broadleaf trees
     "ash": "mdi:tree",
-    "beech": "mdi:leaf",
-    "birch": "mdi:tree",
-    "cypress_family": "mdi:pine-tree",
-    "default": "mdi:flower-pollen",
-    "dock_sorrel": "mdi:leaf",
+    "beech": "mdi:tree",
     "elm": "mdi:tree",
-    "grasses": "mdi:grass",
-    "hazel": "mdi:nature",
-    "linden": "mdi:leaf",
-    "fungal_spores": "mdi:cloud-alert",
-    "mugwort": "mdi:flower-pollen",
-    "nettle_family": "mdi:leaf",
-    "oak": "mdi:leaf",
-    "olive": "mdi:leaf",
-    "plane_tree": "mdi:tree",
-    "plantain": "mdi:leaf",
-    "ragweed": "mdi:flower-pollen",
-    "rye": "mdi:grain",
+    "linden": "mdi:tree",
+    "oak": "mdi:tree",
     "sweet_chestnut": "mdi:tree",
     "tree_of_heaven": "mdi:tree",
-    "willow": "mdi:tree",
+    "plane_tree": "mdi:leaf-maple",  # the one species whose leaf is maple-like
+    # Evergreens
+    "cypress_family": "mdi:pine-tree",
+    "olive": "mdi:leaf-circle",
+    # Grasses and cereals
+    "grasses": "mdi:grass",
+    "rye": "mdi:barley",
+    # Weeds and herbs
+    "mugwort": "mdi:flower",
+    "ragweed": "mdi:flower-poppy",
+    "dock_sorrel": "mdi:sprout",
+    "nettle_family": "mdi:leaf",
+    "plantain": "mdi:leaf",
+    # Not a plant at all
+    "fungal_spores": "mdi:mushroom",
+    "default": "mdi:flower-pollen",
 }
 
 RISK_SLUGS = ("allergy_risk", "allergy_risk_hourly")
