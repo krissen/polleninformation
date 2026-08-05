@@ -30,7 +30,7 @@ from .const import (
     DEFAULT_LANG,
     DOMAIN,
 )
-from .const_levels import LEVELS
+from .const_levels import ALLERGEN_DISPLAY_OVERRIDES, LEVELS
 from .utils import (
     async_get_language_block,
     get_allergen_info_by_latin,
@@ -159,6 +159,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         lang, LEVELS.get("en", ["none", "low", "moderate", "high", "very high"])
     )
     levels_en = LEVELS.get("en", ["none", "low", "moderate", "high", "very high"])
+    display_overrides = ALLERGEN_DISPLAY_OVERRIDES.get(lang, {})
 
     entities: list[SensorEntity] = []
     new_unique_ids: set[str] = set()
@@ -194,6 +195,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
             location_slug=location_slug,
             location_title=location_title,
             icon=icon,
+            display_name=display_overrides.get(slug_en, poll_title_local),
         )
         entities.append(sensor)
         if sensor.unique_id:
@@ -282,6 +284,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
                     location_slug=location_slug,
                     location_title=location_title,
                     icon=icon,
+                    display_name=display_overrides.get(allergen_slug, allergen_en),
                     is_stale=True,
                     stale_since=stale_since,
                 )
@@ -310,12 +313,15 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
         location_slug: str,
         location_title: str,
         icon: str,
+        display_name: str | None = None,
         is_stale: bool = False,
         stale_since: str | None = None,
     ) -> None:
         super().__init__(coordinator)
         self.sensor_type = sensor_type
+        # Matching key against the API's poll_title; never overridden.
         self._allergen_name = allergen_name
+        self._display_name = display_name or allergen_name
         self._allergen_en = allergen_en
         self._allergen_slug = allergen_slug
         self._allergen_latin = allergen_latin
@@ -326,7 +332,7 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
         self._is_stale = is_stale
         self._stale_since = stale_since
 
-        self._attr_name = allergen_name
+        self._attr_name = self._display_name
         self._attr_unique_id = f"polleninformation_{location_slug}_{allergen_slug}"
         self._attr_icon = icon
         self._attr_device_info = {
@@ -407,7 +413,7 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
             "tomorrow_named_state": tomorrow_raw["level_name"]
             if tomorrow_raw
             else None,
-            "friendly_name": self._allergen_name,
+            "friendly_name": self._display_name,
             "name_en": self._allergen_en,
             "name_la": self._allergen_latin,
             "allergen_slug": self._allergen_slug,

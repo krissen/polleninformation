@@ -25,3 +25,12 @@ LEVELS = {
     "uk": ["немає", "низький", "помірний", "високий", "дуже високий"],  # Ukrainian
     "hu": ["nincs", "alacsony", "közepes", "magas", "nagyon magas"],  # Hungarian
 }
+
+# Display name overrides per language, keyed by the English allergen slug.
+# The API returns the English name for a few allergens even when a localized
+# name exists, so the display name is corrected here. The name used to match
+# against the API response is unaffected.
+ALLERGEN_DISPLAY_OVERRIDES = {
+    "de": {"ragweed": "Ambrosia"},  # German
+    "sk": {"ragweed": "Ambrózia"},  # Slovak
+}

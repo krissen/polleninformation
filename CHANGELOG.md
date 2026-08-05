@@ -10,6 +10,11 @@
   language instead of always reading "Allergy risk" / "Allergy risk hourly".
   Names are translated into all 16 supported languages.
 
+- **Ragweed is now named "Ambrosia" in German and "Ambrózia" in Slovak**
+  (issue #63) — the API returns the English name "Ragweed" for these two
+  languages. The sensor display name is corrected locally; the value lookup
+  still matches on the name the API sends, so the sensor keeps its state.
+
 - **Config flow no longer aborts when reverse geocoding fails** — country
   detection via Nominatim now returns `None` on connection errors, timeouts and
   malformed responses instead of raising, and it uses Home Assistant's shared
