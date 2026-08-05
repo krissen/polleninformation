@@ -35,7 +35,12 @@ async def async_get_country_code_from_latlon(hass, lat, lon):
     session = async_get_clientsession(hass)
 
     try:
-        async with session.get(url, params=params, headers=headers, timeout=5) as resp:
+        async with session.get(
+            url,
+            params=params,
+            headers=headers,
+            timeout=aiohttp.ClientTimeout(total=5),
+        ) as resp:
             if resp.status == 200:
                 result = await resp.json()
                 return result.get("address", {}).get("country_code", "").upper()

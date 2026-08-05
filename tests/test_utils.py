@@ -1,4 +1,4 @@
-"""Tests for utility functions (pure, no HA dependency)."""
+"""Tests for utility functions."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -168,8 +168,8 @@ class TestGetCountryCodeFromLatLon:
         session.get.return_value.__aenter__.return_value = response
 
         with patch(
-                "custom_components.polleninformation.utils.async_get_clientsession",
-                return_value=session,
+            "custom_components.polleninformation.utils.async_get_clientsession",
+            return_value=session,
         ):
             result = await async_get_country_code_from_latlon(hass, 50.85, 4.35)
 
@@ -182,8 +182,8 @@ class TestGetCountryCodeFromLatLon:
         session.get.side_effect = aiohttp.ClientError
 
         with patch(
-                "custom_components.polleninformation.utils.async_get_clientsession",
-                return_value=session,
+            "custom_components.polleninformation.utils.async_get_clientsession",
+            return_value=session,
         ):
             result = await async_get_country_code_from_latlon(hass, 50.85, 4.35)
 

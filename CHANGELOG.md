@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Fixed
+
+- **Config flow no longer aborts when reverse geocoding fails** — country
+  detection via Nominatim now returns `None` on connection errors, timeouts and
+  malformed responses instead of raising, and it uses Home Assistant's shared
+  aiohttp session rather than opening its own (PR #60 by @IoannisArmamentos).
+
 ### Internal
 
 - **Dependabot** — added `.github/dependabot.yml` with monthly grouped updates
