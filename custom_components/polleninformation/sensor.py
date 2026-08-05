@@ -233,7 +233,7 @@ def localized_risk_object_id_suffixes() -> dict[str, frozenset[str]]:
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
-            _LOGGER.debug("Could not read translation file %s", path)
+            _LOGGER.debug("Could not read translation file %s", path, exc_info=True)
             continue
         sensors = data.get("entity", {}).get("sensor", {})
         for slug in RISK_SLUGS:

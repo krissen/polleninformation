@@ -1,5 +1,6 @@
 """Tests for sensor helper functions and sensor classes."""
 
+import logging
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 from zoneinfo import ZoneInfo
@@ -1157,3 +1158,41 @@ class TestCanonicalSlugSet:
 
     def test_risk_slugs(self):
         assert set(RISK_SLUGS) == {"allergy_risk", "allergy_risk_hourly"}
+
+
+class TestTranslationFileReadFailure:
+    """A broken translation file must not hide why it was skipped."""
+
+    def test_debug_log_carries_the_exception(self, caplog):
+        localized_risk_object_id_suffixes.cache_clear()
+        try:
+            with (
+                caplog.at_level(logging.DEBUG),
+                patch(
+                    "custom_components.polleninformation.sensor.Path.read_text",
+                    side_effect=OSError("boom"),
+                ),
+            ):
+                localized_risk_object_id_suffixes()
+            records = [
+                r
+                for r in caplog.records
+                if "Could not read translation file" in r.getMessage()
+            ]
+            assert records
+            assert all(r.exc_info for r in records)
+        finally:
+            localized_risk_object_id_suffixes.cache_clear()
+
+    def test_names_survive_from_the_static_map(self):
+        """RISK_SENSOR_NAMES still supplies candidates without the files."""
+        localized_risk_object_id_suffixes.cache_clear()
+        try:
+            with patch(
+                "custom_components.polleninformation.sensor.Path.read_text",
+                side_effect=OSError("boom"),
+            ):
+                suffixes = localized_risk_object_id_suffixes()
+            assert "allergierisiko" in suffixes["allergy_risk"]
+        finally:
+            localized_risk_object_id_suffixes.cache_clear()
