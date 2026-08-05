@@ -1,5 +1,55 @@
 # Changelog
 
+## v0.5.3 — English entity IDs in every language (2026-08-05)
+
+### Bug fixes
+
+- **Allergen entity IDs are English again** (issue #63) — the allergen slug,
+  which decides both the unique ID and the entity ID, came from an English name
+  looked up by latin name in `language_map.json`. That file only covers twelve
+  allergens, so the ten it does not know about fell back to the name the API
+  sent in the configured language: a German installation got
+  `sensor.polleninformation_<location>_esche` rather than `..._ash`, and a
+  Swedish one `..._ask`. The slug now comes from a static latin-to-English map
+  covering every allergen the API returns, with the old lookup kept as a
+  fallback. The displayed name is unaffected and stays in the configured
+  language.
+
+- **An allergen no map knows about is now logged** — it still gets a sensor,
+  named and slugged from the configured language as before, but a warning names
+  it and its latin name and asks for a bug report, so an addition to the API
+  surfaces instead of quietly producing a localized entity ID.
+
+- **Icons for the allergens the API has added** — dock/sorrel, plantain, sweet
+  chestnut and tree of heaven had no icon and fell back to the generic pollen
+  icon. Linden was listed under a slug the API never returns (`lime`), so it
+  had no icon either.
+
+- **Localized allergen IDs are renamed automatically** (issue #63) — an
+  installation that got a localized unique ID and entity ID has both renamed to
+  the English form on the next start. The rename is derived from the current API
+  response, so nothing outside this integration's own output can match it. An
+  entity ID you renamed yourself is kept, and a rename is skipped when the
+  target is already taken.
+
+- **Allergy risk sensors get English entity IDs again** (issue #63) — v0.5.2
+  gave the two allergy risk sensors translatable names, and Home Assistant
+  derives an entity ID from the name it sees when the entity is first created.
+  A new installation on a non-English Home Assistant therefore ended up with
+  entity IDs such as `sensor.polleninformation_<location>_allergierisiko`
+  instead of `..._allergy_risk`, which breaks dashboards and the pollen
+  forecast card. The entity ID is now pinned to the English slug and no longer
+  follows the displayed name. Installations that upgraded from an earlier
+  version were never affected. The names themselves are still translated.
+
+- **Entity IDs created from a translated name are renamed automatically**
+  (issue #63) — an installation that already got a localized entity ID from
+  v0.5.2 has it renamed to the canonical `..._allergy_risk` /
+  `..._allergy_risk_hourly` on the next start. Only entity IDs matching a
+  translation of the sensor name are touched, so an entity ID you renamed
+  yourself is left alone; a rename is also skipped if the target entity ID is
+  already taken.
+
 ## v0.5.2 — Entity name translations, contributor fixes, CI (2026-08-05)
 
 ### New features

@@ -1,23 +1,33 @@
 """Tests for sensor helper functions and sensor classes."""
 
+import logging
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 from zoneinfo import ZoneInfo
 
 import pytest
+from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.polleninformation.const import DOMAIN
 from custom_components.polleninformation.sensor import (
+    ALLERGEN_ICON_MAP,
+    KNOWN_ALLERGEN_SLUGS,
+    LATIN_TO_ENGLISH_NAME,
+    RISK_SLUGS,
     AllergyRiskHourlySensor,
     AllergyRiskSensor,
     PolleninformationSensor,
     async_setup_entry,
     capitalize_first,
+    english_name_for_latin,
+    entity_id_available,
     extract_allergen_slug_from_unique_id,
+    localized_risk_object_id_suffixes,
     pollen_forecast_for_allergen,
     scale_allergy_risk,
 )
+from custom_components.polleninformation.utils import slugify
 
 
 # --- Helper function tests (pure, no HA dependency) ---
@@ -412,9 +422,8 @@ RAGWEED_LANGUAGE_BLOCK = {
 }
 
 
-async def _setup_entities(hass, lang, options=None):
-    """Run sensor setup for a Ragweed-only response and return the entities."""
-    entry = MockConfigEntry(
+def _make_entry(lang, options=None):
+    return MockConfigEntry(
         domain=DOMAIN,
         title="Hamburg",
         data={
@@ -428,9 +437,17 @@ async def _setup_entities(hass, lang, options=None):
         },
         options=options or {},
     )
-    entry.add_to_hass(hass)
+
+
+async def _setup_entities(
+    hass, lang, options=None, entry=None, response=None, language_block=None
+):
+    """Run sensor setup for a Ragweed-only response and return the entities."""
+    if entry is None:
+        entry = _make_entry(lang, options)
+        entry.add_to_hass(hass)
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = _make_coordinator(
-        RAGWEED_RESPONSE
+        RAGWEED_RESPONSE if response is None else response
     )
 
     entities = []
@@ -440,7 +457,11 @@ async def _setup_entities(hass, lang, options=None):
 
     with patch(
         "custom_components.polleninformation.sensor.async_get_language_block",
-        AsyncMock(return_value=RAGWEED_LANGUAGE_BLOCK),
+        AsyncMock(
+            return_value=RAGWEED_LANGUAGE_BLOCK
+            if language_block is None
+            else language_block
+        ),
     ):
         await async_setup_entry(hass, entry, _add)
     return entities
@@ -489,3 +510,863 @@ class TestSetupEntryNaming:
             hass, "xx", options={"names_in_integration_language": True}
         )
         assert _by_type(entities, AllergyRiskSensor).name == "Allergy risk"
+
+
+# --- entity_id stability for the risk sensors (issue #63) ---
+
+
+DAILY_UNIQUE_ID = "polleninformation_hamburg_allergy_risk"
+HOURLY_UNIQUE_ID = "polleninformation_hamburg_allergy_risk_hourly"
+
+
+class TestRiskSensorSuggestedObjectId:
+    """The object_id must stay English regardless of the displayed name."""
+
+    def _kwargs(self):
+        return {
+            "coordinator": _make_coordinator(None),
+            "levels_current": ["none", "low", "moderate", "high", "very high"],
+            "location_slug": "hamburg",
+            "location_title": "Hamburg",
+        }
+
+    def test_daily(self):
+        sensor = AllergyRiskSensor(**self._kwargs())
+        assert sensor.suggested_object_id == "allergy_risk"
+
+    def test_hourly(self):
+        sensor = AllergyRiskHourlySensor(**self._kwargs())
+        assert sensor.suggested_object_id == "allergy_risk_hourly"
+
+    def test_daily_with_explicit_name(self):
+        sensor = AllergyRiskSensor(name="Allergierisiko", **self._kwargs())
+        assert sensor.suggested_object_id == "allergy_risk"
+
+    def test_hourly_with_explicit_name(self):
+        sensor = AllergyRiskHourlySensor(
+            name="Allergierisiko (stündlich)", **self._kwargs()
+        )
+        assert sensor.suggested_object_id == "allergy_risk_hourly"
+
+    async def test_setup_entry_keeps_object_id(self, hass):
+        """Also with the integration-language option, which sets a name."""
+        entities = await _setup_entities(
+            hass, "de", options={"names_in_integration_language": True}
+        )
+        assert _by_type(entities, AllergyRiskSensor).suggested_object_id == (
+            "allergy_risk"
+        )
+        assert _by_type(entities, AllergyRiskHourlySensor).suggested_object_id == (
+            "allergy_risk_hourly"
+        )
+
+
+class TestRiskSensorEntityIdCreation:
+    """Newly created risk sensors get English entity_ids in a localized HA."""
+
+    @pytest.mark.parametrize("language", ["en", "de"])
+    @patch(
+        "custom_components.polleninformation.async_get_pollenat_data",
+        new_callable=AsyncMock,
+    )
+    async def test_entity_ids(self, mock_api, hass, language):
+        mock_api.return_value = RAGWEED_RESPONSE
+        hass.config.language = language
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+
+        with patch(
+            "custom_components.polleninformation.sensor.async_get_language_block",
+            AsyncMock(return_value=RAGWEED_LANGUAGE_BLOCK),
+        ):
+            await hass.config_entries.async_setup(entry.entry_id)
+            await hass.async_block_till_done()
+
+        ent_reg = er.async_get(hass)
+        assert (
+            ent_reg.async_get_entity_id("sensor", DOMAIN, DAILY_UNIQUE_ID)
+            == "sensor.polleninformation_hamburg_allergy_risk"
+        )
+        assert (
+            ent_reg.async_get_entity_id("sensor", DOMAIN, HOURLY_UNIQUE_ID)
+            == "sensor.polleninformation_hamburg_allergy_risk_hourly"
+        )
+
+
+class TestLocalizedRiskObjectIdSuffixes:
+    def test_translated_names_are_candidates(self):
+        suffixes = localized_risk_object_id_suffixes()
+        assert "allergierisiko" in suffixes["allergy_risk"]
+        assert "allergirisk" in suffixes["allergy_risk"]
+        assert "allergierisiko_stundlich" in suffixes["allergy_risk_hourly"]
+
+    def test_canonical_slug_is_not_a_candidate(self):
+        suffixes = localized_risk_object_id_suffixes()
+        assert "allergy_risk" not in suffixes["allergy_risk"]
+        assert "allergy_risk_hourly" not in suffixes["allergy_risk_hourly"]
+
+
+class TestMigrateLocalizedRiskEntityIds:
+    """Entity_ids created from a translated name are renamed back (issue #63)."""
+
+    def _seed(self, hass, entry, unique_id, object_id):
+        ent_reg = er.async_get(hass)
+        return ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            unique_id,
+            suggested_object_id=object_id,
+            config_entry=entry,
+        ).entity_id
+
+    async def _run(self, hass, seeds, lang="de", options=None):
+        entry = _make_entry(lang, options)
+        entry.add_to_hass(hass)
+        for unique_id, object_id in seeds:
+            self._seed(hass, entry, unique_id, object_id)
+        await _setup_entities(hass, lang, entry=entry)
+        return er.async_get(hass)
+
+    async def test_localized_ids_are_renamed(self, hass):
+        ent_reg = await self._run(
+            hass,
+            [
+                (DAILY_UNIQUE_ID, "polleninformation_hamburg_allergierisiko"),
+                (
+                    HOURLY_UNIQUE_ID,
+                    "polleninformation_hamburg_allergierisiko_stundlich",
+                ),
+            ],
+        )
+        assert (
+            ent_reg.async_get_entity_id("sensor", DOMAIN, DAILY_UNIQUE_ID)
+            == "sensor.polleninformation_hamburg_allergy_risk"
+        )
+        assert (
+            ent_reg.async_get_entity_id("sensor", DOMAIN, HOURLY_UNIQUE_ID)
+            == "sensor.polleninformation_hamburg_allergy_risk_hourly"
+        )
+
+    async def test_swedish_id_is_renamed(self, hass):
+        ent_reg = await self._run(
+            hass,
+            [(DAILY_UNIQUE_ID, "polleninformation_hamburg_allergirisk")],
+            lang="sv",
+        )
+        assert (
+            ent_reg.async_get_entity_id("sensor", DOMAIN, DAILY_UNIQUE_ID)
+            == "sensor.polleninformation_hamburg_allergy_risk"
+        )
+
+    async def test_canonical_id_is_left_alone(self, hass):
+        ent_reg = await self._run(
+            hass, [(DAILY_UNIQUE_ID, "polleninformation_hamburg_allergy_risk")]
+        )
+        assert (
+            ent_reg.async_get_entity_id("sensor", DOMAIN, DAILY_UNIQUE_ID)
+            == "sensor.polleninformation_hamburg_allergy_risk"
+        )
+
+    async def test_user_chosen_id_is_left_alone(self, hass):
+        """A rename the user made themselves does not match a translation."""
+        ent_reg = await self._run(
+            hass, [(DAILY_UNIQUE_ID, "pollen_hamburg_my_own_name")]
+        )
+        assert (
+            ent_reg.async_get_entity_id("sensor", DOMAIN, DAILY_UNIQUE_ID)
+            == "sensor.pollen_hamburg_my_own_name"
+        )
+
+    async def test_pollen_sensor_is_left_alone(self, hass):
+        """Only the two risk sensors are in scope."""
+        ent_reg = await self._run(
+            hass, [("polleninformation_hamburg_ragweed", "polleninformation_ambrosia")]
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_ragweed"
+            )
+            == "sensor.polleninformation_ambrosia"
+        )
+
+    async def test_collision_is_skipped(self, hass):
+        """An occupied target entity_id must not raise or steal the id."""
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        ent_reg.async_get_or_create(
+            "sensor",
+            "other_integration",
+            "other_unique_id",
+            suggested_object_id="polleninformation_hamburg_allergy_risk",
+        )
+        self._seed(
+            hass, entry, DAILY_UNIQUE_ID, "polleninformation_hamburg_allergierisiko"
+        )
+
+        await _setup_entities(hass, "de", entry=entry)
+
+        assert (
+            ent_reg.async_get_entity_id("sensor", DOMAIN, DAILY_UNIQUE_ID)
+            == "sensor.polleninformation_hamburg_allergierisiko"
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", "other_integration", "other_unique_id"
+            )
+            == "sensor.polleninformation_hamburg_allergy_risk"
+        )
+
+
+# --- Allergen slugs come from the latin name, not the localized name ---
+
+
+# Latin name and English name for every allergen the API returns, sampled from
+# the live API for AT, SE, DE and IT with lang=en.
+API_LATIN_NAMES = {
+    "Ailanthus altissima": "tree of heaven",
+    "Alnus": "alder",
+    "Alternaria": "fungal spores",
+    "Ambrosia": "ragweed",
+    "Artemisia": "mugwort",
+    "Betula": "birch",
+    "Castanea": "sweet chestnut",
+    "Corylus": "hazel",
+    "Cupressaceae": "cypress family",
+    "Fagus": "beech",
+    "Fraxinus": "ash",
+    "Olea": "olive",
+    "Plantago": "plantain",
+    "Platanus": "plane tree",
+    "Poaceae": "grasses",
+    "Quercus": "oak",
+    "Rumex": "dock/sorrel",
+    "Salix": "willow",
+    "Secale": "rye",
+    "Tilia": "linden",
+    "Ulmus": "elm",
+    "Urticaceae": "nettle family",
+}
+
+# German response for the allergens that language_map.json does not cover, so
+# the pre-fix code fell back to the German name for the slug.
+GERMAN_TREE_RESPONSE = {
+    "contamination": [
+        {
+            "poll_title": "Esche (Fraxinus)",
+            "contamination_1": 2,
+            "contamination_2": 1,
+            "contamination_3": 0,
+            "contamination_4": 0,
+        },
+        {
+            "poll_title": "Götterbaum (Ailanthus altissima)",
+            "contamination_1": 1,
+            "contamination_2": 1,
+            "contamination_3": 0,
+            "contamination_4": 0,
+        },
+    ],
+    "allergyrisk": {"allergyrisk_1": 5.0},
+    "allergyrisk_hourly": {"allergyrisk_hourly_1": [5.0] * 24},
+}
+
+# language_map.json has no entry for these, which is what the fix works around.
+EMPTY_LANGUAGE_BLOCK = {"poll_titles": []}
+
+
+class TestEnglishNameForLatin:
+    def test_exact(self):
+        assert english_name_for_latin("Fraxinus") == "ash"
+
+    def test_case_insensitive(self):
+        assert english_name_for_latin("fraxinus") == "ash"
+
+    def test_surrounding_whitespace(self):
+        assert english_name_for_latin("  Tilia ") == "linden"
+
+    def test_genus_and_species_falls_back_to_genus(self):
+        assert english_name_for_latin("Ambrosia artemisiifolia") == "ragweed"
+
+    def test_genus_only_for_a_species_keyed_entry(self):
+        assert english_name_for_latin("Ailanthus") == "tree of heaven"
+
+    def test_unknown(self):
+        assert english_name_for_latin("Pinus") is None
+
+    def test_empty(self):
+        assert english_name_for_latin("") is None
+
+    def test_whitespace_only(self):
+        assert english_name_for_latin("   ") is None
+
+    def test_none(self):
+        assert english_name_for_latin(None) is None
+
+
+class TestLatinMapCoverage:
+    def test_every_api_latin_name_is_mapped(self):
+        assert LATIN_TO_ENGLISH_NAME == API_LATIN_NAMES
+
+    @pytest.mark.parametrize(("latin", "name"), sorted(API_LATIN_NAMES.items()))
+    def test_every_allergen_has_an_icon(self, latin, name):
+        """A missing icon silently degrades to the generic pollen icon."""
+        assert slugify(name) in ALLERGEN_ICON_MAP
+
+    def test_slugs_are_distinct(self):
+        slugs = [slugify(name) for name in LATIN_TO_ENGLISH_NAME.values()]
+        assert len(slugs) == len(set(slugs))
+
+
+class TestAllergenSlugFromLatin:
+    async def test_slug_is_english_for_german_response(self, hass):
+        entities = await _setup_entities(
+            hass,
+            "de",
+            response=GERMAN_TREE_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        unique_ids = {e.unique_id for e in entities}
+        assert "polleninformation_hamburg_ash" in unique_ids
+        assert "polleninformation_hamburg_tree_of_heaven" in unique_ids
+
+    async def test_display_name_stays_localized(self, hass):
+        entities = await _setup_entities(
+            hass,
+            "de",
+            response=GERMAN_TREE_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        names = {e.name for e in entities if isinstance(e, PolleninformationSensor)}
+        assert "Esche" in names
+
+    async def test_english_name_attribute_and_icon(self, hass):
+        entities = await _setup_entities(
+            hass,
+            "de",
+            response=GERMAN_TREE_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        ash = next(
+            e for e in entities if e.unique_id == "polleninformation_hamburg_ash"
+        )
+        assert ash.extra_state_attributes["name_en"] == "ash"
+        assert ash.extra_state_attributes["allergen_slug"] == "ash"
+        assert ash.icon == "mdi:tree"
+
+    async def test_state_still_resolves(self, hass):
+        """The value lookup matches on the name the API sent, not the slug."""
+        entities = await _setup_entities(
+            hass,
+            "de",
+            response=GERMAN_TREE_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        ash = next(
+            e for e in entities if e.unique_id == "polleninformation_hamburg_ash"
+        )
+        # German levels, because the entry is configured for German.
+        assert ash.native_value == "mäßig"
+
+
+class TestMigrateLocalizedAllergenIds:
+    """Localized allergen unique_ids and entity_ids are renamed (issue #63)."""
+
+    def _seed(self, hass, entry, unique_id, object_id):
+        return er.async_get(hass).async_get_or_create(
+            "sensor",
+            DOMAIN,
+            unique_id,
+            suggested_object_id=object_id,
+            config_entry=entry,
+        )
+
+    async def _run(self, hass, seeds):
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        for unique_id, object_id in seeds:
+            self._seed(hass, entry, unique_id, object_id)
+        await _setup_entities(
+            hass,
+            "de",
+            entry=entry,
+            response=GERMAN_TREE_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        return er.async_get(hass)
+
+    async def test_unique_id_and_entity_id_are_renamed(self, hass):
+        ent_reg = await self._run(
+            hass,
+            [
+                ("polleninformation_hamburg_esche", "polleninformation_hamburg_esche"),
+                (
+                    "polleninformation_hamburg_gotterbaum",
+                    "polleninformation_hamburg_gotterbaum",
+                ),
+            ],
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_ash"
+            )
+            == "sensor.polleninformation_hamburg_ash"
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_tree_of_heaven"
+            )
+            == "sensor.polleninformation_hamburg_tree_of_heaven"
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_esche"
+            )
+            is None
+        )
+
+    async def test_user_renamed_entity_id_is_kept(self, hass):
+        """The unique_id is still fixed, but a chosen entity_id is not touched."""
+        ent_reg = await self._run(
+            hass, [("polleninformation_hamburg_esche", "pollen_ash_tree")]
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_ash"
+            )
+            == "sensor.pollen_ash_tree"
+        )
+
+    async def test_canonical_id_is_untouched(self, hass):
+        """An English installation already has the canonical ids."""
+        ent_reg = await self._run(
+            hass, [("polleninformation_hamburg_ash", "polleninformation_hamburg_ash")]
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_ash"
+            )
+            == "sensor.polleninformation_hamburg_ash"
+        )
+
+    async def test_unrelated_entity_is_untouched(self, hass):
+        ent_reg = await self._run(
+            hass, [("polleninformation_hamburg_birch", "polleninformation_birke")]
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_birch"
+            )
+            == "sensor.polleninformation_birke"
+        )
+
+    async def test_taken_unique_id_is_skipped(self, hass):
+        ent_reg = await self._run(
+            hass,
+            [
+                ("polleninformation_hamburg_esche", "polleninformation_hamburg_esche"),
+                ("polleninformation_hamburg_ash", "polleninformation_hamburg_ash"),
+            ],
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_esche"
+            )
+            == "sensor.polleninformation_hamburg_esche"
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_ash"
+            )
+            == "sensor.polleninformation_hamburg_ash"
+        )
+
+    async def test_taken_entity_id_keeps_entity_id_but_fixes_unique_id(self, hass):
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        ent_reg.async_get_or_create(
+            "sensor",
+            "other_integration",
+            "other_unique_id",
+            suggested_object_id="polleninformation_hamburg_ash",
+        )
+        self._seed(
+            hass,
+            entry,
+            "polleninformation_hamburg_esche",
+            "polleninformation_hamburg_esche",
+        )
+
+        await _setup_entities(
+            hass,
+            "de",
+            entry=entry,
+            response=GERMAN_TREE_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_ash"
+            )
+            == "sensor.polleninformation_hamburg_esche"
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", "other_integration", "other_unique_id"
+            )
+            == "sensor.polleninformation_hamburg_ash"
+        )
+
+
+UNKNOWN_ALLERGEN_RESPONSE = {
+    "contamination": [
+        {
+            "poll_title": "Kiefer (Pinus)",
+            "contamination_1": 1,
+            "contamination_2": 0,
+            "contamination_3": 0,
+            "contamination_4": 0,
+        }
+    ],
+    "allergyrisk": {"allergyrisk_1": 5.0},
+    "allergyrisk_hourly": {"allergyrisk_hourly_1": [5.0] * 24},
+}
+
+
+class TestUnknownAllergenFallback:
+    """An allergen no map knows about still gets a sensor, plus a warning."""
+
+    async def _setup(self, hass):
+        return await _setup_entities(
+            hass,
+            "de",
+            response=UNKNOWN_ALLERGEN_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+
+    async def test_falls_back_to_the_localized_name(self, hass):
+        entities = await self._setup(hass)
+        unique_ids = {e.unique_id for e in entities}
+        assert "polleninformation_hamburg_kiefer" in unique_ids
+
+    async def test_warns_once_with_the_latin_name(self, hass, caplog):
+        await self._setup(hass)
+        warnings = [
+            r.getMessage()
+            for r in caplog.records
+            if r.levelname == "WARNING" and "Unknown allergen" in r.getMessage()
+        ]
+        assert len(warnings) == 1
+        assert "Kiefer" in warnings[0]
+        assert "Pinus" in warnings[0]
+
+    async def test_no_warning_for_a_mapped_allergen(self, hass, caplog):
+        await _setup_entities(
+            hass,
+            "de",
+            response=GERMAN_TREE_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        assert not [r for r in caplog.records if "Unknown allergen" in r.getMessage()]
+
+    async def test_no_migration_for_an_unknown_allergen(self, hass):
+        """Nothing to rename: the fallback slug is the only one we ever had."""
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            "polleninformation_hamburg_kiefer",
+            suggested_object_id="polleninformation_hamburg_kiefer",
+            config_entry=entry,
+        )
+        await _setup_entities(
+            hass,
+            "de",
+            entry=entry,
+            response=UNKNOWN_ALLERGEN_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_kiefer"
+            )
+            == "sensor.polleninformation_hamburg_kiefer"
+        )
+
+
+# The canonical slug for every allergen, pinned. These slugs are a public
+# contract: they are the entity_id suffix, they are in every unique_id, and
+# the pollen forecast card matches on them. A change to an API display name or
+# to slugify() must fail here rather than silently rename entities.
+CANONICAL_ALLERGEN_SLUGS = {
+    "Ailanthus altissima": "tree_of_heaven",
+    "Alnus": "alder",
+    "Alternaria": "fungal_spores",
+    "Ambrosia": "ragweed",
+    "Artemisia": "mugwort",
+    "Betula": "birch",
+    "Castanea": "sweet_chestnut",
+    "Corylus": "hazel",
+    "Cupressaceae": "cypress_family",
+    "Fagus": "beech",
+    "Fraxinus": "ash",
+    "Olea": "olive",
+    "Plantago": "plantain",
+    "Platanus": "plane_tree",
+    "Poaceae": "grasses",
+    "Quercus": "oak",
+    "Rumex": "dock_sorrel",
+    "Salix": "willow",
+    "Secale": "rye",
+    "Tilia": "linden",
+    "Ulmus": "elm",
+    "Urticaceae": "nettle_family",
+}
+
+EXPECTED_KNOWN_SLUGS = frozenset(CANONICAL_ALLERGEN_SLUGS.values()) | {
+    "allergy_risk",
+    "allergy_risk_hourly",
+}
+
+
+class TestCanonicalSlugSet:
+    """Pins the slug set so a rename cannot happen unnoticed."""
+
+    def test_known_allergen_slugs(self):
+        assert KNOWN_ALLERGEN_SLUGS == EXPECTED_KNOWN_SLUGS
+
+    def test_slugs_from_the_latin_map(self):
+        """A set comparison, so two allergens collapsing onto one slug fails."""
+        assert {slugify(name) for name in LATIN_TO_ENGLISH_NAME.values()} == set(
+            CANONICAL_ALLERGEN_SLUGS.values()
+        )
+
+    @pytest.mark.parametrize(
+        ("latin", "slug"), sorted(CANONICAL_ALLERGEN_SLUGS.items())
+    )
+    def test_slug_per_latin_name(self, latin, slug):
+        assert slugify(english_name_for_latin(latin)) == slug
+
+    def test_icon_map_covers_exactly_the_canonical_slugs(self):
+        """An icon for a slug that cannot occur is as wrong as a missing one."""
+        assert set(ALLERGEN_ICON_MAP) - {"default"} == set(
+            CANONICAL_ALLERGEN_SLUGS.values()
+        )
+
+    def test_risk_slugs(self):
+        assert set(RISK_SLUGS) == {"allergy_risk", "allergy_risk_hourly"}
+
+
+class TestTranslationFileReadFailure:
+    """A broken translation file must not hide why it was skipped."""
+
+    def test_debug_log_carries_the_exception(self, caplog):
+        localized_risk_object_id_suffixes.cache_clear()
+        try:
+            with (
+                caplog.at_level(logging.DEBUG),
+                patch(
+                    "custom_components.polleninformation.sensor.Path.read_text",
+                    side_effect=OSError("boom"),
+                ),
+            ):
+                localized_risk_object_id_suffixes()
+            records = [
+                r
+                for r in caplog.records
+                if "Could not read translation file" in r.getMessage()
+            ]
+            assert records
+            assert all(r.exc_info for r in records)
+        finally:
+            localized_risk_object_id_suffixes.cache_clear()
+
+    def test_names_survive_from_the_static_map(self):
+        """RISK_SENSOR_NAMES still supplies candidates without the files."""
+        localized_risk_object_id_suffixes.cache_clear()
+        try:
+            with patch(
+                "custom_components.polleninformation.sensor.Path.read_text",
+                side_effect=OSError("boom"),
+            ):
+                suffixes = localized_risk_object_id_suffixes()
+            assert "allergierisiko" in suffixes["allergy_risk"]
+        finally:
+            localized_risk_object_id_suffixes.cache_clear()
+
+
+class TestOnlyGeneratedEntityIdsAreRenamed:
+    """A suffix match is not enough: the entity_id must be the generated one.
+
+    A user-chosen entity_id can end in the old slug without this integration
+    ever having produced it, and renaming it would be a rename the user did
+    not ask for.
+    """
+
+    def _seed(self, hass, entry, unique_id, object_id):
+        return er.async_get(hass).async_get_or_create(
+            "sensor",
+            DOMAIN,
+            unique_id,
+            suggested_object_id=object_id,
+            config_entry=entry,
+        )
+
+    async def test_allergen_entity_id_with_a_different_prefix_is_kept(self, hass):
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        # Ends with "_esche", but the prefix is not ours.
+        self._seed(
+            hass, entry, "polleninformation_hamburg_esche", "pollen_hamburg_esche"
+        )
+
+        await _setup_entities(
+            hass,
+            "de",
+            entry=entry,
+            response=GERMAN_TREE_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+
+        ent_reg = er.async_get(hass)
+        # The unique_id is still corrected; only the entity_id is left alone.
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_ash"
+            )
+            == "sensor.pollen_hamburg_esche"
+        )
+
+    async def test_allergen_entity_id_for_another_location_is_kept(self, hass):
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        self._seed(
+            hass,
+            entry,
+            "polleninformation_hamburg_esche",
+            "polleninformation_bremen_esche",
+        )
+
+        await _setup_entities(
+            hass,
+            "de",
+            entry=entry,
+            response=GERMAN_TREE_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+
+        ent_reg = er.async_get(hass)
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_ash"
+            )
+            == "sensor.polleninformation_bremen_esche"
+        )
+
+    async def test_risk_entity_id_with_a_different_prefix_is_kept(self, hass):
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        # Ends with the German translation, but we never generated it.
+        self._seed(hass, entry, DAILY_UNIQUE_ID, "my_own_allergierisiko")
+
+        await _setup_entities(hass, "de", entry=entry)
+
+        ent_reg = er.async_get(hass)
+        assert (
+            ent_reg.async_get_entity_id("sensor", DOMAIN, DAILY_UNIQUE_ID)
+            == "sensor.my_own_allergierisiko"
+        )
+
+    async def test_generated_risk_entity_id_is_still_renamed(self, hass):
+        """The strictness must not stop the migration it exists for."""
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        self._seed(
+            hass, entry, DAILY_UNIQUE_ID, "polleninformation_hamburg_allergierisiko"
+        )
+
+        await _setup_entities(hass, "de", entry=entry)
+
+        ent_reg = er.async_get(hass)
+        assert (
+            ent_reg.async_get_entity_id("sensor", DOMAIN, DAILY_UNIQUE_ID)
+            == "sensor.polleninformation_hamburg_allergy_risk"
+        )
+
+
+class TestStateMachineCollision:
+    """A YAML or template entity holds an entity_id without a registry entry.
+
+    The registry refuses to move an entity_id onto one that is occupied in the
+    state machine, so a registry-only check let async_update_entity raise and
+    abort setup.
+    """
+
+    def _seed(self, hass, entry, unique_id, object_id):
+        return er.async_get(hass).async_get_or_create(
+            "sensor",
+            DOMAIN,
+            unique_id,
+            suggested_object_id=object_id,
+            config_entry=entry,
+        )
+
+    def test_availability_sees_the_state_machine(self, hass):
+        ent_reg = er.async_get(hass)
+        hass.states.async_set("sensor.polleninformation_hamburg_ash", "low")
+        assert not entity_id_available(
+            hass, ent_reg, "sensor.polleninformation_hamburg_ash"
+        )
+        assert entity_id_available(
+            hass, ent_reg, "sensor.polleninformation_hamburg_birch"
+        )
+
+    async def test_allergen_setup_survives_a_state_only_collision(self, hass):
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        self._seed(
+            hass,
+            entry,
+            "polleninformation_hamburg_esche",
+            "polleninformation_hamburg_esche",
+        )
+        hass.states.async_set("sensor.polleninformation_hamburg_ash", "low")
+
+        # Must not raise.
+        await _setup_entities(
+            hass,
+            "de",
+            entry=entry,
+            response=GERMAN_TREE_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+
+        ent_reg = er.async_get(hass)
+        # unique_id corrected, entity_id kept because the target is occupied.
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_ash"
+            )
+            == "sensor.polleninformation_hamburg_esche"
+        )
+
+    async def test_risk_setup_survives_a_state_only_collision(self, hass):
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        self._seed(
+            hass, entry, DAILY_UNIQUE_ID, "polleninformation_hamburg_allergierisiko"
+        )
+        hass.states.async_set("sensor.polleninformation_hamburg_allergy_risk", "low")
+
+        # Must not raise.
+        await _setup_entities(hass, "de", entry=entry)
+
+        ent_reg = er.async_get(hass)
+        assert (
+            ent_reg.async_get_entity_id("sensor", DOMAIN, DAILY_UNIQUE_ID)
+            == "sensor.polleninformation_hamburg_allergierisiko"
+        )

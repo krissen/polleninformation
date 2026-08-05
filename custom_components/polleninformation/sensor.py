@@ -12,10 +12,14 @@ See official API documentation: https://www.polleninformation.at/en/data-interfa
 
 from __future__ import annotations
 
+import json
 import logging
 from datetime import timedelta
+from functools import lru_cache
+from pathlib import Path
 
 from homeassistant.util import dt as dt_util
+from homeassistant.util import slugify as ha_slugify
 from typing import Any
 
 from homeassistant.components.sensor import SensorEntity
@@ -42,6 +46,37 @@ from .utils import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# English allergen name per latin name, as the API returns it for lang=en.
+# This is the source of the allergen slug, and therefore of the unique_id and
+# the entity_id. Deriving the slug from the localized response instead would
+# give a different unique_id per interface language. language_map.json only
+# covers the twelve allergens that had a localized name when it was
+# generated, so the API is the authority here.
+LATIN_TO_ENGLISH_NAME = {
+    "Ailanthus altissima": "tree of heaven",
+    "Alnus": "alder",
+    "Alternaria": "fungal spores",
+    "Ambrosia": "ragweed",
+    "Artemisia": "mugwort",
+    "Betula": "birch",
+    "Castanea": "sweet chestnut",
+    "Corylus": "hazel",
+    "Cupressaceae": "cypress family",
+    "Fagus": "beech",
+    "Fraxinus": "ash",
+    "Olea": "olive",
+    "Plantago": "plantain",
+    "Platanus": "plane tree",
+    "Poaceae": "grasses",
+    "Quercus": "oak",
+    "Rumex": "dock/sorrel",
+    "Salix": "willow",
+    "Secale": "rye",
+    "Tilia": "linden",
+    "Ulmus": "elm",
+    "Urticaceae": "nettle family",
+}
+
 ALLERGEN_ICON_MAP = {
     "alder": "mdi:tree-outline",
     "ash": "mdi:tree",
@@ -49,25 +84,32 @@ ALLERGEN_ICON_MAP = {
     "birch": "mdi:tree",
     "cypress_family": "mdi:pine-tree",
     "default": "mdi:flower-pollen",
+    "dock_sorrel": "mdi:leaf",
     "elm": "mdi:tree",
     "grasses": "mdi:grass",
     "hazel": "mdi:nature",
-    "lime": "mdi:leaf",
+    "linden": "mdi:leaf",
     "fungal_spores": "mdi:cloud-alert",
     "mugwort": "mdi:flower-pollen",
     "nettle_family": "mdi:leaf",
     "oak": "mdi:leaf",
     "olive": "mdi:leaf",
     "plane_tree": "mdi:tree",
+    "plantain": "mdi:leaf",
     "ragweed": "mdi:flower-pollen",
     "rye": "mdi:grain",
+    "sweet_chestnut": "mdi:tree",
+    "tree_of_heaven": "mdi:tree",
     "willow": "mdi:tree",
 }
 
-KNOWN_ALLERGEN_SLUGS = set(ALLERGEN_ICON_MAP.keys()) - {"default"} | {
-    "allergy_risk",
-    "allergy_risk_hourly",
-}
+RISK_SLUGS = ("allergy_risk", "allergy_risk_hourly")
+
+KNOWN_ALLERGEN_SLUGS = (
+    set(ALLERGEN_ICON_MAP.keys()) - {"default"}
+    | {slugify(name) for name in LATIN_TO_ENGLISH_NAME.values()}
+    | set(RISK_SLUGS)
+)
 
 
 def capitalize_first(s: str) -> str:
@@ -90,6 +132,182 @@ def extract_allergen_slug_from_unique_id(unique_id: str) -> str | None:
         if unique_id.endswith(suffix):
             return slug
     return None
+
+
+@lru_cache(maxsize=1)
+def _latin_name_index() -> dict[str, str]:
+    """Case-insensitive latin lookup, extended with genus-only keys.
+
+    The API spells a latin name with the genus alone for most allergens but
+    with genus and species for others, and the case is not consistent between
+    languages.
+    """
+    index = {latin.lower(): name for latin, name in LATIN_TO_ENGLISH_NAME.items()}
+    for latin, name in LATIN_TO_ENGLISH_NAME.items():
+        index.setdefault(latin.split()[0].lower(), name)
+    return index
+
+
+def english_name_for_latin(latin: str | None) -> str | None:
+    """Return the English allergen name for a latin name, or None if unknown.
+
+    A latin name that carries a species falls back to its genus, so both
+    "Ambrosia" and "Ambrosia artemisiifolia" resolve.
+    """
+    if not latin:
+        return None
+    index = _latin_name_index()
+    key = latin.strip().lower()
+    if name := index.get(key):
+        return name
+    return index.get(key.split()[0]) if key.split() else None
+
+
+def entity_id_available(hass, ent_reg, entity_id: str) -> bool:
+    """Return True when the registry would accept this entity_id.
+
+    Mirrors the registry's own rule: async_update_entity raises when the
+    target is registered OR occupied in the state machine. A YAML or template
+    entity holds an entity_id without a registry entry, so checking the
+    registry alone lets that call raise and abort setup.
+    """
+    return not ent_reg.async_is_registered(entity_id) and hass.states.async_available(
+        entity_id
+    )
+
+
+def migrate_localized_allergen_ids(hass, location_slug, renames) -> None:
+    """Rename allergen ids that were derived from a localized allergen name.
+
+    The renames are (legacy_slug, canonical_slug) pairs derived from the
+    current API response, so only ids this integration can itself have
+    produced are ever considered. The unique_id is always migrated; the
+    entity_id only when it is exactly what this integration would have
+    generated, so an entity_id the user chose is kept even when it happens to
+    end in the old slug. Either step is skipped with a warning when its
+    target is taken.
+    """
+    if not renames:
+        return
+
+    ent_reg = er.async_get(hass)
+    for legacy_slug, canonical_slug in renames:
+        legacy_unique_id = f"polleninformation_{location_slug}_{legacy_slug}"
+        entity_id = ent_reg.async_get_entity_id("sensor", DOMAIN, legacy_unique_id)
+        if entity_id is None:
+            continue
+
+        canonical_unique_id = f"polleninformation_{location_slug}_{canonical_slug}"
+        if ent_reg.async_get_entity_id("sensor", DOMAIN, canonical_unique_id):
+            _LOGGER.warning(
+                "Not migrating %s: an entity with unique_id %s already exists",
+                entity_id,
+                canonical_unique_id,
+            )
+            continue
+
+        updates: dict[str, str] = {"new_unique_id": canonical_unique_id}
+        prefix = f"polleninformation_{location_slug}_"
+        if entity_id == f"sensor.{prefix}{legacy_slug}":
+            new_entity_id = f"sensor.{prefix}{canonical_slug}"
+            if entity_id_available(hass, ent_reg, new_entity_id):
+                updates["new_entity_id"] = new_entity_id
+            else:
+                _LOGGER.warning(
+                    "Keeping entity_id %s: %s is already taken",
+                    entity_id,
+                    new_entity_id,
+                )
+        else:
+            _LOGGER.debug(
+                "Keeping entity_id %s: it is not the generated one for %s",
+                entity_id,
+                legacy_slug,
+            )
+
+        _LOGGER.info(
+            "Migrating localized allergen sensor %s (%s) to %s",
+            entity_id,
+            legacy_slug,
+            canonical_slug,
+        )
+        ent_reg.async_update_entity(entity_id, **updates)
+
+
+@lru_cache(maxsize=1)
+def localized_risk_object_id_suffixes() -> dict[str, frozenset[str]]:
+    """Return the localized object_id suffixes the risk sensors can have produced.
+
+    Home Assistant derives an entity_id from the entity name, so a translated
+    risk sensor name yields a translated object_id. Every translated name --
+    from the translation files as well as from RISK_SENSOR_NAMES -- is a
+    suffix a released version may have written to the registry. The canonical
+    slug itself is excluded so it is never treated as a rename candidate.
+    """
+    suffixes: dict[str, set[str]] = {slug: set() for slug in RISK_SLUGS}
+
+    for names in RISK_SENSOR_NAMES.values():
+        for slug in RISK_SLUGS:
+            if name := names.get(slug):
+                suffixes[slug].add(ha_slugify(name))
+
+    for path in sorted((Path(__file__).parent / "translations").glob("*.json")):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            _LOGGER.debug("Could not read translation file %s", path, exc_info=True)
+            continue
+        sensors = data.get("entity", {}).get("sensor", {})
+        for slug in RISK_SLUGS:
+            if name := sensors.get(slug, {}).get("name"):
+                suffixes[slug].add(ha_slugify(name))
+
+    for slug in RISK_SLUGS:
+        suffixes[slug].discard(slug)
+    return {slug: frozenset(values) for slug, values in suffixes.items()}
+
+
+async def async_migrate_localized_risk_entity_ids(hass, entry, location_slug) -> None:
+    """Rename risk sensor entity_ids that were created from a translated name.
+
+    Only an entity_id that is exactly what this integration would itself have
+    generated from a translated name is touched, so an entity_id the user
+    chose is left alone even when it happens to end in a translated name.
+    """
+    ent_reg = er.async_get(hass)
+    candidates = []
+    for reg_entry in er.async_entries_for_config_entry(ent_reg, entry.entry_id):
+        if reg_entry.domain != "sensor":
+            continue
+        slug = extract_allergen_slug_from_unique_id(reg_entry.unique_id)
+        if slug in RISK_SLUGS:
+            candidates.append((reg_entry, slug))
+    if not candidates:
+        return
+
+    suffixes = await hass.async_add_executor_job(localized_risk_object_id_suffixes)
+    prefix = f"polleninformation_{location_slug}_"
+
+    for reg_entry, slug in candidates:
+        object_id = reg_entry.entity_id.split(".", 1)[1]
+        localized = next(
+            (s for s in suffixes[slug] if object_id == f"{prefix}{s}"), None
+        )
+        if localized is None:
+            continue
+
+        new_entity_id = f"{reg_entry.domain}.{prefix}{slug}"
+        if not entity_id_available(hass, ent_reg, new_entity_id):
+            _LOGGER.warning(
+                "Cannot rename %s to %s: target entity_id already exists",
+                reg_entry.entity_id,
+                new_entity_id,
+            )
+            continue
+        _LOGGER.info(
+            "Renaming localized entity_id %s to %s", reg_entry.entity_id, new_entity_id
+        )
+        ent_reg.async_update_entity(reg_entry.entity_id, new_entity_id=new_entity_id)
 
 
 def pollen_forecast_for_allergen(
@@ -155,6 +373,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
         location_title = f"{country_name} ({lat_str}, {lon_str})"
     location_slug = normalize(location_title)
 
+    # Needs location_slug: a rename only happens for the entity_id this
+    # integration would itself have generated for this location.
+    await async_migrate_localized_risk_entity_ids(hass, entry, location_slug)
+
     language_block_current = await async_get_language_block(hass, lang)
     language_block_en = await async_get_language_block(hass, "en")
     levels_current = LEVELS.get(
@@ -175,6 +397,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     entities: list[SensorEntity] = []
     new_unique_ids: set[str] = set()
+    allergen_renames: list[tuple[str, str]] = []
 
     for item in contamination:
         poll_title_full = item.get("poll_title", "<unknown>")
@@ -187,12 +410,29 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 if allergen.get("name") == poll_title_local:
                     latin = allergen.get("latin")
                     break
+        # Resolution order: the static latin map, then the English language
+        # block, then the name the API sent in the configured language. Only
+        # the last of these varies with the language, so it stays a last
+        # resort for an allergen no released map knows about.
         allergen_en_obj = (
             get_allergen_info_by_latin(latin, language_block_en) if latin else None
         )
-        allergen_en = allergen_en_obj["name"] if allergen_en_obj else poll_title_local
+        legacy_en = allergen_en_obj["name"] if allergen_en_obj else poll_title_local
+        mapped_en = english_name_for_latin(latin)
+        if mapped_en is None and allergen_en_obj is None:
+            _LOGGER.warning(
+                "Unknown allergen %r (latin %r); its entity_id will follow the "
+                "configured language. Please report this at "
+                "https://github.com/krissen/polleninformation/issues",
+                poll_title_local,
+                latin or "",
+            )
+        allergen_en = mapped_en or legacy_en
         allergen_la = latin if latin else ""
         slug_en = slugify(allergen_en) if allergen_en else slugify(poll_title_local)
+        legacy_slug = slugify(legacy_en) if legacy_en else slug_en
+        if legacy_slug and legacy_slug != slug_en:
+            allergen_renames.append((legacy_slug, slug_en))
         icon = ALLERGEN_ICON_MAP.get(slug_en, ALLERGEN_ICON_MAP["default"])
 
         sensor = PolleninformationSensor(
@@ -212,6 +452,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
         entities.append(sensor)
         if sensor.unique_id:
             new_unique_ids.add(sensor.unique_id)
+
+    migrate_localized_allergen_ids(hass, location_slug, allergen_renames)
 
     # Allergy risk daily sensor - only if contamination has data (otherwise allergyrisk is meaningless)
     allergyrisk = (
@@ -487,6 +729,12 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
         }
 
     @property
+    def suggested_object_id(self) -> str:
+        # Pins the object_id to the English slug so the entity_id does not
+        # follow the translated or explicitly set name.
+        return "allergy_risk"
+
+    @property
     def available(self) -> bool:
         return self.coordinator.last_update_success is not False
 
@@ -594,6 +842,12 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
             "name": f"Polleninformation ({location_title})",
             "manufacturer": "Austrian Pollen Information Service",
         }
+
+    @property
+    def suggested_object_id(self) -> str:
+        # Pins the object_id to the English slug so the entity_id does not
+        # follow the translated or explicitly set name.
+        return "allergy_risk_hourly"
 
     @property
     def available(self) -> bool:
