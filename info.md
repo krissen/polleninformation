@@ -21,7 +21,24 @@ Polleninformation EU is a Home Assistant integration that provides up-to-date po
 1. Go to **Settings → Devices & Services → Add Integration**.
 2. Search for `Polleninformation EU` and add the integration.
 3. Select your country and enter your desired location (latitude/longitude).
-4. Sensors will be created automatically for all available allergens at the selected location.
+4. Select the language the pollen data should be requested in, and enter your API key.
+5. Sensors will be created automatically for all available allergens at the selected location.
+
+All settings can be changed later under **Polleninformation EU → Configure**,
+which also holds the update interval (1–24 hours) and the toggle described
+under [Entity names](#entity-names).
+
+## Entity names
+
+Allergen sensors are named in the language selected for the integration, since
+the names come from the API. Ragweed is shown as **Ambrosia** in German and
+**Ambrózia** in Slovak, where the API returns the English name; entity IDs and
+the matching against API data are unaffected.
+
+The two allergy risk sensors use Home Assistant's translations and therefore
+follow the Home Assistant interface language. Enable **Name entities in the
+integration language** in the options to name them in the integration's
+language instead. Off by default.
 
 ## Sensor Attributes
 

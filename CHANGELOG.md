@@ -91,6 +91,14 @@
   Home Assistant version so HACS blocks installs/upgrades on older cores that
   would hit a broken options flow.
 
+- **`manifest.json` version follows the release tags** — the manifest version
+  had drifted from the tagged releases; it now states the released version
+  (`0.5.2`), which is what HACS and the diagnostics report.
+
+- **Documentation** — the README and `info.md` now describe the full options
+  list (including the language selection, the update interval and the new
+  naming toggle) and how entity names are localized.
+
 ## v0.5.1 — Configurable update interval and attribute fixes (2026-03-31)
 
 ### Bug fixes
