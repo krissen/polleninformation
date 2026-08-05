@@ -4,6 +4,11 @@
 
 ### Fixed
 
+- **Allergy risk sensor names are now translatable** (issue #63) — the two
+  allergy risk sensors used a hardcoded English name. They now use Home
+  Assistant translation keys, so their names follow the Home Assistant UI
+  language instead of always reading "Allergy risk" / "Allergy risk hourly".
+
 - **Config flow no longer aborts when reverse geocoding fails** — country
   detection via Nominatim now returns `None` on connection errors, timeouts and
   malformed responses instead of raising, and it uses Home Assistant's shared

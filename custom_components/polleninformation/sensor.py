@@ -433,6 +433,7 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
     """Daily allergy risk sensor."""
 
     _attr_has_entity_name = True
+    _attr_translation_key = "allergy_risk"
 
     def __init__(
         self,
@@ -450,7 +451,6 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
         self._is_stale = is_stale
         self._stale_since = stale_since
 
-        self._attr_name = "Allergy risk"
         self._attr_unique_id = f"polleninformation_{location_slug}_allergy_risk"
         self._attr_icon = "mdi:alert"
         self._attr_device_info = {
@@ -537,6 +537,7 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
     """Hourly allergy risk sensor."""
 
     _attr_has_entity_name = True
+    _attr_translation_key = "allergy_risk_hourly"
 
     def __init__(
         self,
@@ -554,7 +555,6 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
         self._is_stale = is_stale
         self._stale_since = stale_since
 
-        self._attr_name = "Allergy risk hourly"
         self._attr_unique_id = f"polleninformation_{location_slug}_allergy_risk_hourly"
         self._attr_icon = "mdi:timeline-clock"
         self._attr_device_info = {

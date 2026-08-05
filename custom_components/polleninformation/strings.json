@@ -52,5 +52,15 @@
       "invalid_country": "Invalid country",
       "invalid_language": "Invalid language"
     }
+  },
+  "entity": {
+    "sensor": {
+      "allergy_risk": {
+        "name": "Allergy risk"
+      },
+      "allergy_risk_hourly": {
+        "name": "Allergy risk (hourly)"
+      }
+    }
   }
 }
