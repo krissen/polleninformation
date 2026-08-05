@@ -9,6 +9,12 @@
   malformed responses instead of raising, and it uses Home Assistant's shared
   aiohttp session rather than opening its own (PR #60 by @IoannisArmamentos).
 
+- **Hourly allergy risk forecast timestamps** — the forecast now starts at local
+  midnight instead of the current UTC hour, so each entry carries the timestamp
+  its value actually describes (PR #58 by @IoannisArmamentos). As a consequence,
+  day-1 entries earlier than the current hour are now in the past; that is
+  intentional and lets a full day be charted.
+
 ### Internal
 
 - **Dependabot** — added `.github/dependabot.yml` with monthly grouped updates

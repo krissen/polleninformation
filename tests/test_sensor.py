@@ -2,6 +2,7 @@
 
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
+from zoneinfo import ZoneInfo
 
 
 from custom_components.polleninformation.sensor import (
@@ -269,15 +270,19 @@ class TestAllergyRiskHourlySensor:
         coordinator = _make_coordinator(mock_api_response)
         sensor = self._make_sensor(coordinator)
 
-        fake_now = datetime(2026, 6, 22, 16, 30, tzinfo=timezone.utc)
+        # Non-UTC zone, so a UTC-based implementation would produce a
+        # different offset and a different first timestamp.
+        fake_now = datetime(2026, 6, 22, 16, 30, tzinfo=ZoneInfo("Europe/Berlin"))
 
         with patch(
-                "custom_components.polleninformation.sensor.dt_util.now",
-                return_value=fake_now,
+            "custom_components.polleninformation.sensor.dt_util.now",
+            return_value=fake_now,
         ):
             forecast = sensor.extra_state_attributes["forecast"]
 
-        assert forecast[0]["time"] == "2026-06-23T00:00:00+00:00"
-        assert forecast[1]["time"] == "2026-06-23T01:00:00+00:00"
-        assert forecast[23]["time"] == "2026-06-23T23:00:00+00:00"
-        assert forecast[24]["time"] == "2026-06-24T00:00:00+00:00"
+        # Day 1 starts at local midnight of the current day, not at the
+        # current hour: entries before 16:30 are deliberately in the past.
+        assert forecast[0]["time"] == "2026-06-22T00:00:00+02:00"
+        assert forecast[1]["time"] == "2026-06-22T01:00:00+02:00"
+        assert forecast[23]["time"] == "2026-06-22T23:00:00+02:00"
+        assert forecast[24]["time"] == "2026-06-23T00:00:00+02:00"
