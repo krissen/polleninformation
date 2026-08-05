@@ -14,6 +14,14 @@
   follows the displayed name. Installations that upgraded from an earlier
   version were never affected. The names themselves are still translated.
 
+- **Entity IDs created from a translated name are renamed automatically**
+  (issue #63) — an installation that already got a localized entity ID from
+  v0.5.2 has it renamed to the canonical `..._allergy_risk` /
+  `..._allergy_risk_hourly` on the next start. Only entity IDs matching a
+  translation of the sensor name are touched, so an entity ID you renamed
+  yourself is left alone; a rename is also skipped if the target entity ID is
+  already taken.
+
 ## v0.5.2 — Entity name translations, contributor fixes, CI (2026-08-05)
 
 ### New features

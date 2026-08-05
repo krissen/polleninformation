@@ -12,10 +12,14 @@ See official API documentation: https://www.polleninformation.at/en/data-interfa
 
 from __future__ import annotations
 
+import json
 import logging
 from datetime import timedelta
+from functools import lru_cache
+from pathlib import Path
 
 from homeassistant.util import dt as dt_util
+from homeassistant.util import slugify as ha_slugify
 from typing import Any
 
 from homeassistant.components.sensor import SensorEntity
@@ -64,10 +68,9 @@ ALLERGEN_ICON_MAP = {
     "willow": "mdi:tree",
 }
 
-KNOWN_ALLERGEN_SLUGS = set(ALLERGEN_ICON_MAP.keys()) - {"default"} | {
-    "allergy_risk",
-    "allergy_risk_hourly",
-}
+RISK_SLUGS = ("allergy_risk", "allergy_risk_hourly")
+
+KNOWN_ALLERGEN_SLUGS = set(ALLERGEN_ICON_MAP.keys()) - {"default"} | set(RISK_SLUGS)
 
 
 def capitalize_first(s: str) -> str:
@@ -90,6 +93,82 @@ def extract_allergen_slug_from_unique_id(unique_id: str) -> str | None:
         if unique_id.endswith(suffix):
             return slug
     return None
+
+
+@lru_cache(maxsize=1)
+def localized_risk_object_id_suffixes() -> dict[str, frozenset[str]]:
+    """Return the localized object_id suffixes the risk sensors can have produced.
+
+    Home Assistant derives an entity_id from the entity name, so a translated
+    risk sensor name yields a translated object_id. Every translated name --
+    from the translation files as well as from RISK_SENSOR_NAMES -- is a
+    suffix a released version may have written to the registry. The canonical
+    slug itself is excluded so it is never treated as a rename candidate.
+    """
+    suffixes: dict[str, set[str]] = {slug: set() for slug in RISK_SLUGS}
+
+    for names in RISK_SENSOR_NAMES.values():
+        for slug in RISK_SLUGS:
+            if name := names.get(slug):
+                suffixes[slug].add(ha_slugify(name))
+
+    for path in sorted((Path(__file__).parent / "translations").glob("*.json")):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            _LOGGER.debug("Could not read translation file %s", path)
+            continue
+        sensors = data.get("entity", {}).get("sensor", {})
+        for slug in RISK_SLUGS:
+            if name := sensors.get(slug, {}).get("name"):
+                suffixes[slug].add(ha_slugify(name))
+
+    for slug in RISK_SLUGS:
+        suffixes[slug].discard(slug)
+    return {slug: frozenset(values) for slug, values in suffixes.items()}
+
+
+async def async_migrate_localized_risk_entity_ids(hass, entry) -> None:
+    """Rename risk sensor entity_ids that were created from a translated name.
+
+    Only entity_ids whose suffix matches a known translation of the sensor
+    name are touched; a user-chosen entity_id never matches and is left alone.
+    """
+    ent_reg = er.async_get(hass)
+    candidates = []
+    for reg_entry in er.async_entries_for_config_entry(ent_reg, entry.entry_id):
+        if reg_entry.domain != "sensor":
+            continue
+        slug = extract_allergen_slug_from_unique_id(reg_entry.unique_id)
+        if slug in RISK_SLUGS:
+            candidates.append((reg_entry, slug))
+    if not candidates:
+        return
+
+    suffixes = await hass.async_add_executor_job(localized_risk_object_id_suffixes)
+
+    for reg_entry, slug in candidates:
+        object_id = reg_entry.entity_id.split(".", 1)[1]
+        if object_id.endswith(f"_{slug}"):
+            continue
+        localized = next(
+            (s for s in suffixes[slug] if object_id.endswith(f"_{s}")), None
+        )
+        if localized is None:
+            continue
+
+        new_entity_id = f"{reg_entry.domain}.{object_id[: -len(localized)]}{slug}"
+        if ent_reg.async_get(new_entity_id) is not None:
+            _LOGGER.warning(
+                "Cannot rename %s to %s: target entity_id already exists",
+                reg_entry.entity_id,
+                new_entity_id,
+            )
+            continue
+        _LOGGER.info(
+            "Renaming localized entity_id %s to %s", reg_entry.entity_id, new_entity_id
+        )
+        ent_reg.async_update_entity(reg_entry.entity_id, new_entity_id=new_entity_id)
 
 
 def pollen_forecast_for_allergen(
@@ -121,6 +200,8 @@ def scale_allergy_risk(value: Any) -> int | None:
 
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
+
+    await async_migrate_localized_risk_entity_ids(hass, entry)
 
     # Get existing entities from registry to handle stale data scenarios
     ent_reg = er.async_get(hass)
