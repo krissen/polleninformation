@@ -1,14 +1,18 @@
 """Tests for sensor helper functions and sensor classes."""
 
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from zoneinfo import ZoneInfo
 
+import pytest
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.polleninformation.const import DOMAIN
 from custom_components.polleninformation.sensor import (
     AllergyRiskHourlySensor,
     AllergyRiskSensor,
     PolleninformationSensor,
+    async_setup_entry,
     capitalize_first,
     extract_allergen_slug_from_unique_id,
     pollen_forecast_for_allergen,
@@ -286,3 +290,202 @@ class TestAllergyRiskHourlySensor:
         assert forecast[1]["time"] == "2026-06-22T01:00:00+02:00"
         assert forecast[23]["time"] == "2026-06-22T23:00:00+02:00"
         assert forecast[24]["time"] == "2026-06-23T00:00:00+02:00"
+
+
+# --- Entity naming: translation keys, display overrides, options toggle ---
+
+
+class TestRiskSensorTranslationKeys:
+    """Risk sensor names come from translation keys, not hardcoded English."""
+
+    def _kwargs(self):
+        return {
+            "coordinator": _make_coordinator(None),
+            "levels_current": ["none", "low", "moderate", "high", "very high"],
+            "location_slug": "hamburg",
+            "location_title": "Hamburg",
+        }
+
+    def test_daily_translation_key(self):
+        sensor = AllergyRiskSensor(**self._kwargs())
+        assert sensor.translation_key == "allergy_risk"
+
+    def test_hourly_translation_key(self):
+        sensor = AllergyRiskHourlySensor(**self._kwargs())
+        assert sensor.translation_key == "allergy_risk_hourly"
+
+    def test_daily_name_unset_by_default(self):
+        """An unset name is what lets the translation key take effect."""
+        sensor = AllergyRiskSensor(**self._kwargs())
+        assert getattr(sensor, "_attr_name", None) is None
+
+    def test_hourly_name_unset_by_default(self):
+        sensor = AllergyRiskHourlySensor(**self._kwargs())
+        assert getattr(sensor, "_attr_name", None) is None
+
+    def test_explicit_name_wins(self):
+        sensor = AllergyRiskSensor(name="Allergierisiko", **self._kwargs())
+        assert sensor.name == "Allergierisiko"
+
+    def test_explicit_hourly_name_wins(self):
+        sensor = AllergyRiskHourlySensor(
+            name="Allergierisiko (stündlich)", **self._kwargs()
+        )
+        assert sensor.name == "Allergierisiko (stündlich)"
+
+
+class TestDisplayNameSeparateFromMatchKey:
+    """A display override must not break the match against poll_title."""
+
+    def _make_sensor(self, coordinator, display_name=None):
+        return PolleninformationSensor(
+            coordinator=coordinator,
+            sensor_type="pollen",
+            allergen_name="Ragweed",
+            allergen_en="Ragweed",
+            allergen_slug="ragweed",
+            allergen_latin="Ambrosia artemisiifolia",
+            levels_current=["none", "low", "moderate", "high", "very high"],
+            levels_en=["none", "low", "moderate", "high", "very high"],
+            location_slug="hamburg",
+            location_title="Hamburg",
+            icon="mdi:flower-pollen",
+            display_name=display_name,
+        )
+
+    def _coordinator(self):
+        return _make_coordinator(
+            {
+                "contamination": [
+                    {
+                        "poll_title": "Ragweed (Ambrosia artemisiifolia)",
+                        "contamination_1": 3,
+                        "contamination_2": 2,
+                        "contamination_3": 1,
+                        "contamination_4": 0,
+                    }
+                ]
+            }
+        )
+
+    def test_name_defaults_to_allergen_name(self):
+        assert self._make_sensor(self._coordinator()).name == "Ragweed"
+
+    def test_overridden_name(self):
+        sensor = self._make_sensor(self._coordinator(), display_name="Ambrosia")
+        assert sensor.name == "Ambrosia"
+
+    def test_state_survives_overridden_name(self):
+        """The API still sends "Ragweed", so the value must still resolve."""
+        sensor = self._make_sensor(self._coordinator(), display_name="Ambrosia")
+        assert sensor.native_value == "high"
+
+    def test_forecast_survives_overridden_name(self):
+        sensor = self._make_sensor(self._coordinator(), display_name="Ambrosia")
+        attrs = sensor.extra_state_attributes
+        assert len(attrs["forecast"]) == 4
+        assert attrs["friendly_name"] == "Ambrosia"
+        assert attrs["name_en"] == "Ragweed"
+
+
+RAGWEED_RESPONSE = {
+    "contamination": [
+        {
+            "poll_title": "Ragweed (Ambrosia artemisiifolia)",
+            "contamination_1": 3,
+            "contamination_2": 2,
+            "contamination_3": 1,
+            "contamination_4": 0,
+        }
+    ],
+    "allergyrisk": {
+        "allergyrisk_1": 5.0,
+        "allergyrisk_2": 5.0,
+        "allergyrisk_3": 5.0,
+        "allergyrisk_4": 5.0,
+    },
+    "allergyrisk_hourly": {"allergyrisk_hourly_1": [5.0] * 24},
+}
+
+RAGWEED_LANGUAGE_BLOCK = {
+    "poll_titles": [{"name": "Ragweed", "latin": "Ambrosia artemisiifolia"}]
+}
+
+
+async def _setup_entities(hass, lang, options=None):
+    """Run sensor setup for a Ragweed-only response and return the entities."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Hamburg",
+        data={
+            "country": "DE",
+            "latitude": 53.5289,
+            "longitude": 10.0415,
+            "lang": lang,
+            "apikey": "test-api-key-12345",
+            "location_title": "Hamburg",
+            "location_slug": "hamburg",
+        },
+        options=options or {},
+    )
+    entry.add_to_hass(hass)
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = _make_coordinator(
+        RAGWEED_RESPONSE
+    )
+
+    entities = []
+
+    def _add(new_entities, update_before_add=False):
+        entities.extend(new_entities)
+
+    with patch(
+        "custom_components.polleninformation.sensor.async_get_language_block",
+        AsyncMock(return_value=RAGWEED_LANGUAGE_BLOCK),
+    ):
+        await async_setup_entry(hass, entry, _add)
+    return entities
+
+
+def _by_type(entities, cls):
+    return next(e for e in entities if isinstance(e, cls))
+
+
+class TestSetupEntryNaming:
+    @pytest.mark.parametrize(
+        ("lang", "expected"),
+        [("de", "Ambrosia"), ("sk", "Ambrózia"), ("en", "Ragweed")],
+    )
+    async def test_ragweed_display_name(self, hass, lang, expected):
+        entities = await _setup_entities(hass, lang)
+        sensor = _by_type(entities, PolleninformationSensor)
+        assert sensor.name == expected
+
+    async def test_ragweed_keeps_state_when_renamed(self, hass):
+        entities = await _setup_entities(hass, "de")
+        sensor = _by_type(entities, PolleninformationSensor)
+        assert sensor.name == "Ambrosia"
+        assert sensor.native_value is not None
+
+    async def test_risk_names_unset_without_option(self, hass):
+        entities = await _setup_entities(hass, "de")
+        daily = _by_type(entities, AllergyRiskSensor)
+        hourly = _by_type(entities, AllergyRiskHourlySensor)
+        assert getattr(daily, "_attr_name", None) is None
+        assert getattr(hourly, "_attr_name", None) is None
+
+    async def test_risk_names_set_with_option(self, hass):
+        entities = await _setup_entities(
+            hass, "de", options={"names_in_integration_language": True}
+        )
+        assert _by_type(entities, AllergyRiskSensor).name == "Allergierisiko"
+        assert (
+            _by_type(entities, AllergyRiskHourlySensor).name
+            == "Allergierisiko (stündlich)"
+        )
+
+    async def test_risk_names_fall_back_to_english(self, hass):
+        """An unknown language falls back to the English risk sensor names."""
+        entities = await _setup_entities(
+            hass, "xx", options={"names_in_integration_language": True}
+        )
+        assert _by_type(entities, AllergyRiskSensor).name == "Allergy risk"

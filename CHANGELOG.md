@@ -36,6 +36,11 @@
 
 ### Internal
 
+- **Tests for entity naming** — new cases cover the allergy risk translation
+  keys, the German and Slovak Ragweed display names, and the options toggle,
+  including the regression where an overridden display name must not stop a
+  sensor from matching the name the API sends.
+
 - **Dependabot** — added `.github/dependabot.yml` with monthly grouped updates
   for two ecosystems: `pip` (test dependencies) and `github-actions`. A breaking
   upstream release now surfaces as a red check on the bump PR instead of a
