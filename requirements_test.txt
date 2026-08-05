@@ -11,7 +11,7 @@
 # ...) transitively. Bumping this single pin is how we adopt a new HA -- do NOT
 # add explicit pytest/pytest-cov pins here, they would conflict with the exact
 # versions this package requires.
-pytest-homeassistant-custom-component==0.13.345
+pytest-homeassistant-custom-component==0.13.351
 
 # The integration's own manifest.json requirements. Home Assistant does not
 # provide these (aiohttp/voluptuous it does), so the tests need them installed
