@@ -29,6 +29,12 @@ python3 -m venv .venv
 
 ---
 
+## Architecture notes
+
+- [Entity naming](docs/entity_naming.md): how entity IDs, unique IDs, and display names are decided, and why IDs stay English.
+
+---
+
 ## Code of Conduct
 
 We are committed to providing a welcoming, friendly, and harassment-free environment for all. Please treat everyone with respect and be constructive in discussions.
