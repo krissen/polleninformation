@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.5.4 — Allergen icons (2026-08-12)
+## v0.5.4 — Allergen icons (2026-08-10)
 
 ### Bug fixes
 
