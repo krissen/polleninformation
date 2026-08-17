@@ -1098,6 +1098,104 @@ class TestUnknownAllergenFallback:
         )
 
 
+# The API sometimes sends the latin genus as the display name and leaves the
+# latin field empty, e.g. "Artemisia" with no "(...)" in poll_title and no
+# matching entry in the language block. The name is nonetheless a known key in
+# LATIN_TO_ENGLISH_NAME.
+LATIN_GENUS_AS_NAME_RESPONSE = {
+    "contamination": [
+        {
+            "poll_title": "Artemisia",
+            "contamination_1": 1,
+            "contamination_2": 0,
+            "contamination_3": 0,
+            "contamination_4": 0,
+        }
+    ],
+    "allergyrisk": {"allergyrisk_1": 5.0},
+    "allergyrisk_hourly": {"allergyrisk_hourly_1": [5.0] * 24},
+}
+
+
+class TestLatinGenusAsDisplayName:
+    """A latin genus arriving as the display name still resolves through the map.
+
+    Regression test for issue #71: "Artemisia" arrived as the poll_title with
+    an empty latin field, so the latin-keyed lookup missed it. The sensor was
+    slugged "artemisia" with the default icon and a spurious "Unknown allergen"
+    warning fired on every refresh -- even though "Artemisia" is a known key in
+    LATIN_TO_ENGLISH_NAME that resolves to "mugwort".
+    """
+
+    async def _setup(self, hass):
+        return await _setup_entities(
+            hass,
+            "de",
+            response=LATIN_GENUS_AS_NAME_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+
+    async def test_resolves_to_the_canonical_english_slug(self, hass):
+        entities = await self._setup(hass)
+        unique_ids = {e.unique_id for e in entities if e.unique_id}
+        assert "polleninformation_hamburg_mugwort" in unique_ids
+        assert "polleninformation_hamburg_artemisia" not in unique_ids
+
+    async def test_uses_the_mapped_icon(self, hass):
+        entities = await self._setup(hass)
+        sensor = next(
+            e
+            for e in entities
+            if isinstance(e, PolleninformationSensor)
+            and e.unique_id == "polleninformation_hamburg_mugwort"
+        )
+        assert sensor.icon == ALLERGEN_ICON_MAP["mugwort"]
+
+    async def test_no_unknown_allergen_warning(self, hass, caplog):
+        with caplog.at_level(logging.WARNING):
+            await self._setup(hass)
+        assert not [r for r in caplog.records if "Unknown allergen" in r.getMessage()]
+
+    async def test_existing_buggy_slug_entity_is_migrated(self, hass):
+        """An entity from the pre-fix "artemisia" slug is carried to "mugwort".
+
+        Before the fix this allergen was slugged "artemisia", so an upgrading
+        user already has that entity in the registry. The fix must rename it to
+        the canonical "mugwort" -- via the same migration path used for
+        localized slugs -- so history and automations survive instead of the
+        old sensor being orphaned beside a new one.
+        """
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            "polleninformation_hamburg_artemisia",
+            suggested_object_id="polleninformation_hamburg_artemisia",
+            config_entry=entry,
+        )
+        await _setup_entities(
+            hass,
+            "de",
+            entry=entry,
+            response=LATIN_GENUS_AS_NAME_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_mugwort"
+            )
+            == "sensor.polleninformation_hamburg_mugwort"
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_artemisia"
+            )
+            is None
+        )
+
+
 # The canonical slug for every allergen, pinned. These slugs are a public
 # contract: they are the entity_id suffix, they are in every unique_id, and
 # the pollen forecast card matches on them. A change to an API display name or
