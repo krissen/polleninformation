@@ -1718,3 +1718,24 @@ class TestStaleSensorRecovery:
         sensor.coordinator.data = LATIN_GENUS_AS_NAME_RESPONSE
         assert sensor.native_value == "bajo"
 
+    async def test_stale_flag_clears_once_the_allergen_is_found(self, hass):
+        """A recovered sensor must stop claiming its data is stale.
+
+        The flag is set in the constructor and async_setup_entry does not run
+        again when the API recovers, so it has to be derived from whether the
+        allergen was actually found.
+        """
+        sensor = await self._recreate(hass, "de", "polleninformation_hamburg_birch")
+        sensor.coordinator.data = GERMAN_BIRCH_RESPONSE
+        attrs = sensor.extra_state_attributes
+        assert "data_stale" not in attrs
+        assert "stale_since" not in attrs
+
+    async def test_stale_flag_stays_while_the_allergen_is_missing(self, hass):
+        """Data for other allergens only is still no data for this one."""
+        sensor = await self._recreate(hass, "de", "polleninformation_hamburg_birch")
+        sensor.coordinator.data = LATIN_GENUS_AS_NAME_RESPONSE
+        attrs = sensor.extra_state_attributes
+        assert attrs["data_stale"] is True
+        assert attrs["stale_since"] is not None
+

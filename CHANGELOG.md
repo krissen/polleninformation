@@ -33,6 +33,14 @@
   its allergen slug, which is the same in every language, and it reports its
   real latin name instead of a blank one.
 
+- **A recovered sensor no longer reports its data as stale** — when the API
+  returns nothing, the integration keeps its sensors and marks them stale so
+  automations can tell. That mark was set once and never cleared, so a sensor
+  that found its allergen again kept reporting `data_stale` and a `stale_since`
+  timestamp from hours earlier next to a perfectly current pollen level. The
+  mark now follows the data and is reported only while the sensor really is
+  without a reading, the way the allergy risk sensors already worked.
+
 ## v0.5.4 — Allergen icons (2026-08-10)
 
 ### Bug fixes

@@ -753,7 +753,11 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
             if self.coordinator.last_updated
             else None,
         }
-        if self._is_stale:
+        # Staleness is derived, not remembered: the flag is set once when the
+        # entity is recreated during an empty response, and setup does not run
+        # again when the API recovers. An empty forecast is what "no data for
+        # this allergen" looks like here.
+        if self._is_stale and not forecast:
             attrs["data_stale"] = True
             attrs["stale_since"] = self._stale_since
         return attrs
