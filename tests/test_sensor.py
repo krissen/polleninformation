@@ -1155,6 +1155,22 @@ class TestLatinGenusAsDisplayName:
             await self._setup(hass)
         assert not [r for r in caplog.records if "Unknown allergen" in r.getMessage()]
 
+    async def test_reports_the_genus_as_the_latin_name(self, hass):
+        """The display name is a proven latin genus, so it is the latin name.
+
+        The API left the latin field empty, but the map lookup that resolved
+        the slug proved the display name is a latin genus. Reporting an empty
+        name_la for exactly the allergens this resolves would waste that.
+        """
+        entities = await self._setup(hass)
+        sensor = next(
+            e
+            for e in entities
+            if isinstance(e, PolleninformationSensor)
+            and e.unique_id == "polleninformation_hamburg_mugwort"
+        )
+        assert sensor.extra_state_attributes["name_la"] == "Artemisia"
+
     async def test_existing_buggy_slug_entity_is_migrated(self, hass):
         """An entity from the pre-fix "artemisia" slug is carried to "mugwort".
 

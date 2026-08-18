@@ -440,6 +440,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
             # failed and a localized name that is not a latin genus stays
             # unresolved.
             mapped_en = english_name_for_latin(poll_title_local)
+            if mapped_en is not None:
+                # The display name is a latin genus, so report it as one
+                # instead of the empty latin field the API sent.
+                latin = poll_title_local
         if mapped_en is None and allergen_en_obj is None:
             _LOGGER.warning(
                 "Unknown allergen %r (latin %r); its entity_id will follow the "
