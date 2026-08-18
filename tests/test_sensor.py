@@ -1301,6 +1301,61 @@ ITALIAN_RAGWEED_RESPONSE = {
 }
 
 
+class TestNoLegacyCandidateCanClaimAnotherAllergen:
+    """A rename candidate that does not exist is free; one that collides is not.
+
+    The legacy candidates include the slug of the raw display name, so if any
+    language called an allergen something that slugifies to a DIFFERENT
+    allergen's canonical slug, setup would queue a rename that moves that
+    other allergen's entity onto this one. Nothing in the map does that today.
+    It is pinned because the map is data and regenerating it is a data change
+    that no code review would show, which is how the bug this fixes arrived.
+    """
+
+    @staticmethod
+    def _entries():
+        for block in SHIPPED_LANGUAGE_MAP.values():
+            lang = block.get("lang_code")
+            for entry in block.get("poll_titles", []):
+                yield lang, entry
+
+    def test_no_display_name_slugs_to_another_allergen(self):
+        collisions = [
+            (lang, entry["name"], slugify(capitalize_first(entry["name"])))
+            for lang, entry in self._entries()
+            if slugify(capitalize_first(entry["name"])) in KNOWN_ALLERGEN_SLUGS
+            and slugify(capitalize_first(entry["name"]))
+            != slugify(english_name_for_latin(entry["latin"]) or "")
+        ]
+        assert collisions == []
+
+    def test_no_two_allergens_in_one_language_share_a_display_slug(self):
+        # The other way a candidate could move the wrong entity: two entries
+        # in one language producing the same legacy slug for two canonical
+        # slugs, so whichever renames first takes the other's entity.
+        for block in SHIPPED_LANGUAGE_MAP.values():
+            seen = {}
+            for entry in block.get("poll_titles", []):
+                seen.setdefault(slugify(capitalize_first(entry["name"])), []).append(
+                    entry["name"]
+                )
+            assert all(len(names) == 1 for names in seen.values()), (
+                block.get("lang_code"),
+                {k: v for k, v in seen.items() if len(v) > 1},
+            )
+
+    def test_every_recorded_latin_still_resolves_to_a_known_allergen(self):
+        # What the collision test rests on: a display name is compared against
+        # the canonical slug its latin name resolves to, so that resolution
+        # has to exist for every entry.
+        unresolved = [
+            (lang, entry["name"], entry["latin"])
+            for lang, entry in self._entries()
+            if english_name_for_latin(entry["latin"]) is None
+        ]
+        assert unresolved == []
+
+
 class TestMigrationAgainstTheShippedMap:
     """The migration under the configuration we actually ship.
 
