@@ -47,6 +47,14 @@
   sensor that has always had a reading and then loses it is marked too, where
   before only sensors kept through an outage ever were.
 
+- **Two allergens that share a name no longer read each other's values** —
+  the API can send one allergen's name for two entries, one with a latin name
+  in brackets and one without. Both sensors then looked for their allergen by
+  that shared name and both found whichever entry came first, so one of them
+  showed the other's level and forecast. Sensors are now matched on their
+  latin name first, and a name is only used for an entry no other sensor
+  claims.
+
 - **A sensor with nothing to show says so** — a response that carried a risk
   block but nothing usable for today, only a later day or an empty value, left
   the allergy risk sensors showing no value while reporting their data as

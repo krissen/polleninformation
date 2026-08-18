@@ -2125,3 +2125,76 @@ class TestLocalizedTitleWithoutLatin:
         )
         sensor.coordinator.data = BINOMIAL_NAME_RESPONSE
         assert sensor.native_value == "mäßig"
+
+
+MUGWORT_ENTRY = {
+    "poll_title": "Artemisia",
+    "contamination_1": 1,
+    "contamination_2": 1,
+    "contamination_3": 0,
+    "contamination_4": 0,
+}
+
+COMPOSITE_ENTRY = {
+    "poll_title": "Artemisia (Asteraceae)",
+    "contamination_1": 3,
+    "contamination_2": 2,
+    "contamination_3": 2,
+    "contamination_4": 1,
+}
+
+ASTERACEAE_LANGUAGE_BLOCK = {
+    "poll_titles": [
+        {"name": "composite family", "latin": "Asteraceae"},
+        {"name": "mugwort", "latin": "Artemisia"},
+    ]
+}
+
+
+class TestTwoEntriesSharingOneName:
+    """Two allergens can share a match key, so the name alone cannot decide.
+
+    "Artemisia (Asteraceae)" and a bare "Artemisia" resolve to different
+    slugs, but poll_title_local strips the parenthesized latin, so both
+    sensors keep "Artemisia" as their name match key.
+    """
+
+    @pytest.mark.parametrize(
+        "contamination",
+        [
+            [MUGWORT_ENTRY, COMPOSITE_ENTRY],
+            [COMPOSITE_ENTRY, MUGWORT_ENTRY],
+        ],
+        ids=["mugwort_first", "composite_first"],
+    )
+    async def test_each_sensor_reads_its_own_entry(self, hass, contamination):
+        entities = await _setup_entities(
+            hass,
+            "en",
+            response={
+                "contamination": contamination,
+                "allergyrisk": {},
+                "allergyrisk_hourly": {},
+            },
+            language_block=ASTERACEAE_LANGUAGE_BLOCK,
+        )
+        by_slug = {
+            e.unique_id: e for e in entities if isinstance(e, PolleninformationSensor)
+        }
+        mugwort = by_slug["polleninformation_hamburg_mugwort"]
+        composite = by_slug["polleninformation_hamburg_composite_family"]
+
+        assert mugwort.native_value == "low"
+        assert composite.native_value == "high"
+        assert [d["level"] for d in mugwort.extra_state_attributes["forecast"]] == [
+            1,
+            1,
+            0,
+            0,
+        ]
+        assert [d["level"] for d in composite.extra_state_attributes["forecast"]] == [
+            3,
+            2,
+            2,
+            1,
+        ]

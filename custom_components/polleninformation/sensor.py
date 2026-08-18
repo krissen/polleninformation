@@ -721,24 +721,27 @@ class PolleninformationSensor(StaleDataMarker, CoordinatorEntity, SensorEntity):
     def _find_item(self, contamination: list) -> dict | None:
         """Return this allergen's contamination entry, or None.
 
-        The name matches for a sensor built from the current response. A
-        sensor recreated from the registry while the API returned no data
-        knows only the English name behind its slug, so it also matches on
-        the slug, which holds in every language.
+        The slug comes from the language-invariant latin name, so it
+        identifies an entry outright and is searched first, across every
+        entry. The name is only a fallback, for an entry no map can place
+        and for a sensor recreated from the registry.
 
-        Both criteria are tested per entry, which is safe because at most one
-        entry can match either way: two entries resolving to one allergen
-        already collide on unique_id at setup, and no localized name in the
-        language map equals another allergen's canonical English name. Were
-        this ever split into two passes, the slug pass belongs first, since
-        the slug comes from the language-invariant latin name while the name
-        compare is the fuzzy one.
+        Two entries can share a name: poll_title_local drops the
+        parenthesized latin, so "Artemisia (Asteraceae)" and a bare
+        "Artemisia" both leave "Artemisia" as the match key while resolving
+        to different allergens. The name pass therefore skips any entry that
+        identifies as a different allergen, and a name match only ever lands
+        on an entry that nothing else claims.
         """
         for item in contamination:
+            if allergen_slug_for_item(item) == self._allergen_slug:
+                return item
+        for item in contamination:
+            slug = allergen_slug_for_item(item)
+            if slug is not None and slug != self._allergen_slug:
+                continue
             poll_title = item.get("poll_title", "").split("(", 1)[0].strip()
             if poll_title.lower() == self._allergen_name.lower():
-                return item
-            if allergen_slug_for_item(item) == self._allergen_slug:
                 return item
         return None
 
