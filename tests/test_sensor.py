@@ -1522,13 +1522,39 @@ class TestTheRegistryRowRecordsWhichAllergenItIs:
         assert row.disabled
         assert row.options[DOMAIN]["latin"] == "Artemisia"
 
-    async def test_a_legacy_row_is_not_recorded_before_the_migration_decides(
-        self, hass
-    ):
-        # Order, pinned. Recording first would overwrite what this row says
-        # about itself with the latin name of the allergen that is trying to
-        # claim it, and the guard would then be weighing evidence the rename
-        # made for itself. The row is refused and keeps its own record.
+    async def test_a_disabled_row_migrated_in_this_pass_is_recorded_after(self, hass):
+        # The ordering pin. A disabled row is never added as an entity, so the
+        # setup-side write is its only chance, and it is renamed in this same
+        # pass. Only a write that runs AFTER the migration finds it: before,
+        # nothing carries the canonical unique_id this resolves rows by, and
+        # the row would be left unrecorded exactly as it was.
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        legacy = ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            "polleninformation_hamburg_foo",
+            suggested_object_id="polleninformation_hamburg_foo",
+            config_entry=entry,
+            disabled_by=er.RegistryEntryDisabler.USER,
+        )
+
+        await _setup_through_the_platform(
+            hass, "de", self._response("Foo (Betula)"), entry=entry
+        )
+
+        migrated = ent_reg.async_get("sensor.polleninformation_hamburg_birch")
+        assert migrated is not None
+        assert migrated.id == legacy.id
+        assert migrated.disabled
+        assert migrated.options[DOMAIN]["latin"] == "Betula"
+
+    async def test_a_refused_row_keeps_its_own_record(self, hass):
+        # A refused row is not then recorded as the allergen that was refused
+        # it. Nothing looks it up under its own legacy slug, and the write
+        # site resolves rows by canonical unique_id only, so the record it
+        # carries is the one thing about it nothing in this pass can rewrite.
         entry = _make_entry("de")
         entry.add_to_hass(hass)
         ent_reg = er.async_get(hass)
