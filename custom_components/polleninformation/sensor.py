@@ -536,9 +536,14 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 latin or "",
             )
         allergen_en = mapped_en or legacy_en
-        # A spelling the API is known to send in place of a latin name is
-        # reported as the name it stands for, so the attribute carries a latin
-        # name rather than a localized word.
+        # name_la reports what the API said about this allergen, so a latin
+        # name that carries a species keeps it: "Ambrosia artemisiifolia" is
+        # more than the genus and the attribute is where that belongs. The one
+        # rewrite is a spelling the API is known to send in place of a latin
+        # name, so the attribute carries a latin name rather than a localized
+        # word. Deliberately not canonicalized: the restore path below can
+        # only report the genus, and matching it here would mean discarding a
+        # species the API did send. See the comment there.
         allergen_la = resolve_latin_alias(latin) if latin else ""
         if allergen_la != latin:
             _LOGGER.debug(
@@ -641,6 +646,16 @@ async def async_setup_entry(hass, entry, async_add_entities):
             else:
                 # The slug is all the registry keeps, so the names are
                 # derived back from it; the API is not answering right now.
+                # That makes name_la the key of LATIN_TO_ENGLISH_NAME here,
+                # which is the genus for every allergen the API spells with
+                # one, where the setup path reports the species alongside it
+                # when the API sends one. The slug does not carry a species,
+                # so this is the most this path can say. A sensor whose latin
+                # name has a species therefore reports the genus alone for as
+                # long as the outage lasts, and reports the species again on
+                # the first answer. Reporting the genus in both places would
+                # remove the difference by throwing away what the API told us,
+                # which is the wrong way to make two paths agree.
                 allergen_en, allergen_la = _slug_index().get(
                     allergen_slug, (allergen_slug.replace("_", " "), "")
                 )

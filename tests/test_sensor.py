@@ -1452,7 +1452,11 @@ class TestDeclaredLatinNameAliases:
         unique_ids = {e.unique_id for e in entities if e.unique_id}
         assert "polleninformation_hamburg_ragweed" in unique_ids
 
-    async def test_the_latin_name_is_reported_canonically(self, hass):
+    async def test_the_alias_is_reported_as_the_name_it_stands_for(self, hass):
+        # Not a canonicalization rule: the alias case is the one where what
+        # the API sent and the map key happen to coincide. What the two paths
+        # do with a latin name that is not an alias is pinned in
+        # TestReportedLatinNameAcrossAnOutage.
         entities = await self._setup(hass)
         sensor = _by_type(entities, PolleninformationSensor)
         assert sensor.extra_state_attributes["name_la"] == "Ambrosia"
@@ -1908,6 +1912,47 @@ class TestStaleSensorRecovery:
         sensor = await _recreate_stale(hass, "es", "polleninformation_hamburg_ragweed")
         sensor.coordinator.data = GENUS_PREFIXED_NAME_RESPONSE
         assert sensor.native_value is None
+
+
+class TestReportedLatinNameAcrossAnOutage:
+    """What name_la says on each path, including where they differ.
+
+    The setup path reports what the API sent about this allergen, species
+    included. The restore path has only the slug to work from, so the most it
+    can say is the key of LATIN_TO_ENGLISH_NAME. For an allergen the API
+    spells with a genus alone the two coincide; for one it spells with a
+    species they do not, and that difference is deliberate: matching them
+    would mean discarding a species the API did send.
+    """
+
+    async def test_the_setup_path_reports_the_species_the_api_sent(self, hass):
+        entities = await _setup_entities(hass, "de")
+        sensor = _by_type(entities, PolleninformationSensor)
+        assert sensor.extra_state_attributes["name_la"] == "Ambrosia artemisiifolia"
+
+    async def test_the_restore_path_reports_the_map_key(self, hass):
+        sensor = await _recreate_stale(hass, "de", "polleninformation_hamburg_ragweed")
+        assert sensor.extra_state_attributes["name_la"] == "Ambrosia"
+
+    async def test_the_difference_lasts_no_longer_than_the_outage(self, hass):
+        # The restore path only runs while the API is answering with nothing.
+        # The first answer that carries data goes through setup again, so the
+        # species comes back with it.
+        stale = await _recreate_stale(hass, "de", "polleninformation_hamburg_ragweed")
+        assert stale.extra_state_attributes["name_la"] == "Ambrosia"
+
+        entities = await _setup_entities(hass, "de")
+        recovered = _by_type(entities, PolleninformationSensor)
+        assert recovered.extra_state_attributes["name_la"] == "Ambrosia artemisiifolia"
+
+    async def test_the_paths_agree_when_the_api_sends_the_genus_alone(self, hass):
+        # Most allergens, and the reason the difference is easy to miss.
+        entities = await _setup_entities(hass, "de", response=GERMAN_BIRCH_RESPONSE)
+        setup_sensor = _by_type(entities, PolleninformationSensor)
+        stale = await _recreate_stale(hass, "de", "polleninformation_hamburg_birch")
+
+        assert setup_sensor.extra_state_attributes["name_la"] == "Betula"
+        assert stale.extra_state_attributes["name_la"] == "Betula"
 
 
 class TestEveryEntityReportsTheSameOutage:
