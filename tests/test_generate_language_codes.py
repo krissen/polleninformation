@@ -68,13 +68,17 @@ class TestResolveLatin:
         assert latin == "Ambrosia artemisiifolia"
         assert warnings == []
 
-    def test_localized_word_in_brackets_is_replaced_from_the_display_name(self, script):
-        # The sk shape: the API put a Slovak word where the latin name goes,
-        # and left the display name in English.
+    def test_a_declared_alias_is_recorded_as_the_name_it_stands_for(self, script):
+        # The sk shape: the API put the Slovak word for ragweed where the
+        # latin name goes. That spelling is declared in LATIN_NAME_ALIASES,
+        # which is the only thing that may override what the API sent.
         latin, warnings = script.resolve_latin("Ragweed", "ambrózia")
         assert latin == "Ambrosia"
         assert len(warnings) == 1
         assert "ambrózia" in warnings[0]
+
+    def test_an_alias_is_matched_case_insensitively(self, script):
+        assert script.resolve_latin("Ragweed", "Ambrózia")[0] == "Ambrosia"
 
     def test_display_name_that_is_a_latin_name_supplies_the_missing_latin(self, script):
         # The es shape, and the shape reported in issue #71.
@@ -92,18 +96,14 @@ class TestResolveLatin:
         assert len(warnings) == 1
         assert "Keeping it" in warnings[0]
 
-    def test_a_latin_the_api_sent_outranks_an_english_display_name(self, script):
-        # The same rule for the English-name lookup: "Asteraceae" could be a
-        # scientific name, so it identifies the allergen whatever the display
-        # name says.
+    def test_an_english_display_name_never_overrides_a_latin_one(self, script):
+        # "Ragweed (Asteraceae)" is the case that ruled out inferring a latin
+        # name from the display name. Asteraceae is not a declared alias, so
+        # nothing touches it.
         latin, warnings = script.resolve_latin("Ragweed", "Asteraceae")
         assert latin == "Asteraceae"
         assert len(warnings) == 1
         assert "Keeping it" in warnings[0]
-
-    def test_a_hybrid_name_the_map_does_not_know_is_kept(self, script):
-        latin, _ = script.resolve_latin("Ragweed", "Asteraceae × nova")
-        assert latin == "Asteraceae × nova"
 
     def test_unknown_latin_is_kept_as_sent_and_warned_about(self, script):
         latin, warnings = script.resolve_latin("Nässlor", "Nonexistentia")
@@ -116,26 +116,6 @@ class TestResolveLatin:
         assert latin == ""
         assert len(warnings) == 1
         assert "no latin name" in warnings[0]
-
-
-class TestCouldBeAScientificName:
-    """What tells a latin name the map does not know from a localized word.
-
-    This is the whole safety argument for the English-name lookup: it may
-    only override what the API put between the brackets when that string
-    cannot be a scientific name whatever it names.
-    """
-
-    @pytest.mark.parametrize(
-        "latin",
-        ["Asteraceae", "Ambrosia artemisiifolia", "Ambrosia × helenae", "Poaceae"],
-    )
-    def test_latin_names_could_be_one(self, script, latin):
-        assert script.could_be_a_scientific_name(latin)
-
-    @pytest.mark.parametrize("latin", ["ambrózia", "Амброзия", "パセリ", "", "räven"])
-    def test_a_localized_word_could_not(self, script, latin):
-        assert not script.could_be_a_scientific_name(latin)
 
 
 class TestPollTitlesFromContamination:

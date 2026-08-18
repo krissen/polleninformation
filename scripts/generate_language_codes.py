@@ -15,7 +15,7 @@ file with the same rules the fetch mode applies to a fresh response, which is
 what lets an entry recorded before those rules existed correct itself. Run it
 after changing the validation, and review the diff.
 
-Both modes take their authority from LATIN_TO_ENGLISH_NAME in sensor.py, so
+Both modes take their authority from the allergen maps in sensor.py, so
 this script imports the integration and therefore needs Home Assistant
 installed (the test venv has it).
 """
@@ -31,7 +31,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from custom_components.polleninformation.sensor import (
-    LATIN_TO_ENGLISH_NAME,
+    canonical_latin,
     english_name_for_display_name,
     english_name_for_latin,
 )
@@ -66,14 +66,6 @@ DELAY_SEC = 2  # Polite delay between requests (adjust if needed)
 HEADERS = {
     "Accept": "application/json, text/plain, */*",
     "User-Agent": "Mozilla/5.0 (compatible; polleninfo-script/1.0)",
-}
-
-# The reverse of LATIN_TO_ENGLISH_NAME. The English names are unique, so this
-# is lossless. It is the last resort for an entry whose display name is the
-# English allergen name rather than a localized one, which is what the API
-# sends for ragweed in some languages.
-ENGLISH_NAME_TO_LATIN = {
-    name.lower(): latin for latin, name in LATIN_TO_ENGLISH_NAME.items()
 }
 
 
@@ -136,77 +128,57 @@ def split_poll_title(poll_title):
     return name, latin
 
 
-# Everything a scientific name is allowed to be made of. The nomenclature
-# codes require a name to be written in Latin letters, so a name never carries
-# a diacritic or a non-Latin script; the multiplication sign is the one
-# exception, since it marks a hybrid ("Ambrosia x helenae" is also written
-# with it).
-SCIENTIFIC_NAME_CHARACTERS = set(
-    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ .-'×"
-)
-
-
-def could_be_a_scientific_name(latin):
-    """Return whether a string could be a scientific name at all.
-
-    This does not say the name exists, only that nothing rules it out. A
-    string carrying a diacritic or a non-Latin script cannot be one, which is
-    how a localized word the API put between the brackets is told apart from
-    a genuine latin name the static map happens not to know.
-    """
-    return bool(latin) and set(latin) <= SCIENTIFIC_NAME_CHARACTERS
-
-
 def resolve_latin(name, latin):
     """Return the latin name to record for an entry, plus any warnings.
 
     The API does not always put a latin name between the brackets, and does
     not always use brackets at all, so a transcribed latin name is checked
-    against LATIN_TO_ENGLISH_NAME before it is trusted. When it fails, the
-    display name is the second chance: it is either a latin name itself, the
-    shape reported in issue #71, or the English allergen name, which is what
-    the API sends for ragweed in some languages.
+    against the integration's own maps before it is trusted:
 
-    A latin name the API did send is authoritative even when nothing resolves
-    it, exactly as it is for the sensors: "Artemisia (Asteraceae)" is the
-    composite family, not mugwort, and reading its display name as a latin
-    name would record it as a different allergen. So the display name is only
-    read as a latin name when the API sent none, and it is only read as an
-    English allergen name when the API sent none or sent something that could
-    not be a scientific name whatever it names.
+    1. a latin name LATIN_TO_ENGLISH_NAME knows is recorded as sent;
+    2. a spelling LATIN_NAME_ALIASES declares, such as the Slovak "ambrózia",
+       is recorded as the latin name it stands for;
+    3. the display name is read as a latin name only when the API sent none,
+       which is the shape reported in issue #71;
+    4. anything else is warned about and recorded exactly as the API sent it.
 
-    An entry no lookup recognizes is warned about and recorded exactly as the
-    API sent it. Dropping it would hide a genuinely new allergen, which is the
-    one case where this file has something to tell us.
+    A latin name the API did send is otherwise authoritative even when nothing
+    resolves it, exactly as it is for the sensors: "Artemisia (Asteraceae)" is
+    the composite family, not mugwort, and reading its display name as a latin
+    name would record it as a different allergen. Only a spelling declared in
+    the alias table overrides what the API sent, so an unknown latin name is
+    never guessed at, and dropping it is never an option either: that would
+    hide a genuinely new allergen, which is the one case where this file has
+    something to tell us.
     """
     if latin and english_name_for_latin(latin):
+        canonical = canonical_latin(latin)
+        if canonical != latin:
+            warning = (
+                f"{name!r}: the API sent {latin!r} where the latin name goes, "
+                f"which is a known spelling of {canonical!r}; recording that"
+            )
+            return canonical, [warning]
         return latin, []
 
     sent = f"latin name {latin!r}" if latin else "no latin name"
 
-    if not latin and (english := english_name_for_display_name(name)):
-        canonical = ENGLISH_NAME_TO_LATIN[english]
+    if not latin and english_name_for_display_name(name):
+        # The display name is itself a latin name, so record it as one.
         warning = (
             f"{name!r}: the API sent {sent} and a display name that is one; "
-            f"recording {canonical!r}"
+            f"recording {name!r}"
         )
-        return canonical, [warning]
-
-    if not could_be_a_scientific_name(latin) and (
-        canonical := ENGLISH_NAME_TO_LATIN.get(name.strip().lower())
-    ):
-        warning = (
-            f"{name!r}: the API sent {sent} and an untranslated English "
-            f"display name; recording {canonical!r}"
-        )
-        return canonical, [warning]
+        return name, [warning]
 
     if latin:
         warning = (
             f"{name!r}: the API sent {sent}, which no map knows. Keeping it: "
             f"a latin name the API sent identifies the allergen even when "
             f"nothing resolves it. If this is a new allergen it needs adding "
-            f"to LATIN_TO_ENGLISH_NAME in sensor.py; please open an issue."
+            f"to LATIN_TO_ENGLISH_NAME in sensor.py, and a spelling that is "
+            f"not a latin name at all to LATIN_NAME_ALIASES; please open an "
+            f"issue."
         )
     else:
         warning = (
