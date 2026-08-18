@@ -361,7 +361,48 @@ class TestLanguageEntryFromResponse:
             },
         )
         assert [poll["latin"] for poll in entry["poll_titles"]] == ["Poaceae"]
-        assert len(warnings) == 1
+        # One for the entry that was dropped, one for the language being left
+        # incomplete because of it.
+        assert len(warnings) == 2
+
+    def test_a_response_that_lost_an_entry_is_marked_incomplete(self, script):
+        entry, warnings = script.language_entry_from_response(
+            "sk",
+            {
+                "contamination": [
+                    {"poll_title": "Trávy (Poaceae)", "poll_id": 5},
+                    {"poll_title": "()", "poll_id": 6},
+                ]
+            },
+        )
+
+        assert entry["incomplete"] is True
+        assert [poll["latin"] for poll in entry["poll_titles"]] == ["Poaceae"]
+        assert any("incomplete" in w for w in warnings)
+
+    def test_an_incomplete_language_is_fetched_again(self, script):
+        # The property that matters: nothing else would ever come back for the
+        # entry that was lost, since a saved language is skipped and --repair
+        # cannot invent an entry that was never recorded.
+        entry, _ = script.language_entry_from_response(
+            "sk",
+            {
+                "contamination": [
+                    {"poll_title": "Trávy (Poaceae)", "poll_id": 5},
+                    {"poll_title": "()", "poll_id": 6},
+                ]
+            },
+        )
+
+        assert script.needs_fetch({"sk": entry}, "sk")
+
+    def test_a_complete_response_is_not_marked(self, script):
+        entry, _ = script.language_entry_from_response(
+            "sk", {"contamination": [{"poll_title": "Trávy (Poaceae)", "poll_id": 5}]}
+        )
+
+        assert "incomplete" not in entry
+        assert not script.needs_fetch({"sk": entry}, "sk")
 
 
 class TestNeedsFetch:
@@ -373,6 +414,10 @@ class TestNeedsFetch:
     def test_a_recorded_language_is_not_refetched(self, script):
         db = {"sk": {"lang_code": "sk", "poll_titles": []}}
         assert not script.needs_fetch(db, "sk")
+
+    def test_an_incomplete_entry_is_retried(self, script):
+        db = {"sk": {"lang_code": "sk", "poll_titles": [], "incomplete": True}}
+        assert script.needs_fetch(db, "sk")
 
     def test_an_error_entry_is_retried(self, script):
         db = {"sk": {"lang_code": "sk", "error": "request error: timeout"}}

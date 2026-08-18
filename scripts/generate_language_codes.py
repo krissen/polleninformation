@@ -299,9 +299,17 @@ def needs_fetch(db, lang_code):
     An entry that records an error is retried, which is the only reason the
     error is written to the file at all: a language whose response could not
     be read has to come back on the next run rather than sit there forever.
+
+    So is an entry that is incomplete. A response can be readable and still
+    have lost an allergen to a malformed entry, and nothing else would ever
+    revisit it: this skips a saved language, and --repair cannot invent an
+    entry that was never recorded. Left alone it would be permanently missing
+    one allergen with nothing to say so.
     """
     entry = db.get(lang_code)
-    return not isinstance(entry, dict) or "error" in entry
+    if not isinstance(entry, dict):
+        return True
+    return "error" in entry or bool(entry.get("incomplete"))
 
 
 def unreadable_entry_warning(db, lang_code):
@@ -335,10 +343,18 @@ def language_entry_from_response(lang_code, data):
     allergen names, which is the one thing the file exists to hold, so both
     have to be fetched again rather than saved as a language that legitimately
     has none. Recording either as a success would be permanent: needs_fetch
-    only retries an entry that carries an error.
+    only retries an entry that carries an error or is marked incomplete.
+
+    A response that lost SOME of its entries is marked incomplete and keeps
+    the ones it had. The entry is worth keeping, because eleven names are
+    worth more to a sensor than none, and it may not be treated as finished,
+    because nothing else would ever come back for the twelfth: this file is
+    only fetched for languages it lacks, and --repair cannot invent an entry
+    that was never recorded.
     """
     warnings = []
     poll_titles = []
+    dropped = 0
     if not isinstance(data, dict):
         error = (
             f"malformed response: the top level is {type(data).__name__}, not an object"
@@ -346,17 +362,28 @@ def language_entry_from_response(lang_code, data):
     elif "contamination" not in data:
         error = "malformed response: no contamination block"
     else:
-        poll_titles, warnings = poll_titles_from_contamination(data["contamination"])
+        contamination = data["contamination"]
+        poll_titles, warnings = poll_titles_from_contamination(contamination)
         error = "the response carries no allergens" if not poll_titles else None
+        if isinstance(contamination, list):
+            dropped = len(contamination) - len(poll_titles)
 
     if error:
         return {"error": error, "lang_code": lang_code}, warnings
 
-    return {
+    entry = {
         "lang_code": lang_code,
         "lang": get_language_name(lang_code),
         "poll_titles": poll_titles,
-    }, warnings
+    }
+    if dropped:
+        entry["incomplete"] = True
+        incomplete_warning = (
+            f"{dropped} entry(ies) could not be read, so this language is "
+            f"recorded as incomplete and will be fetched again"
+        )
+        warnings = [*warnings, incomplete_warning]
+    return entry, warnings
 
 
 def repair_db(db):
