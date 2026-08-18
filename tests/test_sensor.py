@@ -16,12 +16,14 @@ from custom_components.polleninformation.const import DOMAIN
 from custom_components.polleninformation.sensor import (
     ALLERGEN_ICON_MAP,
     KNOWN_ALLERGEN_SLUGS,
+    LATIN_NAME_ALIASES,
     LATIN_TO_ENGLISH_NAME,
     RISK_SLUGS,
     AllergyRiskHourlySensor,
     AllergyRiskSensor,
     PolleninformationSensor,
     async_setup_entry,
+    canonical_latin,
     capitalize_first,
     english_name_for_latin,
     entity_id_available,
@@ -1358,6 +1360,70 @@ class TestPresentLatinIsAuthoritative:
             )
             is None
         )
+
+
+# The Slovak response spells ragweed's latin name "ambrózia", which is the
+# Slovak word rather than a candidate scientific name. Nothing in the static
+# map matches it, so before it was declared an alias the allergen was unknown.
+SLOVAK_RAGWEED_RESPONSE = {
+    "contamination": [
+        {
+            "poll_title": "Ragweed (ambrózia)",
+            "contamination_1": 1,
+            "contamination_2": 0,
+            "contamination_3": 0,
+            "contamination_4": 0,
+        }
+    ],
+    "allergyrisk": {"allergyrisk_1": 5.0},
+    "allergyrisk_hourly": {"allergyrisk_hourly_1": [5.0] * 24},
+}
+
+
+class TestDeclaredLatinNameAliases:
+    """A spelling declared in LATIN_NAME_ALIASES resolves like the name itself.
+
+    The alias table is an allow-list: only a spelling we have seen the API
+    send is rewritten, so an unknown latin name is never guessed at.
+    """
+
+    def test_the_alias_resolves_to_its_allergen(self):
+        assert english_name_for_latin("ambrózia") == "ragweed"
+
+    def test_the_alias_is_matched_case_insensitively(self):
+        assert english_name_for_latin("Ambrózia") == "ragweed"
+
+    def test_canonical_latin_rewrites_only_a_declared_alias(self):
+        assert canonical_latin("ambrózia") == "Ambrosia"
+        assert canonical_latin("Asteraceae") == "Asteraceae"
+        assert canonical_latin("") == ""
+        assert canonical_latin(None) is None
+
+    def test_every_alias_names_an_allergen_the_map_knows(self):
+        assert set(LATIN_NAME_ALIASES.values()) <= set(LATIN_TO_ENGLISH_NAME)
+
+    async def _setup(self, hass):
+        return await _setup_entities(
+            hass,
+            "sk",
+            response=SLOVAK_RAGWEED_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+
+    async def test_a_slovak_install_gets_the_canonical_slug(self, hass):
+        entities = await self._setup(hass)
+        unique_ids = {e.unique_id for e in entities if e.unique_id}
+        assert "polleninformation_hamburg_ragweed" in unique_ids
+
+    async def test_the_latin_name_is_reported_canonically(self, hass):
+        entities = await self._setup(hass)
+        sensor = _by_type(entities, PolleninformationSensor)
+        assert sensor.extra_state_attributes["name_la"] == "Ambrosia"
+
+    async def test_no_unknown_allergen_warning(self, hass, caplog):
+        with caplog.at_level(logging.WARNING):
+            await self._setup(hass)
+        assert not [r for r in caplog.records if "Unknown allergen" in r.getMessage()]
 
 
 # The canonical slug for every allergen, pinned. These slugs are a public
