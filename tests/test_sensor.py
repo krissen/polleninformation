@@ -2059,3 +2059,69 @@ class TestPartialDataIsNotFreshData:
         assert attrs["data_stale"] is True
         assert attrs["stale_since"] == T1.isoformat()
 
+
+GERMAN_LANGUAGE_BLOCK = {"poll_titles": [{"name": "Birke", "latin": "Betula"}]}
+
+LOCALIZED_TITLE_RESPONSE = {
+    "contamination": [
+        {
+            "poll_title": "Birke",
+            "contamination_1": 3,
+            "contamination_2": 2,
+            "contamination_3": 1,
+            "contamination_4": 0,
+        }
+    ],
+    "allergyrisk": {},
+    "allergyrisk_hourly": {},
+}
+
+
+class TestLocalizedTitleWithoutLatin:
+    """The API also sends a localized title with no parenthesized latin name.
+
+    Setup resolves that shape through the language block. A recreated sensor
+    has no latin to read and the title is not a latin name either, so it has
+    to know the localized name the API will send.
+    """
+
+    async def _birch(self, hass):
+        return await _recreate_stale(
+            hass,
+            "de",
+            "polleninformation_hamburg_birch",
+            language_block=GERMAN_LANGUAGE_BLOCK,
+        )
+
+    async def test_recovers_from_a_localized_title(self, hass):
+        sensor = await self._birch(hass)
+        sensor.coordinator.data = LOCALIZED_TITLE_RESPONSE
+        assert sensor.native_value == "hoch"
+
+    async def test_forecast_recovers_from_a_localized_title(self, hass):
+        sensor = await self._birch(hass)
+        sensor.coordinator.data = LOCALIZED_TITLE_RESPONSE
+        forecast = sensor.extra_state_attributes["forecast"]
+        assert [day["level"] for day in forecast] == [3, 2, 1, 0]
+
+    async def test_the_recreated_sensor_is_named_in_the_configured_language(self, hass):
+        """The name the block carries is also the name the user should see."""
+        sensor = await self._birch(hass)
+        assert sensor.name == "Birke"
+
+    async def test_the_latin_shape_still_works(self, hass):
+        """The block must not displace the language independent match."""
+        sensor = await self._birch(hass)
+        sensor.coordinator.data = GERMAN_BIRCH_RESPONSE
+        assert sensor.native_value == "hoch"
+
+    async def test_an_allergen_the_block_does_not_carry_still_recovers(self, hass):
+        """Falling back to the English name keeps the slug match reachable."""
+        sensor = await _recreate_stale(
+            hass,
+            "de",
+            "polleninformation_hamburg_tree_of_heaven",
+            language_block=GERMAN_LANGUAGE_BLOCK,
+        )
+        sensor.coordinator.data = BINOMIAL_NAME_RESPONSE
+        assert sensor.native_value == "mäßig"

@@ -33,7 +33,9 @@
   Assistant was restarted or the entry reloaded. English installations were
   unaffected apart from dock/sorrel. A recreated sensor is now also matched on
   its allergen slug, which is the same in every language, and it reports its
-  real latin name instead of a blank one.
+  real latin name instead of a blank one. It also keeps its name in the
+  language you configured, where it used to fall back to English until Home
+  Assistant was restarted.
 
 - **A recovered sensor no longer reports its data as stale** — when the API
   returns nothing, the integration keeps its sensors and marks them stale so

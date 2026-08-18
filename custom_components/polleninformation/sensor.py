@@ -595,7 +595,20 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 allergen_en, allergen_la = _slug_index().get(
                     allergen_slug, (allergen_slug.replace("_", " "), "")
                 )
-                allergen_name = capitalize_first(allergen_en)
+                # The API sends poll_title in the configured language, and it
+                # does not always carry the latin name, so the match key has
+                # to be the localized name. It comes from the same language
+                # block the setup path reads it from. An allergen the block
+                # does not carry keeps the English name and stays matchable
+                # through the latin name in poll_title.
+                localized = (
+                    get_allergen_info_by_latin(allergen_la, language_block_current)
+                    if allergen_la
+                    else None
+                )
+                allergen_name = capitalize_first(
+                    (localized or {}).get("name") or allergen_en
+                )
                 icon = ALLERGEN_ICON_MAP.get(
                     allergen_slug, ALLERGEN_ICON_MAP["default"]
                 )
