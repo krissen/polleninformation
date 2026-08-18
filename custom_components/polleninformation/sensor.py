@@ -77,6 +77,19 @@ LATIN_TO_ENGLISH_NAME = {
     "Urticaceae": "nettle family",
 }
 
+# Spellings the API sends in the latin field that are not latin names, and the
+# name each one stands for. The Slovak response spells ragweed "ambrózia",
+# which is the Slovak word rather than a candidate scientific name, so nothing
+# above matches it and the allergen would be unknown.
+#
+# This is an allow-list on purpose: every entry is a fact about the API's data,
+# added after seeing it. A latin name the API sends that is simply not in the
+# map above is left alone, because it identifies its allergen whatever we can
+# resolve it to. Keys are lowercase; lookups normalize.
+LATIN_NAME_ALIASES = {
+    "ambrózia": "Ambrosia",
+}
+
 # Icons group the allergens by pollen source, which is what makes a list of
 # them scannable: the name next to the icon already says which species it is.
 # Material Design Icons has no species-specific plant icons, so a shared icon
@@ -155,7 +168,20 @@ def _latin_name_index() -> dict[str, str]:
     index = {latin.lower(): name for latin, name in LATIN_TO_ENGLISH_NAME.items()}
     for latin, name in LATIN_TO_ENGLISH_NAME.items():
         index.setdefault(latin.split()[0].lower(), name)
+    for alias, latin in LATIN_NAME_ALIASES.items():
+        index.setdefault(alias, LATIN_TO_ENGLISH_NAME[latin])
     return index
+
+
+def canonical_latin(latin: str | None) -> str | None:
+    """Return the spelling of a latin name the maps use.
+
+    Only a spelling declared in LATIN_NAME_ALIASES is rewritten, so a latin
+    name the API sent that no map knows is returned unchanged.
+    """
+    if not latin:
+        return latin
+    return LATIN_NAME_ALIASES.get(latin.strip().lower(), latin)
 
 
 def english_name_for_latin(latin: str | None) -> str | None:
@@ -472,7 +498,17 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 latin or "",
             )
         allergen_en = mapped_en or legacy_en
-        allergen_la = latin if latin else ""
+        # A spelling the API is known to send in place of a latin name is
+        # reported as the name it stands for, so the attribute carries a latin
+        # name rather than a localized word.
+        allergen_la = canonical_latin(latin) if latin else ""
+        if allergen_la != latin:
+            _LOGGER.debug(
+                "Reporting %r as %r for allergen %r",
+                latin,
+                allergen_la,
+                poll_title_local,
+            )
         slug_en = slugify(allergen_en) if allergen_en else slugify(poll_title_local)
         legacy_slug = slugify(legacy_en) if legacy_en else slug_en
         if legacy_slug and legacy_slug != slug_en:
