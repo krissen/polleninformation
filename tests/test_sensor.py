@@ -1301,6 +1301,109 @@ ITALIAN_RAGWEED_RESPONSE = {
 }
 
 
+class TestALegacyCandidateFromTheLiveResponse:
+    """The candidate comes from the RESPONSE, so no test over the map binds it.
+
+    poll_title_local is whatever the API sent, and the English-block name
+    falls back to it whenever the block has no entry for the latin, which is
+    the case for the ten allergens the map does not cover. A title like
+    "Birch (Artemisia)" resolves to mugwort while its display name slugs to
+    birch, so the candidate would have renamed the birch row, taking that
+    allergen's history with it. Nothing creates a duplicate here and nothing
+    reverses it afterwards.
+    """
+
+    @staticmethod
+    def _response(poll_title):
+        return {
+            "contamination": [{"poll_title": poll_title, "contamination_1": 2}],
+            "allergyrisk": {},
+            "allergyrisk_hourly": {},
+        }
+
+    @staticmethod
+    def _register(hass, slug):
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        registered = ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            f"polleninformation_hamburg_{slug}",
+            suggested_object_id=f"polleninformation_hamburg_{slug}",
+            config_entry=entry,
+        )
+        return entry, ent_reg, registered.id
+
+    async def test_the_other_allergens_row_is_left_alone(self, hass):
+        entry, ent_reg, birch_id = self._register(hass, "birch")
+
+        await _setup_with_shipped_blocks(
+            hass, "de", self._response("Birch (Artemisia)"), entry=entry
+        )
+
+        kept = ent_reg.async_get("sensor.polleninformation_hamburg_birch")
+        assert kept is not None
+        assert kept.id == birch_id
+        assert kept.unique_id == "polleninformation_hamburg_birch"
+
+    async def test_no_mugwort_row_is_manufactured_from_it(self, hass):
+        entry, ent_reg, _ = self._register(hass, "birch")
+
+        await _setup_with_shipped_blocks(
+            hass, "de", self._response("Birch (Artemisia)"), entry=entry
+        )
+
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_mugwort"
+            )
+            is None
+        )
+
+    async def test_the_refusal_is_logged(self, hass, caplog):
+        entry, _, _ = self._register(hass, "birch")
+
+        with caplog.at_level(logging.WARNING):
+            await _setup_with_shipped_blocks(
+                hass, "de", self._response("Birch (Artemisia)"), entry=entry
+            )
+
+        assert [
+            r
+            for r in caplog.records
+            if "another allergen" in r.getMessage() and "birch" in r.getMessage()
+        ]
+
+    async def test_the_same_holds_for_an_allergen_the_map_does_not_cover(self, hass):
+        # The English-block candidate, which falls back to the display name
+        # when the block has no entry for the latin. Quercus is one of ten
+        # such allergens, so this shape reaches the same line by the other
+        # route, and it did so before the display-name candidate existed.
+        entry, ent_reg, birch_id = self._register(hass, "birch")
+
+        await _setup_with_shipped_blocks(
+            hass, "de", self._response("Birch (Quercus)"), entry=entry
+        )
+
+        kept = ent_reg.async_get("sensor.polleninformation_hamburg_birch")
+        assert kept is not None
+        assert kept.id == birch_id
+
+    async def test_an_ordinary_localized_name_is_still_migrated(self, hass):
+        # The guard may not cost the migration its actual job: "Beifuß" is
+        # nobody else's canonical slug, so it is still a candidate.
+        entry, ent_reg, original_id = self._register(hass, "beifuss")
+
+        await _setup_with_shipped_blocks(
+            hass, "de", self._response("Beifuß (Artemisia)"), entry=entry
+        )
+
+        migrated = ent_reg.async_get("sensor.polleninformation_hamburg_mugwort")
+        assert migrated is not None
+        assert migrated.id == original_id
+
+
 class TestNoLegacyCandidateCanClaimAnotherAllergen:
     """A rename candidate that does not exist is free; one that collides is not.
 

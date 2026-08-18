@@ -627,8 +627,26 @@ async def async_setup_entry(hass, entry, async_add_entities):
             slugify(poll_title_local),
         ]
         for legacy_slug in dict.fromkeys(legacy_candidates):
-            if legacy_slug and legacy_slug != slug_en:
-                allergen_renames.append((legacy_slug, slug_en))
+            if not legacy_slug or legacy_slug == slug_en:
+                continue
+            if legacy_slug in KNOWN_ALLERGEN_SLUGS:
+                # The candidate names a DIFFERENT allergen, so renaming would
+                # not recover this allergen's old entity, it would take that
+                # other allergen's row and its history. Both candidates come
+                # from the live response in the end: the display name always,
+                # and the English-block name whenever the block has no entry
+                # for the latin the API sent, which is the case for the ten
+                # allergens the map does not cover. A title like
+                # "Birch (Artemisia)" resolves to mugwort and would otherwise
+                # claim the birch row.
+                _LOGGER.warning(
+                    "Not migrating %r to %r: %r is another allergen's name",
+                    legacy_slug,
+                    slug_en,
+                    legacy_slug,
+                )
+                continue
+            allergen_renames.append((legacy_slug, slug_en))
         icon = ALLERGEN_ICON_MAP.get(slug_en, ALLERGEN_ICON_MAP["default"])
 
         sensor = PolleninformationSensor(
