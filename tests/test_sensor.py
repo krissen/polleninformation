@@ -1928,13 +1928,15 @@ class TestStaleSensorRecovery:
         assert sensor.native_value is None
 
 
-# A title with no name part and no brackets, beside a language map entry whose
-# name is blank. The map can hold one for an allergen the API named by its
-# latin name alone, which is the "(Poaceae)" shape the generator records.
+# A title with brackets but nothing in them, beside a language map entry whose
+# name is blank. The map can hold such an entry for an allergen the API named
+# by its latin name alone, which is the "(Poaceae)" shape the generator
+# records. The title is readable, so it still becomes a sensor; it just has no
+# name part, which is what the backfill compares on.
 NAMELESS_TITLE_RESPONSE = {
     "contamination": [
         {
-            "poll_title": "",
+            "poll_title": "()",
             "contamination_1": 1,
             "contamination_2": 0,
             "contamination_3": 0,
@@ -1985,6 +1987,83 @@ class TestABlankNameNeverMatchesABlankName:
         )
         sensor = _by_type(entities, PolleninformationSensor)
         assert sensor.extra_state_attributes["name_la"] == "Betula"
+
+
+class TestAnEntryWithNoReadableTitleGetsNoSensor:
+    """The setup path agrees with the language map generator.
+
+    An entry with no readable title identifies nothing, so building a sensor
+    from it manufactures an entity with no name, no latin name and an
+    entity_id ending in nothing, which no later response and no restore path
+    can match back to an allergen. The generator refuses to record such an
+    entry; the runtime refuses to build one.
+    """
+
+    @staticmethod
+    def _response(item):
+        return {
+            "contamination": [
+                item,
+                {
+                    "poll_title": "Birke (Betula)",
+                    "contamination_1": 3,
+                    "contamination_2": 2,
+                    "contamination_3": 1,
+                    "contamination_4": 0,
+                },
+            ],
+            "allergyrisk": {"allergyrisk_1": 5.0},
+            "allergyrisk_hourly": {"allergyrisk_hourly_1": [5.0] * 24},
+        }
+
+    @pytest.mark.parametrize(
+        "item",
+        [
+            {"poll_title": "", "contamination_1": 1},
+            {"poll_title": "   ", "contamination_1": 1},
+            {"poll_title": 123, "contamination_1": 1},
+            {"contamination_1": 1},
+        ],
+    )
+    async def test_no_sensor_is_built_for_it(self, hass, item):
+        entities = await _setup_entities(
+            hass,
+            "de",
+            response=self._response(item),
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        pollen = [e for e in entities if isinstance(e, PolleninformationSensor)]
+
+        # Only the birch entry beside it became a sensor.
+        assert len(pollen) == 1
+        assert pollen[0].unique_id == "polleninformation_hamburg_birch"
+
+    async def test_no_entity_id_ending_in_nothing(self, hass):
+        entities = await _setup_entities(
+            hass,
+            "de",
+            response=self._response({"poll_title": "", "contamination_1": 1}),
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        unique_ids = {e.unique_id for e in entities if e.unique_id}
+
+        assert "polleninformation_hamburg_" not in unique_ids
+
+    async def test_it_is_warned_about(self, hass, caplog):
+        with caplog.at_level(logging.WARNING):
+            await _setup_entities(
+                hass,
+                "de",
+                response=self._response({"poll_title": "", "contamination_1": 1}),
+                language_block=EMPTY_LANGUAGE_BLOCK,
+            )
+        assert [r for r in caplog.records if "no readable title" in r.getMessage()]
+
+    async def test_a_readable_entry_is_untouched(self, hass):
+        # The guard may not cost an ordinary allergen its sensor.
+        entities = await _setup_entities(hass, "de")
+        sensor = _by_type(entities, PolleninformationSensor)
+        assert sensor.unique_id == "polleninformation_hamburg_ragweed"
 
 
 class TestReportedLatinNameAcrossAnOutage:

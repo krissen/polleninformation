@@ -493,7 +493,16 @@ async def async_setup_entry(hass, entry, async_add_entities):
     allergen_renames: list[tuple[str, str]] = []
 
     for item in contamination:
-        poll_title_full = item.get("poll_title", "<unknown>")
+        poll_title_full = item.get("poll_title", "")
+        if not isinstance(poll_title_full, str) or not poll_title_full.strip():
+            # An entry with no readable title names nothing. Building a sensor
+            # from one gives an entity with no name, no latin name and an
+            # entity_id ending in nothing at all, which no later response and
+            # no restore can ever match back to an allergen. The same rule the
+            # language map generator applies: an allergen we can identify but
+            # not classify is kept, one that identifies nothing is not.
+            _LOGGER.warning("Skipping a pollen entry with no readable title: %r", item)
+            continue
         poll_title_local = capitalize_first(poll_title_full.split("(", 1)[0].strip())
         latin = None
         if "(" in poll_title_full and ")" in poll_title_full:
