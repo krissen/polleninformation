@@ -324,15 +324,30 @@ def allergen_identity_key(latin) -> str | None:
     """Return the key two latin names must share to be the same allergen.
 
     The map's own spelling when it knows the name, so that "Ambrosia",
-    "Ambrosia artemisiifolia" and every alias of them answer alike; the name
-    itself, folded, when no map knows it. That second half is the point: the
-    rows this exists to protect are exactly the ones no map can place, so a
-    key that only spoke for known allergens would say "unknown" for the whole
-    population it was written for.
+    "Ambrosia artemisiifolia" and every alias of them answer alike; the genus
+    of the name itself when no map knows it. That second half is the point:
+    the rows this exists to protect are exactly the ones no map can place, so
+    a key that only spoke for known allergens would say "unknown" for the
+    whole population it was written for.
+
+    Both halves fall back to the genus, and they have to fall together. A
+    known name resolves through canonical_latin, which drops a species; if an
+    unknown name did not, one allergen would contradict ITSELF as soon as the
+    API sent "Nonexistentia" for one language and "Nonexistentia vulgaris" for
+    another, and the migration would be refused naming the very allergen it
+    is. That is the whole unmapped population, which is the population this
+    was written for.
+
+    The cost is that two unmapped names sharing a first word answer alike.
+    They share a genus, and a genus is what this integration means by an
+    allergen everywhere else: LATIN_TO_ENGLISH_NAME is keyed by one, and every
+    lookup that reads the API's latin field already drops the species. Folding
+    here is that same rule reaching the names no map happens to carry, rather
+    than a new rule invented for them.
     """
     if not isinstance(latin, str) or not latin.strip():
         return None
-    return canonical_latin(latin) or latin.strip().lower()
+    return canonical_latin(latin) or latin.strip().lower().split()[0]
 
 
 def stored_allergen_latin(ent_reg, entity_id) -> str | None:

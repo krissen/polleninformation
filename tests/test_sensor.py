@@ -1712,6 +1712,37 @@ class TestARenameThatContradictsWhatTheRowRecords:
         assert migrated is not None
         assert migrated.id == foo_id
 
+    async def test_an_unknown_name_does_not_contradict_its_own_genus(self, hass):
+        # The counterpart of the test above for a name no map carries, which
+        # is the whole population this guard exists for. The API sends the
+        # genus in one language and the genus with a species in another, and
+        # one allergen must not read as two, or the migration is refused
+        # naming the allergen it actually is.
+        entry, ent_reg, foo_id = self._register(
+            hass, "foo", latin="Nonexistentia vulgaris"
+        )
+
+        migrate_localized_allergen_ids(
+            hass, "hamburg", [("foo", "birch", "Nonexistentia")]
+        )
+
+        migrated = ent_reg.async_get("sensor.polleninformation_hamburg_birch")
+        assert migrated is not None
+        assert migrated.id == foo_id
+        assert entry.entry_id
+
+    async def test_two_unmapped_allergens_are_still_told_apart(self, hass):
+        # The price of folding, pinned so it stays a price and not a surprise:
+        # only a shared FIRST word folds. Two unmapped names that merely
+        # resemble each other still contradict.
+        _, ent_reg, foo_id = self._register(hass, "foo", latin="Nonexistentia")
+
+        migrate_localized_allergen_ids(hass, "hamburg", [("foo", "birch", "Alia")])
+
+        kept = ent_reg.async_get("sensor.polleninformation_hamburg_foo")
+        assert kept is not None
+        assert kept.id == foo_id
+
     async def test_a_claim_that_names_no_allergen_is_not_a_contradiction(self, hass):
         # Unknown on the claiming side is unknown too, never mismatch. Setup
         # cannot currently queue such a rename -- an entry with no latin name
