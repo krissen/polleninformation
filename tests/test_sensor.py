@@ -1893,3 +1893,55 @@ class TestStaleSinceFollowsTheCurrentOutage:
         assert attrs["data_stale"] is True
         assert attrs["stale_since"] == T2.isoformat()
 
+
+class TestGenusPrefixedNameOnTheSetupPath:
+    """Prose that begins with a latin genus must not be taken for that genus.
+
+    The setup path owns the entity_id and queues the rename, so resolving
+    "Ambrosia hojas" to ragweed there does more than mis-match a sensor.
+    """
+
+    async def _setup(self, hass, entry=None):
+        return await _setup_entities(
+            hass,
+            "es",
+            entry=entry,
+            response=GENUS_PREFIXED_NAME_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+
+    async def test_does_not_take_the_ragweed_slug(self, hass):
+        entities = await self._setup(hass)
+        unique_ids = {e.unique_id for e in entities if e.unique_id}
+        assert "polleninformation_hamburg_ragweed" not in unique_ids
+        assert "polleninformation_hamburg_ambrosia_hojas" in unique_ids
+
+    async def test_does_not_report_the_prose_as_a_latin_name(self, hass):
+        entities = await self._setup(hass)
+        sensor = _by_type(entities, PolleninformationSensor)
+        assert sensor.extra_state_attributes["name_la"] == ""
+
+    async def test_queues_no_rename_onto_ragweed(self, hass):
+        entry = _make_entry("es")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            "polleninformation_hamburg_ambrosia_hojas",
+            suggested_object_id="polleninformation_hamburg_ambrosia_hojas",
+            config_entry=entry,
+        )
+        await self._setup(hass, entry=entry)
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_ambrosia_hojas"
+            )
+            == "sensor.polleninformation_hamburg_ambrosia_hojas"
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_ragweed"
+            )
+            is None
+        )

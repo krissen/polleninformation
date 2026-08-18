@@ -14,7 +14,9 @@
   latin name of its own, and an entity already created as `..._artemisia` is
   renamed to `..._mugwort`, so its history is kept. The lookup only runs when
   the API sent no latin name at all, so a latin name it did send is never
-  overridden by the display name.
+  overridden by the display name, and it only accepts a display name that is
+  itself a latin name, so an ordinary allergen name that happens to begin with
+  one is left alone.
   (PR #72 by @ethanhawkes-gif, thanks @robercrack)
 
 - **The latin name is reported even when the API omits it** — an allergen
