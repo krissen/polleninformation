@@ -188,6 +188,18 @@ class TestOptionsReloadConsistency:
 
 EMPTY_PAYLOAD = {"contamination": []}
 FULL_PAYLOAD = {"contamination": [{"poll_title": "Birch (Betula)"}]}
+# Entries in the block, none of which identify an allergen. No sensor is built
+# from any of them, so the response carried no pollen data whatever its length.
+ALL_UNUSABLE_PAYLOAD = {
+    "contamination": [{"poll_title": "()"}, {"poll_title": ""}, {}],
+}
+
+ALL_UNUSABLE_WITH_RISK_PAYLOAD = {
+    "contamination": [{"poll_title": "()"}],
+    "allergyrisk": {"allergyrisk_1": 7.5},
+    "allergyrisk_hourly": {"allergyrisk_hourly_1": [7.5] * 24},
+}
+
 RISK_ONLY_PAYLOAD = {
     "contamination": [],
     "allergyrisk": {"allergyrisk_1": 7.5},
@@ -239,6 +251,23 @@ class TestEmptySince:
         coordinator = self._make_coordinator(hass)
         await self._fetch(coordinator, EMPTY_PAYLOAD, E1)
         assert coordinator.empty_since == E1.isoformat()
+
+    async def test_a_block_of_unusable_entries_stamps_it(self, hass):
+        # The block is not empty, but nothing in it identifies an allergen, so
+        # it carried no more data than an empty one. Counting the raw length
+        # here would call this a response with data while the sensors were
+        # being recreated as stale for want of any.
+        coordinator = self._make_coordinator(hass)
+        await self._fetch(coordinator, ALL_UNUSABLE_PAYLOAD, E1)
+        assert coordinator.empty_since == E1.isoformat()
+
+    async def test_risk_data_beside_unusable_entries_is_still_data(self, hass):
+        # Deliberately not the same answer as the sensors give: the pollen
+        # block carried nothing usable, so those sensors are recreated, while
+        # the risk sensors report real readings and nothing is stale.
+        coordinator = self._make_coordinator(hass)
+        await self._fetch(coordinator, ALL_UNUSABLE_WITH_RISK_PAYLOAD, E1)
+        assert coordinator.empty_since is None
 
     async def test_it_holds_for_the_duration_of_one_outage(self, hass):
         coordinator = self._make_coordinator(hass)

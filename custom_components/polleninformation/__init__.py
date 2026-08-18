@@ -37,7 +37,7 @@ from .const import (
     DOMAIN,
     PLATFORMS,
 )
-from .utils import get_country_code_map
+from .utils import get_country_code_map, usable_contamination
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -185,9 +185,18 @@ class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):
         Every block counts, not just contamination: a response carrying only
         risk data still carried data, and marking it stale would tell the
         risk sensors they are stale while they report a current reading.
+
+        The contamination block counts by what is usable in it rather than by
+        its length, for the same reason the sensors do: entries that identify
+        no allergen build nothing and read nothing, so a block of only those
+        carried no more data than an empty one. The two tests are not the same
+        question and still do not always agree, which is intended: a response
+        whose pollen entries are all unusable but whose risk blocks are full
+        did carry data, so nothing is stale, while the pollen sensors are
+        recreated with no readings of their own and report unknown.
         """
         if (
-            result.get("contamination")
+            usable_contamination(result.get("contamination"))
             or result.get("allergyrisk")
             or result.get("allergyrisk_hourly")
         ):

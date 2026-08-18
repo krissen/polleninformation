@@ -2067,6 +2067,98 @@ class TestReportedLatinNameAcrossAnOutage:
         assert stale.extra_state_attributes["name_la"] == "Betula"
 
 
+# A response with entries in it, none of which identify an allergen. The raw
+# block is non-empty, so before the emptiness test was moved onto the usable
+# entries this looked like a response carrying data while building no sensors
+# at all.
+ALL_UNUSABLE_RESPONSE = {
+    "contamination": [
+        {"poll_title": "()", "contamination_1": 1},
+        {"poll_title": "", "contamination_1": 2},
+        {"contamination_1": 3},
+    ],
+    "allergyrisk": {},
+    "allergyrisk_hourly": {},
+}
+
+ALL_UNUSABLE_WITH_RISK_RESPONSE = {
+    "contamination": [{"poll_title": "()", "contamination_1": 1}],
+    "allergyrisk": {"allergyrisk_1": 5.0},
+    "allergyrisk_hourly": {"allergyrisk_hourly_1": [5.0] * 24},
+}
+
+
+class TestABlockOfUnusableEntriesReadsAsEmpty:
+    """Entities are kept and marked stale, not lost.
+
+    Every entry in the block identifies nothing, so no sensor is built from
+    any of them. Counting the raw list would call that a response carrying
+    data, and the sensors this location already has would then simply not be
+    added: absent from Home Assistant rather than present and stale, which is
+    what the user sees.
+    """
+
+    async def _setup_with_registered(self, hass, response, slugs=("birch",)):
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        for slug in slugs:
+            unique_id = f"polleninformation_hamburg_{slug}"
+            ent_reg.async_get_or_create(
+                "sensor",
+                DOMAIN,
+                unique_id,
+                suggested_object_id=unique_id,
+                config_entry=entry,
+            )
+        return await _setup_entities(
+            hass,
+            "de",
+            entry=entry,
+            response=response,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+
+    async def test_a_registered_sensor_is_recreated_rather_than_lost(self, hass):
+        entities = await self._setup_with_registered(hass, ALL_UNUSABLE_RESPONSE)
+        unique_ids = {e.unique_id for e in entities if e.unique_id}
+
+        assert "polleninformation_hamburg_birch" in unique_ids
+
+    async def test_the_recreated_sensor_is_marked_stale(self, hass):
+        entities = await self._setup_with_registered(hass, ALL_UNUSABLE_RESPONSE)
+        sensor = _by_type(entities, PolleninformationSensor)
+
+        assert sensor.extra_state_attributes["data_stale"] is True
+
+    async def test_no_sensor_is_built_from_the_unusable_entries(self, hass):
+        entities = await self._setup_with_registered(hass, ALL_UNUSABLE_RESPONSE)
+        pollen = [e for e in entities if isinstance(e, PolleninformationSensor)]
+
+        # Only the recreated one, nothing manufactured from the junk.
+        assert len(pollen) == 1
+
+    async def test_risk_entities_are_recreated_too(self, hass):
+        entities = await self._setup_with_registered(
+            hass, ALL_UNUSABLE_RESPONSE, slugs=("birch", "allergy_risk")
+        )
+        unique_ids = {e.unique_id for e in entities if e.unique_id}
+
+        assert "polleninformation_hamburg_allergy_risk" in unique_ids
+
+    async def test_risk_data_keeps_the_response_from_being_stale(self, hass):
+        # The two tests are not the same question and are allowed to disagree:
+        # the pollen block carried nothing usable, so its sensors are
+        # recreated, while the response as a whole did carry data, so nothing
+        # is marked stale and the risk sensors report real readings.
+        entities = await self._setup_with_registered(
+            hass, ALL_UNUSABLE_WITH_RISK_RESPONSE
+        )
+        sensor = _by_type(entities, PolleninformationSensor)
+
+        assert "data_stale" not in sensor.extra_state_attributes
+
+
 class TestEveryEntityReportsTheSameOutage:
     """The timestamp belongs to the response, so siblings must agree on it.
 

@@ -38,10 +38,12 @@ from .const import (
 )
 from .const_levels import ALLERGEN_DISPLAY_OVERRIDES, LEVELS, RISK_SENSOR_NAMES
 from .utils import (
+    allergen_names_from_item,
     async_get_language_block,
     get_allergen_info_by_latin,
     normalize,
     slugify,
+    usable_contamination,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -443,8 +445,19 @@ async def async_setup_entry(hass, entry, async_add_entities):
     }
 
     has_data = coordinator.data is not None
-    contamination = coordinator.data.get("contamination", []) if has_data else []
+    raw_contamination = coordinator.data.get("contamination", []) if has_data else []
+    # Emptiness is a question about usable allergens, not about how many
+    # entries the API sent. An entry that identifies nothing builds no sensor,
+    # so a block of nothing but those is as empty as a block of none, and
+    # counting the raw list instead would leave the sensors this location
+    # already has absent rather than recreated and marked stale.
+    contamination = usable_contamination(raw_contamination)
     is_data_empty = len(contamination) == 0
+    for item in raw_contamination:
+        if allergen_names_from_item(item) is None:
+            _LOGGER.warning(
+                "Skipping a pollen entry that identifies no allergen: %r", item
+            )
 
     # Options override data (options flow writes to entry.options)
     def _opt(key, default=None):
@@ -493,27 +506,11 @@ async def async_setup_entry(hass, entry, async_add_entities):
     allergen_renames: list[tuple[str, str]] = []
 
     for item in contamination:
-        poll_title_full = item.get("poll_title", "")
-        if not isinstance(poll_title_full, str):
-            poll_title_full = ""
-        poll_title_local = capitalize_first(poll_title_full.split("(", 1)[0].strip())
-        latin = None
-        if "(" in poll_title_full and ")" in poll_title_full:
-            latin = poll_title_full.split("(", 1)[1].split(")", 1)[0].strip()
-        if not poll_title_local and not latin:
-            # The test is what the entry identifies, not whether its title is
-            # readable: "()" is a non-blank title with nothing in either half
-            # of it, and it names an allergen exactly as little as a missing
-            # title does. Building a sensor from one gives an entity with no
-            # name, no latin name and an entity_id ending in nothing at all,
-            # which no later response and no restore can match back to an
-            # allergen. The same rule the language map generator applies: an
-            # allergen we can identify but not classify is kept, one that
-            # identifies nothing is not.
-            _LOGGER.warning(
-                "Skipping a pollen entry that identifies no allergen: %r", item
-            )
-            continue
+        # Every entry here identifies an allergen: usable_contamination has
+        # already dropped the ones that do not, warned about each, and counted
+        # what is left towards is_data_empty above.
+        name, latin = allergen_names_from_item(item)
+        poll_title_local = capitalize_first(name)
         if not latin and poll_title_local:
             # A blank never matches a blank, in either direction: the language
             # map can hold an entry whose name is blank, for an allergen the

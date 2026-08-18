@@ -304,6 +304,42 @@ def split_location(locationtitle):
     return "", locationtitle
 
 
+def allergen_names_from_item(item):
+    """Return (display name, latin name) for a contamination entry, or None.
+
+    None means the entry identifies no allergen: it is not an object, or its
+    title has neither a display name nor a latin name in it. "(Poaceae)" has
+    one, "Trávy" has the other, "()" has neither and names an allergen exactly
+    as little as a missing title does.
+
+    Shared so that the sensors and the coordinator agree on what counts as an
+    allergen. They ask it for different reasons, one to build a sensor and one
+    to decide whether the response carried anything, and those two answers may
+    not drift apart: a block of entries that build no sensors has to read as
+    empty, or the sensors a location already has go absent instead of being
+    kept and marked stale.
+    """
+    if not isinstance(item, dict):
+        return None
+    poll_title = item.get("poll_title", "")
+    if not isinstance(poll_title, str):
+        poll_title = ""
+    name = poll_title.split("(", 1)[0].strip()
+    latin = None
+    if "(" in poll_title and ")" in poll_title:
+        latin = poll_title.split("(", 1)[1].split(")", 1)[0].strip()
+    if not name and not latin:
+        return None
+    return name, latin
+
+
+def usable_contamination(contamination):
+    """Return the contamination entries that identify an allergen."""
+    if not isinstance(contamination, list):
+        return []
+    return [item for item in contamination if allergen_names_from_item(item)]
+
+
 def get_language_block_sync(lang_code):
     """
     Get language block for a given ISO code from language_map.json.
