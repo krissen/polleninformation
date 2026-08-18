@@ -56,16 +56,27 @@
   latin name first, and a name is only used for an entry no other sensor
   claims.
 
-- **Two allergens keep their localized name during an outage** (issue #75) —
-  the integration ships a map of the allergen names the API answers with in
-  each language, and falls back to it when the API is unreachable. Two entries
-  in that map had been recorded with the wrong latin name, because the API had
-  put a Slovak word where the latin name goes and had sent no latin name at
-  all for mugwort in Spanish. A sensor kept through an API outage on a Slovak
-  or Spanish installation now keeps its own name instead of falling back to
-  English. The script that builds the map now checks every latin name it
-  records against the allergens the integration knows, and reports the ones it
-  cannot place instead of transcribing them silently.
+- **Ragweed is recognized on a Slovak installation** (issue #75) — the API
+  answers a Slovak request with the Slovak word for ragweed where the latin
+  name belongs, and the integration looks allergens up by their latin name, so
+  it did not recognize this one: an "Unknown allergen" warning asking for a
+  bug report was logged at every restart, and the sensor reported that word as
+  its latin name. The spelling is now known to be ragweed's, so the warning is
+  gone and the sensor reports `Ambrosia`. Only spellings the API has actually
+  been seen to send are treated this way, so a latin name the integration does
+  not know is still left exactly as the API sent it and still asks to be
+  reported.
+
+- **Two allergens keep their localized name during an outage** — the
+  integration ships a map of the allergen names the API answers with in each
+  language, and falls back to it when the API is unreachable. Two entries in
+  that map had been recorded with the wrong latin name: the Slovak word above,
+  and no latin name at all for mugwort in Spanish, where the API sends the
+  latin name as the display name instead. A sensor kept through an API outage
+  on a Slovak or Spanish installation now keeps its own name instead of
+  falling back to English. The script that builds the map now checks every
+  latin name it records against the allergens the integration knows, and
+  reports the ones it cannot place instead of transcribing them silently.
 
 - **A new outage is timed from when it started** — the `stale_since`
   timestamp was recorded once, when Home Assistant happened to start during an
