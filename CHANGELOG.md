@@ -58,7 +58,7 @@
 
 - **A new outage is timed from when it started** — the `stale_since`
   timestamp was recorded once, when Home Assistant happened to start during an
-  outage, and was reused for every later outage. A card or automation
+  outage, and was reused for every later outage. An automation or template
   measuring how long data had been missing could therefore be told it had been
   missing since a gap that ended hours ago. Each outage now carries its own
   timestamp.

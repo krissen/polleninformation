@@ -1764,6 +1764,9 @@ class TestStaleSensorRecovery:
         sensor.coordinator.empty_since = None
         attrs = sensor.extra_state_attributes
         assert sensor.native_value is None
+        # No value means no value: nothing of an earlier reading is kept, so
+        # the empty forecast is what says the sensor has nothing to show.
+        assert attrs["forecast"] == []
         assert "data_stale" not in attrs
         assert "stale_since" not in attrs
 
@@ -1796,8 +1799,8 @@ class TestEveryEntityReportsTheSameOutage:
 
     The per-outage semantics themselves are the coordinator's, and are tested
     in test_init.py. What matters here is that an entity reports the
-    coordinator's value rather than one of its own: a card reading
-    stale_since off whichever entity it reaches first must get one answer.
+    coordinator's value rather than one of its own: anything reading
+    stale_since off an arbitrary entity of the location gets one answer.
     """
 
     async def _entities_during_an_outage(self, hass):
