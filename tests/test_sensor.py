@@ -9,6 +9,9 @@ import pytest
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.polleninformation import (
+    PollenInformationDataUpdateCoordinator,
+)
 from custom_components.polleninformation.const import DOMAIN
 from custom_components.polleninformation.sensor import (
     ALLERGEN_ICON_MAP,
@@ -120,23 +123,33 @@ def _frozen(moment):
     )
 
 
+def _frozen_util(moment):
+    """Patch the coordinator module's clock to a fixed moment."""
+    return patch("custom_components.polleninformation.dt_util.now", return_value=moment)
+
+
 def _make_coordinator(
     data, last_updated=None, last_update_success=True, empty_since=_UNSET
 ):
     """Create a mock coordinator with the given data.
 
-    empty_since follows the rule the real coordinator applies in
-    _track_empty_response, so a response with no contamination looks stale
-    here too. A test that swaps .data afterwards sets it explicitly, which is
-    what the coordinator would do on the next refresh.
+    empty_since is set by the real coordinator method rather than by a copy
+    of its rule, so these tests cannot stay green against a production rule
+    that has changed. A test that swaps .data afterwards sets it explicitly,
+    which is what the next refresh would do.
     """
     coordinator = MagicMock()
     coordinator.data = data
     coordinator.last_updated = last_updated or datetime.now(timezone.utc)
     coordinator.last_update_success = last_update_success
+    coordinator.empty_since = None
     if empty_since is _UNSET:
-        empty_since = None if (data or {}).get("contamination") else T1.isoformat()
-    coordinator.empty_since = empty_since
+        with _frozen_util(T1):
+            PollenInformationDataUpdateCoordinator._track_empty_response(
+                coordinator, data or {}
+            )
+    else:
+        coordinator.empty_since = empty_since
     return coordinator
 
 
@@ -1920,6 +1933,29 @@ class TestAMissingReadingIsUnknownNotStale:
         assert sensor.native_value is None
         assert attrs["data_stale"] is True
         assert attrs["stale_since"] == T1.isoformat()
+
+    @pytest.mark.parametrize(
+        ("cls", "block"),
+        [
+            (AllergyRiskSensor, {"allergyrisk": {"allergyrisk_1": 7.5}}),
+            (
+                AllergyRiskHourlySensor,
+                {"allergyrisk_hourly": {"allergyrisk_hourly_1": [7.5] * 24}},
+            ),
+        ],
+    )
+    def test_a_risk_only_response_is_not_an_outage(self, cls, block):
+        """A reading and a stale marker must never appear together.
+
+        contamination can be empty while the risk blocks carry data, and a
+        sensor reporting a current level while advertising data_stale is the
+        contradiction the response-level definition exists to prevent.
+        """
+        sensor = self._risk(cls, block, contamination=[])
+        attrs = sensor.extra_state_attributes
+        assert sensor.native_value == "high"
+        assert "data_stale" not in attrs
+        assert "stale_since" not in attrs
 
     def test_an_unusable_pollen_level_is_unknown_without_a_marker(self):
         """A level the level names do not cover leaves no value either."""
