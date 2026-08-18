@@ -1,7 +1,9 @@
 """Tests for sensor helper functions and sensor classes."""
 
+import json
 import logging
 from datetime import datetime, timezone
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 from zoneinfo import ZoneInfo
 
@@ -446,6 +448,54 @@ def _make_entry(lang, options=None):
         },
         options=options or {},
     )
+
+
+SHIPPED_LANGUAGE_MAP = json.loads(
+    (
+        Path(__file__).resolve().parent.parent
+        / "custom_components"
+        / "polleninformation"
+        / "language_map.json"
+    ).read_text(encoding="utf-8")
+)
+
+
+def shipped_block(lang):
+    """The language block this integration actually ships for a language."""
+    return next(
+        block
+        for block in SHIPPED_LANGUAGE_MAP.values()
+        if block.get("lang_code") == lang
+    )
+
+
+async def _setup_with_shipped_blocks(hass, lang, response, entry=None):
+    """Run setup with the REAL map, one block per language, as at runtime.
+
+    Every other setup helper here hands the same block to both lookups, and
+    most migration tests hand them an empty one. The map is an input, and an
+    empty one is a configuration we never ship: the bug this exists for was
+    invisible until the block carried what the file carries.
+    """
+    if entry is None:
+        entry = _make_entry(lang)
+        entry.add_to_hass(hass)
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = _make_coordinator(response)
+
+    entities = []
+
+    def _add(new_entities, update_before_add=False):
+        entities.extend(new_entities)
+
+    async def _block(_hass, lang_code):
+        return shipped_block(lang_code)
+
+    with patch(
+        "custom_components.polleninformation.sensor.async_get_language_block",
+        AsyncMock(side_effect=_block),
+    ):
+        await async_setup_entry(hass, entry, _add)
+    return entities
 
 
 async def _setup_entities(
@@ -1219,6 +1269,158 @@ class TestLatinGenusAsDisplayName:
             )
             is None
         )
+
+
+# The Spanish response for mugwort, which the API sends as a bare latin genus.
+SPANISH_MUGWORT_RESPONSE = {
+    "contamination": [
+        {
+            "poll_title": "Artemisia",
+            "contamination_1": 2,
+            "contamination_2": 1,
+            "contamination_3": 0,
+            "contamination_4": 0,
+        }
+    ],
+    "allergyrisk": {"allergyrisk_1": 5.0},
+    "allergyrisk_hourly": {"allergyrisk_hourly_1": [5.0] * 24},
+}
+
+ITALIAN_RAGWEED_RESPONSE = {
+    "contamination": [
+        {
+            "poll_title": "Ambrosia",
+            "contamination_1": 2,
+            "contamination_2": 1,
+            "contamination_3": 0,
+            "contamination_4": 0,
+        }
+    ],
+    "allergyrisk": {"allergyrisk_1": 5.0},
+    "allergyrisk_hourly": {"allergyrisk_hourly_1": [5.0] * 24},
+}
+
+
+class TestMigrationAgainstTheShippedMap:
+    """The migration under the configuration we actually ship.
+
+    Every other migration test hands setup an EMPTY language block, so the
+    latin backfill finds nothing and the legacy slug falls out of the display
+    name by default. With the real map the backfill DOES find a latin, the
+    English-block lookup then succeeds, and the legacy name becomes the
+    English one: identical to the canonical name, so no rename was queued and
+    the user's entity was orphaned beside a new one. The data changed what the
+    code did, which is why reading the code did not show it.
+    """
+
+    @staticmethod
+    def _register(hass, lang, slug):
+        entry = _make_entry(lang)
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        registered = ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            f"polleninformation_hamburg_{slug}",
+            suggested_object_id=f"polleninformation_hamburg_{slug}",
+            config_entry=entry,
+        )
+        return entry, ent_reg, registered.id
+
+    async def test_a_spanish_install_is_migrated(self, hass):
+        entry, ent_reg, _ = self._register(hass, "es", "artemisia")
+
+        await _setup_with_shipped_blocks(
+            hass, "es", SPANISH_MUGWORT_RESPONSE, entry=entry
+        )
+
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_mugwort"
+            )
+            == "sensor.polleninformation_hamburg_mugwort"
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_artemisia"
+            )
+            is None
+        )
+
+    async def test_the_registry_row_is_the_same_row(self, hass):
+        # The point of migrating rather than recreating: the history hangs off
+        # the registry id, so a new row beside the old one loses it.
+        entry, ent_reg, original_id = self._register(hass, "es", "artemisia")
+
+        await _setup_with_shipped_blocks(
+            hass, "es", SPANISH_MUGWORT_RESPONSE, entry=entry
+        )
+
+        migrated = ent_reg.async_get("sensor.polleninformation_hamburg_mugwort")
+        assert migrated is not None
+        assert migrated.id == original_id
+
+    async def test_only_one_entity_remains_for_the_allergen(self, hass):
+        entry, ent_reg, _ = self._register(hass, "es", "artemisia")
+
+        await _setup_with_shipped_blocks(
+            hass, "es", SPANISH_MUGWORT_RESPONSE, entry=entry
+        )
+
+        rows = [
+            e
+            for e in er.async_entries_for_config_entry(ent_reg, entry.entry_id)
+            if e.unique_id
+            and e.unique_id.startswith("polleninformation_hamburg_")
+            and not e.unique_id.endswith(("allergy_risk", "allergy_risk_hourly"))
+        ]
+        assert len(rows) == 1
+
+    async def test_an_italian_install_is_migrated_too(self, hass):
+        # The same shape in another language: the API sends the latin genus as
+        # the display name, so a pre-0.5.5 install could hold "..._ambrosia".
+        entry, ent_reg, original_id = self._register(hass, "it", "ambrosia")
+
+        await _setup_with_shipped_blocks(
+            hass, "it", ITALIAN_RAGWEED_RESPONSE, entry=entry
+        )
+
+        migrated = ent_reg.async_get("sensor.polleninformation_hamburg_ragweed")
+        assert migrated is not None
+        assert migrated.id == original_id
+
+    async def test_a_localized_name_is_still_migrated(self, hass):
+        # The case the old tests covered, re-run against the real map so the
+        # fix cannot buy the new case at its expense.
+        entry, ent_reg, original_id = self._register(hass, "de", "birke")
+
+        await _setup_with_shipped_blocks(
+            hass,
+            "de",
+            {
+                "contamination": [
+                    {"poll_title": "Birke (Betula)", "contamination_1": 2},
+                ],
+                "allergyrisk": {},
+                "allergyrisk_hourly": {},
+            },
+            entry=entry,
+        )
+
+        migrated = ent_reg.async_get("sensor.polleninformation_hamburg_birch")
+        assert migrated is not None
+        assert migrated.id == original_id
+
+    async def test_an_install_already_on_the_canonical_slug_is_left_alone(self, hass):
+        entry, ent_reg, original_id = self._register(hass, "es", "mugwort")
+
+        await _setup_with_shipped_blocks(
+            hass, "es", SPANISH_MUGWORT_RESPONSE, entry=entry
+        )
+
+        kept = ent_reg.async_get("sensor.polleninformation_hamburg_mugwort")
+        assert kept is not None
+        assert kept.id == original_id
 
 
 # An allergen whose latin name the static map does not know, but whose display

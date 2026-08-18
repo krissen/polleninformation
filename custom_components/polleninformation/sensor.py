@@ -611,9 +611,24 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 poll_title_local,
             )
         slug_en = slugify(allergen_en) if allergen_en else slugify(poll_title_local)
-        legacy_slug = slugify(legacy_en) if legacy_en else slug_en
-        if legacy_slug and legacy_slug != slug_en:
-            allergen_renames.append((legacy_slug, slug_en))
+        # Every slug a previous version could have given this allergen, not
+        # only the one the current language block implies. Before the display
+        # name was resolvable, an allergen the block could not place was
+        # slugged from the name the API sent, so that slug is a candidate
+        # whatever the block says NOW. It matters because the block itself
+        # changes: repairing a missing latin name in the map turned the
+        # English-block lookup from a miss into a hit, which made legacy_en
+        # equal allergen_en and queued no rename at all, leaving the old
+        # entity orphaned beside a new one. A candidate is only ever acted on
+        # when an entity with that unique_id actually exists, so listing one
+        # that never occurred costs nothing.
+        legacy_candidates = [
+            slugify(legacy_en) if legacy_en else "",
+            slugify(poll_title_local),
+        ]
+        for legacy_slug in dict.fromkeys(legacy_candidates):
+            if legacy_slug and legacy_slug != slug_en:
+                allergen_renames.append((legacy_slug, slug_en))
         icon = ALLERGEN_ICON_MAP.get(slug_en, ALLERGEN_ICON_MAP["default"])
 
         sensor = PolleninformationSensor(
