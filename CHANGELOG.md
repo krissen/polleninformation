@@ -56,6 +56,17 @@
   latin name first, and a name is only used for an entry no other sensor
   claims.
 
+- **Two allergens keep their localized name during an outage** (issue #75) —
+  the integration ships a map of the allergen names the API answers with in
+  each language, and falls back to it when the API is unreachable. Two entries
+  in that map had been recorded with the wrong latin name, because the API had
+  put a Slovak word where the latin name goes and had sent no latin name at
+  all for mugwort in Spanish. A sensor kept through an API outage on a Slovak
+  or Spanish installation now keeps its own name instead of falling back to
+  English. The script that builds the map now checks every latin name it
+  records against the allergens the integration knows, and reports the ones it
+  cannot place instead of transcribing them silently.
+
 - **A new outage is timed from when it started** — the `stale_since`
   timestamp was recorded once, when Home Assistant happened to start during an
   outage, and was reused for every later outage. An automation or template
