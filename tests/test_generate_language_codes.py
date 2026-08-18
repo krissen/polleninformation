@@ -161,9 +161,24 @@ class TestPollTitlesFromContamination:
         ]
         poll_titles, warnings = script.poll_titles_from_contamination(contamination)
 
-        assert [entry["poll_id"] for entry in poll_titles] == [5, 6, 2]
-        assert [entry["latin"] for entry in poll_titles] == ["Poaceae", "", "Betula"]
+        assert [entry["poll_id"] for entry in poll_titles] == [5, 2]
+        assert [entry["latin"] for entry in poll_titles] == ["Poaceae", "Betula"]
         assert len(warnings) == 1
+
+    @pytest.mark.parametrize(
+        "poll",
+        [{"poll_id": 6}, {"poll_title": 123}, {"poll_title": ""}, {"poll_title": "  "}],
+    )
+    def test_an_entry_with_no_readable_title_is_skipped(self, script, poll):
+        # An unknown latin name still names a real allergen and is kept. A
+        # title that cannot be read names nothing, so recording it would
+        # manufacture a blank allergen and make an unreadable block look like
+        # a language that has some.
+        poll_titles, warnings = script.poll_titles_from_contamination([poll])
+
+        assert poll_titles == []
+        assert len(warnings) == 1
+        assert "no readable title" in warnings[0]
 
     @pytest.mark.parametrize("contamination", ["oops", None, {"poll_title": "x"}])
     def test_a_block_that_is_not_a_list_is_reported(self, script, contamination):
@@ -241,6 +256,18 @@ class TestLanguageEntryFromResponse:
         )
         assert "error" in entry
         assert len(warnings) == 2
+
+    def test_a_block_of_title_less_entries_is_an_error_entry(self, script):
+        # The chain end to end: every entry is skipped for want of a title,
+        # which leaves no allergens, which is an error entry, which
+        # needs_fetch comes back for.
+        entry, warnings = script.language_entry_from_response(
+            "sk", {"contamination": [{"poll_id": 5}, {"poll_id": 6}]}
+        )
+
+        assert "error" in entry
+        assert len(warnings) == 2
+        assert script.needs_fetch({"sk": entry}, "sk")
 
     def test_a_readable_entry_beside_an_unreadable_one_is_kept(self, script):
         entry, warnings = script.language_entry_from_response(

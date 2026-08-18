@@ -117,9 +117,10 @@ def split_poll_title(poll_title):
     brackets comes back as the latin name, and a title without brackets comes
     back with none. resolve_latin decides what that is worth.
 
-    Total over whatever the API sends. A title that is not a string at all
-    reads as an empty one, which resolve_latin then warns about, because one
-    malformed entry may not cost the language its other allergens.
+    Total over whatever it is handed: a title that is not a string reads as an
+    empty one. The caller rejects such an entry before it gets here, since a
+    title that cannot be read names no allergen, but the split itself does not
+    raise on one.
     """
     poll_title = poll_title if isinstance(poll_title, str) else ""
     if "(" in poll_title and ")" in poll_title:
@@ -208,10 +209,18 @@ def resolve_latin(name, latin):
 def poll_titles_from_contamination(contamination):
     """Return the poll_titles entries for a contamination block, plus warnings.
 
-    Every entry in the block produces exactly one entry here, whether or not
-    its allergen is recognized. The one thing that is dropped is an entry that
-    is not an object at all, since there is nothing in it to record, and that
-    is warned about rather than passed over.
+    Every entry the API sends produces exactly one entry here, whether or not
+    its allergen is recognized: an unknown latin name still names a real
+    allergen, and dropping it would hide a new one.
+
+    Two shapes are the exception, and they are the opposite case. An entry
+    that is not an object, and an entry with no readable title, name nothing
+    at all. Recording those would not preserve information, it would
+    manufacture a well-formed record out of nothing, and a block of them would
+    then look like a language that has allergens. Both are warned about rather
+    than passed over, and a block left empty by them is a response with no
+    allergens, which language_entry_from_response records as an error so the
+    language is fetched again.
     """
     poll_titles = []
     warnings = []
@@ -225,7 +234,13 @@ def poll_titles_from_contamination(contamination):
                 f"skipping a contamination entry that is not an object: {poll!r}"
             )
             continue
-        name, latin = split_poll_title(poll.get("poll_title", ""))
+        poll_title = poll.get("poll_title")
+        if not isinstance(poll_title, str) or not poll_title.strip():
+            warnings.append(
+                f"skipping a contamination entry with no readable title: {poll!r}"
+            )
+            continue
+        name, latin = split_poll_title(poll_title)
         latin, entry_warnings = resolve_latin(name, latin)
         warnings.extend(entry_warnings)
         poll_titles.append(
