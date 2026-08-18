@@ -1,5 +1,38 @@
 # Changelog
 
+## v0.5.5 — Allergen identification (2026-08-18)
+
+### Bug fixes
+
+- **Mugwort is recognized again** (issue #71) — the API sometimes sends an
+  allergen's latin genus as its display name ("Artemisia") and leaves the latin
+  field empty. The integration looks allergens up by their latin name, so this
+  one was not found: the sensor was slugged `artemisia` instead of the
+  canonical `mugwort`, it got the generic pollen icon rather than the flower
+  icon, and an "Unknown allergen" warning was logged for it at every restart.
+  The display name is now tried against the same map when the API sends no
+  latin name of its own, and an entity already created as `..._artemisia` is
+  renamed to `..._mugwort`, so its history is kept. The lookup only runs once
+  nothing else has identified the allergen, so it can never override an
+  allergen the integration already knows.
+  (PR #72 by @ethanhawkes-gif, thanks @robercrack)
+
+- **The latin name is reported even when the API omits it** — an allergen
+  identified from its display name was left with an empty `name_la` attribute,
+  because the API had sent no latin name of its own. It now reports the genus
+  the lookup found.
+
+- **Sensors recover on their own after an empty API response** (issue #73) —
+  when the API returns no data the integration keeps the existing sensors and
+  marks them stale. It matched such a sensor back to the API's allergens by
+  English name, but the API sends allergen names in the language configured for
+  the integration, so on a non-English installation the sensor never found its
+  allergen again and stayed empty even after the API recovered, until Home
+  Assistant was restarted or the entry reloaded. English installations were
+  unaffected apart from dock/sorrel. A recreated sensor is now also matched on
+  its allergen slug, which is the same in every language, and it reports its
+  real latin name instead of a blank one.
+
 ## v0.5.4 — Allergen icons (2026-08-10)
 
 ### Bug fixes
