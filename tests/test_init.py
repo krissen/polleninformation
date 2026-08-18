@@ -200,6 +200,21 @@ ALL_UNUSABLE_WITH_RISK_PAYLOAD = {
     "allergyrisk_hourly": {"allergyrisk_hourly_1": [7.5] * 24},
 }
 
+# Blocks that are present but not objects. The sensors read them as absent and
+# report unknown, so counting them as data here would leave a response nothing
+# can be read from without an outage for its sensors to point at.
+MALFORMED_RISK_PAYLOAD = {
+    "contamination": [],
+    "allergyrisk": ["oops"],
+    "allergyrisk_hourly": "x",
+}
+
+MALFORMED_RISK_WITH_POLLEN_PAYLOAD = {
+    "contamination": [{"poll_title": "Birch (Betula)"}],
+    "allergyrisk": ["oops"],
+    "allergyrisk_hourly": "x",
+}
+
 RISK_ONLY_PAYLOAD = {
     "contamination": [],
     "allergyrisk": {"allergyrisk_1": 7.5},
@@ -267,6 +282,21 @@ class TestEmptySince:
         # the risk sensors report real readings and nothing is stale.
         coordinator = self._make_coordinator(hass)
         await self._fetch(coordinator, ALL_UNUSABLE_WITH_RISK_PAYLOAD, E1)
+        assert coordinator.empty_since is None
+
+    async def test_risk_blocks_that_are_not_objects_stamp_it(self, hass):
+        # Nothing in this response can be read, so it is an outage even though
+        # two of its three blocks are non-empty.
+        coordinator = self._make_coordinator(hass)
+        await self._fetch(coordinator, MALFORMED_RISK_PAYLOAD, E1)
+        assert coordinator.empty_since == E1.isoformat()
+
+    async def test_a_malformed_risk_block_alone_is_not_an_outage(self, hass):
+        # The pollen block carried data, so the response did. A risk sensor
+        # with nothing to read is a missing reading, not an outage, and
+        # reports unknown without a marker.
+        coordinator = self._make_coordinator(hass)
+        await self._fetch(coordinator, MALFORMED_RISK_WITH_POLLEN_PAYLOAD, E1)
         assert coordinator.empty_since is None
 
     async def test_it_holds_for_the_duration_of_one_outage(self, hass):

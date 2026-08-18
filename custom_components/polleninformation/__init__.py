@@ -37,7 +37,7 @@ from .const import (
     DOMAIN,
     PLATFORMS,
 )
-from .utils import get_country_code_map, usable_contamination
+from .utils import block_of, get_country_code_map, usable_contamination
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -186,10 +186,13 @@ class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):
         risk data still carried data, and marking it stale would tell the
         risk sensors they are stale while they report a current reading.
 
-        The contamination block counts by what is usable in it rather than by
-        its length, for the same reason the sensors do: entries that identify
-        no allergen build nothing and read nothing, so a block of only those
-        carried no more data than an empty one. The two tests are not the same
+        Every block counts by what is usable in it rather than by its length,
+        for the same reason the sensors do. Entries that identify no allergen
+        build nothing and read nothing; a risk block that is not an object is
+        read as absent and reports unknown. A response of nothing but those
+        carried no more data than an empty one, and saying otherwise would
+        leave the sensors recreated for want of any data while no outage was
+        ever stamped for them to point at. The two tests are not the same
         question and still do not always agree, which is intended: a response
         whose pollen entries are all unusable but whose risk blocks are full
         did carry data, so nothing is stale, while the pollen sensors are
@@ -197,8 +200,8 @@ class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):
         """
         if (
             usable_contamination(result.get("contamination"))
-            or result.get("allergyrisk")
-            or result.get("allergyrisk_hourly")
+            or block_of(result, "allergyrisk")
+            or block_of(result, "allergyrisk_hourly")
         ):
             self.empty_since = None
         elif self.empty_since is None:
