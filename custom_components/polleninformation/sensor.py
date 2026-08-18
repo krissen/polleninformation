@@ -1051,6 +1051,20 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
         return attrs
 
 
+def hourly_readings(block, field):
+    """Return one day's hourly readings as a sequence.
+
+    Deliberately NOT in usable_risk_block. That predicate answers the question
+    every caller shares, whether there is anything here to read. What shape a
+    value must have to BE read belongs to the reader: the daily sensor wants a
+    number and scale_allergy_risk already swallows anything that is not one,
+    while this one wants a sequence of hours. A scalar has no length, and a
+    mapping is indexed by key rather than by hour, so neither is a day.
+    """
+    values = block.get(field)
+    return values if isinstance(values, (list, tuple)) else []
+
+
 class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
     """Hourly allergy risk sensor."""
 
@@ -1100,7 +1114,7 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
         if not allergyrisk_hourly:
             return None
         now_hour = dt_util.now().hour
-        values = allergyrisk_hourly.get("allergyrisk_hourly_1", [])
+        values = hourly_readings(allergyrisk_hourly, "allergyrisk_hourly_1")
         if 0 <= now_hour < len(values):
             raw = values[now_hour]
             scaled = scale_allergy_risk(raw)
@@ -1125,7 +1139,7 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
         base_time = dt_util.now().replace(hour=0, minute=0, second=0, microsecond=0)
         forecast = []
         for day in range(1, 5):
-            values = allergyrisk_hourly.get(f"allergyrisk_hourly_{day}", [])
+            values = hourly_readings(allergyrisk_hourly, f"allergyrisk_hourly_{day}")
             for hour, raw in enumerate(values):
                 dt = base_time + timedelta(days=day - 1, hours=hour)
                 scaled = scale_allergy_risk(raw)
@@ -1144,7 +1158,7 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
                 )
 
         now_hour = dt_util.now().hour
-        values_today = allergyrisk_hourly.get("allergyrisk_hourly_1", [])
+        values_today = hourly_readings(allergyrisk_hourly, "allergyrisk_hourly_1")
         raw_now = values_today[now_hour] if 0 <= now_hour < len(values_today) else None
         scaled_now = scale_allergy_risk(raw_now) if raw_now is not None else None
         named_now = (

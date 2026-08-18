@@ -2440,6 +2440,49 @@ class TestTheRiskGateAtSetup:
         assert "polleninformation_hamburg_allergy_risk_hourly" in unique_ids
 
 
+class TestTheHourlyReaderTakesAnyShape:
+    """A day of readings is a sequence, and the reader says so.
+
+    usable_risk_block answers the shared question, whether there is anything
+    here to read. What a value must LOOK like to be read is per reader: the
+    daily one wants a number and already swallows anything else, this one
+    wants a sequence of hours. A scalar has no length and a mapping is indexed
+    by key, so both used to raise inside the property, once per entity per
+    read.
+    """
+
+    @staticmethod
+    def _sensor(values):
+        return AllergyRiskHourlySensor(
+            coordinator=_make_coordinator(
+                {"allergyrisk_hourly": {"allergyrisk_hourly_1": values}}
+            ),
+            levels_current=["none", "low", "moderate", "high", "very high"],
+            location_slug="hamburg",
+            location_title="Hamburg",
+        )
+
+    @pytest.mark.parametrize("values", [5, 5.0, True, "abc", {"a": 1}, None, []])
+    def test_a_day_that_is_not_a_sequence_reports_unknown(self, values):
+        sensor = self._sensor(values)
+
+        assert sensor.native_value is None
+        # No forecast, whether the block was refused by the predicate or the
+        # day inside it turned out not to be a day.
+        assert sensor.extra_state_attributes.get("forecast", []) == []
+
+    def test_a_real_day_still_reads(self):
+        sensor = self._sensor([6.0] * 24)
+
+        assert sensor.native_value is not None
+        assert len(sensor.extra_state_attributes["forecast"]) == 24
+
+    def test_a_short_day_reads_the_hours_it_has(self):
+        sensor = self._sensor([6.0, 6.0, 6.0])
+
+        assert len(sensor.extra_state_attributes["forecast"]) == 3
+
+
 class TestARiskBlockWithNothingReadable:
     """Nonempty is not usable, one level deeper than last time.
 
