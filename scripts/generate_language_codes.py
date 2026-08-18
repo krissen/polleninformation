@@ -69,11 +69,22 @@ HEADERS = {
 
 
 def load_db():
-    """Load the existing language_map.json, or return empty dict."""
+    """Load the existing language_map.json, or return empty dict.
+
+    A file that is not JSON at all stops the run. Treating it as an empty db
+    would be the destructive reading: the fetch would refetch every language
+    and write over whatever was in there.
+    """
     if not os.path.exists(DB_FILE):
         return {}
     with open(DB_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+        try:
+            return json.load(f)
+        except json.JSONDecodeError as e:
+            raise SystemExit(
+                f"{DB_FILE} is not valid JSON ({e}). Fix or remove it; this "
+                f"script will not overwrite a file it cannot read."
+            ) from e
 
 
 def save_db(db):
@@ -378,6 +389,12 @@ def run_fetch():
     api_key = os.environ["API_KEY"]
 
     db = load_db()
+    if not isinstance(db, dict):
+        raise SystemExit(
+            f"{DB_FILE} does not hold an object at its root, but a "
+            f"{type(db).__name__}. Fix or remove it; this script will not "
+            f"overwrite a file it cannot read."
+        )
     base_url = "https://www.polleninformation.at/api/forecast/public"
 
     for lang_code in LANG_CODES:

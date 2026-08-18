@@ -9,6 +9,7 @@ import requests at import time, which is why those live inside run_fetch.
 import importlib.util
 import json
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -305,6 +306,26 @@ class TestNeedsFetch:
 
     def test_a_language_that_is_not_an_object_is_refetched(self, script):
         assert script.needs_fetch({"sk": "oops"}, "sk")
+
+
+class TestLoadDb:
+    """The level above the root: the file may not be JSON at all."""
+
+    def test_a_missing_file_is_an_empty_db(self, script, tmp_path):
+        with patch.object(script, "DB_FILE", str(tmp_path / "nothing.json")):
+            assert script.load_db() == {}
+
+    def test_a_file_that_is_not_json_stops_the_run(self, script, tmp_path):
+        # Reading it as an empty db would be the destructive answer: the fetch
+        # would refetch every language and write over whatever is in there.
+        broken = tmp_path / "language_map.json"
+        broken.write_text('{"sk": ', encoding="utf-8")
+        with (
+            patch.object(script, "DB_FILE", str(broken)),
+            pytest.raises(SystemExit) as excinfo,
+        ):
+            script.load_db()
+        assert "not valid JSON" in str(excinfo.value)
 
 
 class TestRepairDbRoot:
