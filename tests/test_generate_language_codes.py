@@ -1130,6 +1130,29 @@ class TestTheFileAndTheRuntimeAgree:
         assert self._runtime_allergen("Artemisia (") == "mugwort"
         assert self._recorded_allergen(script, "Artemisia (") == "mugwort"
 
+    @pytest.mark.parametrize(
+        "name",
+        ["Artemisia", "Ambrosia hojas", "Ailanthus altissima", "Trávy", "Ragweed", ""],
+    )
+    @pytest.mark.parametrize(
+        "brackets",
+        ["", " ()", " (   )", " (", " )", " (Poaceae)", " (ambrózia)", " (Asteraceae)"],
+    )
+    def test_the_two_sides_agree_on_every_generated_title(self, script, name, brackets):
+        """The differential, generated rather than listed.
+
+        The named rows above are the cases we thought of, and the drift this
+        class exists to catch has twice been a case nobody thought of: it was
+        invisible here until a row happened to carry the shape. Crossing the
+        display names that have caused trouble with every bracket shape the
+        API has been seen to send, or could, covers the combinations rather
+        than the instances.
+        """
+        poll_title = name + brackets
+        assert self._recorded_allergen(script, poll_title) == self._runtime_allergen(
+            poll_title
+        )
+
 
 class TestShippedLanguageMap:
     """The file itself, as shipped.
