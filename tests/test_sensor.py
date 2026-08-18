@@ -1558,3 +1558,78 @@ class TestStateMachineCollision:
             ent_reg.async_get_entity_id("sensor", DOMAIN, DAILY_UNIQUE_ID)
             == "sensor.polleninformation_hamburg_allergierisiko"
         )
+
+
+# --- Stale sensors recreated from the registry (issue #73) ---
+
+
+EMPTY_RESPONSE = {"contamination": [], "allergyrisk": {}, "allergyrisk_hourly": {}}
+
+GERMAN_BIRCH_RESPONSE = {
+    "contamination": [
+        {
+            "poll_title": "Birke (Betula)",
+            "contamination_1": 3,
+            "contamination_2": 2,
+            "contamination_3": 1,
+            "contamination_4": 0,
+        }
+    ],
+    "allergyrisk": {},
+    "allergyrisk_hourly": {},
+}
+
+ENGLISH_DOCK_SORREL_RESPONSE = {
+    "contamination": [
+        {
+            "poll_title": "Dock/Sorrel (Rumex)",
+            "contamination_1": 2,
+            "contamination_2": 2,
+            "contamination_3": 1,
+            "contamination_4": 0,
+        }
+    ],
+    "allergyrisk": {},
+    "allergyrisk_hourly": {},
+}
+
+
+class TestStaleSensorRecovery:
+    """A sensor recreated during an empty response must recover on any language."""
+
+    async def _recreate(self, hass, lang, unique_id):
+        entry = _make_entry(lang)
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            unique_id,
+            suggested_object_id=unique_id,
+            config_entry=entry,
+        )
+        entities = await _setup_entities(
+            hass,
+            lang,
+            entry=entry,
+            response=EMPTY_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        return _by_type(entities, PolleninformationSensor)
+
+    async def test_german_sensor_recovers_on_localized_poll_title(self, hass):
+        sensor = await self._recreate(hass, "de", "polleninformation_hamburg_birch")
+        sensor.coordinator.data = GERMAN_BIRCH_RESPONSE
+        assert sensor.native_value == "hoch"
+
+    async def test_german_forecast_recovers(self, hass):
+        sensor = await self._recreate(hass, "de", "polleninformation_hamburg_birch")
+        sensor.coordinator.data = GERMAN_BIRCH_RESPONSE
+        assert len(sensor.extra_state_attributes["forecast"]) == 4
+
+    async def test_english_dock_sorrel_recovers(self, hass):
+        sensor = await self._recreate(
+            hass, "en", "polleninformation_hamburg_dock_sorrel"
+        )
+        sensor.coordinator.data = ENGLISH_DOCK_SORREL_RESPONSE
+        assert sensor.native_value == "moderate"

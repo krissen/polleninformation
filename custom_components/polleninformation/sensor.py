@@ -173,6 +173,21 @@ def english_name_for_latin(latin: str | None) -> str | None:
     return index.get(key.split()[0]) if key.split() else None
 
 
+def allergen_slug_for_item(item: dict) -> str | None:
+    """Return the canonical allergen slug for a contamination entry, or None.
+
+    The latin name in poll_title is the only part of the entry that does not
+    vary with the configured language, so it is what identifies an allergen
+    for a sensor that only knows its own slug.
+    """
+    poll_title = item.get("poll_title", "")
+    if "(" not in poll_title or ")" not in poll_title:
+        return None
+    latin = poll_title.split("(", 1)[1].split(")", 1)[0].strip()
+    name_en = english_name_for_latin(latin)
+    return slugify(name_en) if name_en else None
+
+
 def entity_id_available(hass, ent_reg, entity_id: str) -> bool:
     """Return True when the registry would accept this entity_id.
 
@@ -634,17 +649,28 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
         # Stale/empty data still shows as available but with state "unknown"
         return self.coordinator.last_update_success is not False
 
+    def _find_item(self, contamination: list) -> dict | None:
+        """Return this allergen's contamination entry, or None.
+
+        The name matches for a sensor built from the current response. A
+        sensor recreated from the registry while the API returned no data
+        knows only the English name behind its slug, so it also matches on
+        the slug, which holds in every language.
+        """
+        for item in contamination:
+            poll_title = item.get("poll_title", "").split("(", 1)[0].strip()
+            if poll_title.lower() == self._allergen_name.lower():
+                return item
+            if allergen_slug_for_item(item) == self._allergen_slug:
+                return item
+        return None
+
     @property
     def native_value(self) -> str | None:
         if not self.coordinator.data:
             return None
         contamination = self.coordinator.data.get("contamination", [])
-        found = None
-        for item in contamination:
-            poll_title = item.get("poll_title", "").split("(", 1)[0].strip()
-            if poll_title.lower() == self._allergen_name.lower():
-                found = item
-                break
+        found = self._find_item(contamination)
         if not found:
             return None
         raw_val = found.get("contamination_1", 0)
@@ -665,26 +691,23 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
         contamination = self.coordinator.data.get("contamination", [])
         forecast = []
         base_date = dt_util.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        for item in contamination:
-            poll_title = item.get("poll_title", "").split("(", 1)[0].strip()
-            if poll_title.lower() == self._allergen_name.lower():
-                for day in range(1, 5):
-                    val = item.get(f"contamination_{day}", 0)
-                    level_name = (
-                        self._levels_current[val]
-                        if isinstance(val, int) and val < len(self._levels_current)
-                        else str(val)
-                    )
-                    forecast.append(
-                        {
-                            "time": (base_date + timedelta(days=day - 1)).strftime(
-                                "%Y-%m-%dT%H:%M:%S"
-                            ),
-                            "level": val,
-                            "level_name": level_name,
-                        }
-                    )
-                break
+        if item := self._find_item(contamination):
+            for day in range(1, 5):
+                val = item.get(f"contamination_{day}", 0)
+                level_name = (
+                    self._levels_current[val]
+                    if isinstance(val, int) and val < len(self._levels_current)
+                    else str(val)
+                )
+                forecast.append(
+                    {
+                        "time": (base_date + timedelta(days=day - 1)).strftime(
+                            "%Y-%m-%dT%H:%M:%S"
+                        ),
+                        "level": val,
+                        "level_name": level_name,
+                    }
+                )
 
         today_raw = forecast[0] if forecast else None
         tomorrow_raw = forecast[1] if len(forecast) > 1 else None
