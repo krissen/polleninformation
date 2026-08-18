@@ -457,15 +457,15 @@ async def async_setup_entry(hass, entry, async_add_entities):
         )
         legacy_en = allergen_en_obj["name"] if allergen_en_obj else poll_title_local
         mapped_en = english_name_for_latin(latin)
-        if mapped_en is None and allergen_en_obj is None:
+        if not latin:
             # The API sometimes sends the latin genus as the display name and
-            # leaves the latin field empty (e.g. "Artemisia"), which is why no
-            # latin lookup found anything. The static map is keyed by latin
-            # name, so try the display name against it too before giving up:
-            # this keeps the canonical English slug and icon and avoids a
-            # spurious "unknown allergen" warning. The English language block
-            # keeps precedence, so this only runs once both latin lookups have
-            # failed and a localized name that is not a latin genus stays
+            # leaves the latin field empty (e.g. "Artemisia"), so nothing above
+            # had a latin name to look up. The static map is keyed by latin
+            # name, so try the display name against it before giving up: this
+            # keeps the canonical English slug and icon and avoids a spurious
+            # "unknown allergen" warning. A latin name the API did send is
+            # authoritative even when no map knows it, so this never runs then;
+            # a localized display name that is not a latin genus stays
             # unresolved.
             mapped_en = english_name_for_latin(poll_title_local)
             if mapped_en is not None:

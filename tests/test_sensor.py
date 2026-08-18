@@ -1286,6 +1286,73 @@ class TestEnglishBlockOutranksTheDisplayName:
         )
 
 
+class TestPresentLatinIsAuthoritative:
+    """A latin name the API sent wins even when nothing can resolve it.
+
+    The same response as above, but no language block knows the latin name
+    either. The display name must still not be read as a latin genus: the API
+    said this allergen is Asteraceae, so resolving it to mugwort would name the
+    entity after a different allergen and migrate an existing one onto it.
+    """
+
+    async def _setup(self, hass, entry=None):
+        return await _setup_entities(
+            hass,
+            "de",
+            entry=entry,
+            response=UNKNOWN_LATIN_WITH_GENUS_NAME_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+
+    async def test_falls_back_to_the_configured_language_name(self, hass):
+        entities = await self._setup(hass)
+        unique_ids = {e.unique_id for e in entities if e.unique_id}
+        assert "polleninformation_hamburg_artemisia" in unique_ids
+        assert "polleninformation_hamburg_mugwort" not in unique_ids
+
+    async def test_keeps_the_latin_name_the_api_sent(self, hass):
+        entities = await self._setup(hass)
+        sensor = next(
+            e
+            for e in entities
+            if isinstance(e, PolleninformationSensor)
+            and e.unique_id == "polleninformation_hamburg_artemisia"
+        )
+        assert sensor.extra_state_attributes["name_la"] == "Asteraceae"
+
+    async def test_warns_about_the_unknown_allergen(self, hass, caplog):
+        with caplog.at_level(logging.WARNING):
+            await self._setup(hass)
+        assert [r for r in caplog.records if "Unknown allergen" in r.getMessage()]
+
+    async def test_no_rename_is_queued(self, hass):
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            "polleninformation_hamburg_artemisia",
+            suggested_object_id="polleninformation_hamburg_artemisia",
+            config_entry=entry,
+        )
+
+        await self._setup(hass, entry=entry)
+
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_artemisia"
+            )
+            == "sensor.polleninformation_hamburg_artemisia"
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_mugwort"
+            )
+            is None
+        )
+
+
 # The canonical slug for every allergen, pinned. These slugs are a public
 # contract: they are the entity_id suffix, they are in every unique_id, and
 # the pollen forecast card matches on them. A change to an API display name or
