@@ -1638,3 +1638,14 @@ class TestStaleSensorRecovery:
         sensor = await self._recreate(hass, "de", "polleninformation_hamburg_birch")
         sensor.coordinator.data = GERMAN_BIRCH_RESPONSE
         assert sensor.extra_state_attributes["name_la"] == "Betula"
+
+    async def test_recovers_when_the_latin_genus_is_the_display_name(self, hass):
+        """Issue #71 arrives without parentheses, so there is no latin to read.
+
+        A stale mugwort sensor on a Spanish install sees "Artemisia" as the
+        whole poll_title; its own name is "Mugwort", so only the map lookup on
+        the display name itself can identify the entry.
+        """
+        sensor = await self._recreate(hass, "es", "polleninformation_hamburg_mugwort")
+        sensor.coordinator.data = LATIN_GENUS_AS_NAME_RESPONSE
+        assert sensor.native_value is not None

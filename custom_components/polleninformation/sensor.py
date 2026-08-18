@@ -189,9 +189,14 @@ def allergen_slug_for_item(item: dict) -> str | None:
     for a sensor that only knows its own slug.
     """
     poll_title = item.get("poll_title", "")
-    if "(" not in poll_title or ")" not in poll_title:
-        return None
-    latin = poll_title.split("(", 1)[1].split(")", 1)[0].strip()
+    if "(" in poll_title and ")" in poll_title:
+        latin = poll_title.split("(", 1)[1].split(")", 1)[0].strip()
+    else:
+        # No latin at all: the API sometimes sends the latin genus as the
+        # display name instead (e.g. "Artemisia"), so the name itself is the
+        # last chance to identify the entry. Only tried when no latin was
+        # sent, so an entry that carries one is identified by that alone.
+        latin = poll_title.strip()
     name_en = english_name_for_latin(latin)
     return slugify(name_en) if name_en else None
 
