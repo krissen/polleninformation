@@ -1390,6 +1390,50 @@ class TestALegacyCandidateFromTheLiveResponse:
         assert kept is not None
         assert kept.id == birch_id
 
+    async def test_a_localized_name_normalizing_onto_another_allergen(self, hass):
+        # The realistic route, and the one that needs no English from the API
+        # at all: the shipped Latvian name for olive is "Olīve", which
+        # slugify folds to "olive", a canonical slug. It lands on its own
+        # allergen today. Sent for a DIFFERENT allergen it would claim the
+        # olive row, so the guard has to refuse it on the slug rather than on
+        # the language it looks like.
+        entry, ent_reg, olive_id = self._register(hass, "olive")
+
+        await _setup_with_shipped_blocks(
+            hass, "lv", self._response("Olīve (Betula)"), entry=entry
+        )
+
+        kept = ent_reg.async_get("sensor.polleninformation_hamburg_olive")
+        assert kept is not None
+        assert kept.id == olive_id
+        assert kept.unique_id == "polleninformation_hamburg_olive"
+
+    @pytest.mark.parametrize(
+        ("lang", "poll_title", "slug"),
+        [
+            # The three entries in the shipped map whose display name already
+            # slugifies to a canonical allergen slug. Each lands on its OWN
+            # allergen, so each must keep working: the guard refuses a
+            # candidate that names a DIFFERENT allergen, not one that agrees.
+            ("de", "Ragweed (Ambrosia)", "ragweed"),
+            ("sk", "Ragweed (Ambrosia)", "ragweed"),
+            ("lv", "Olīve (Olea)", "olive"),
+        ],
+    )
+    async def test_the_shipped_near_collisions_keep_their_own_row(
+        self, hass, lang, poll_title, slug
+    ):
+        entry, ent_reg, original_id = self._register(hass, slug)
+
+        await _setup_with_shipped_blocks(
+            hass, lang, self._response(poll_title), entry=entry
+        )
+
+        kept = ent_reg.async_get(f"sensor.polleninformation_hamburg_{slug}")
+        assert kept is not None
+        assert kept.id == original_id
+        assert kept.unique_id == f"polleninformation_hamburg_{slug}"
+
     async def test_an_ordinary_localized_name_is_still_migrated(self, hass):
         # The guard may not cost the migration its actual job: "Beifuß" is
         # nobody else's canonical slug, so it is still a candidate.
