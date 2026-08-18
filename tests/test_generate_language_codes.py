@@ -978,6 +978,14 @@ class TestTheFileAndTheRuntimeAgree:
         assert self._runtime_allergen("Artemisia") == "mugwort"
         assert self._recorded_allergen(script, "Artemisia") == "mugwort"
 
+    def test_the_alias_resolves_to_ragweed_on_both_sides(self, script):
+        # Named rather than compared, for the same reason as the two above:
+        # emptying LATIN_NAME_ALIASES makes both sides resolve this to
+        # nothing, and "they agree" would still hold while the allergen had
+        # quietly stopped being identifiable.
+        assert self._runtime_allergen("Ragweed (ambrózia)") == "ragweed"
+        assert self._recorded_allergen(script, "Ragweed (ambrózia)") == "ragweed"
+
     def test_empty_brackets_resolve_to_the_display_name_on_both_sides(self, script):
         assert self._runtime_allergen("Artemisia ()") == "mugwort"
         assert self._recorded_allergen(script, "Artemisia ()") == "mugwort"
