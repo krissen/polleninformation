@@ -83,6 +83,28 @@ class TestResolveLatin:
         assert len(warnings) == 1
         assert "Artemisia" in warnings[0]
 
+    def test_a_latin_the_api_sent_outranks_a_latin_display_name(self, script):
+        # "Artemisia (Asteraceae)" is the composite family, not mugwort. The
+        # display name may only be read as a latin name when the API sent
+        # none, exactly as the setup path in sensor.py has it.
+        latin, warnings = script.resolve_latin("Artemisia", "Asteraceae")
+        assert latin == "Asteraceae"
+        assert len(warnings) == 1
+        assert "Keeping it" in warnings[0]
+
+    def test_a_latin_the_api_sent_outranks_an_english_display_name(self, script):
+        # The same rule for the English-name lookup: "Asteraceae" could be a
+        # scientific name, so it identifies the allergen whatever the display
+        # name says.
+        latin, warnings = script.resolve_latin("Ragweed", "Asteraceae")
+        assert latin == "Asteraceae"
+        assert len(warnings) == 1
+        assert "Keeping it" in warnings[0]
+
+    def test_a_hybrid_name_the_map_does_not_know_is_kept(self, script):
+        latin, _ = script.resolve_latin("Ragweed", "Asteraceae × nova")
+        assert latin == "Asteraceae × nova"
+
     def test_unknown_latin_is_kept_as_sent_and_warned_about(self, script):
         latin, warnings = script.resolve_latin("Nässlor", "Nonexistentia")
         assert latin == "Nonexistentia"
@@ -94,6 +116,26 @@ class TestResolveLatin:
         assert latin == ""
         assert len(warnings) == 1
         assert "no latin name" in warnings[0]
+
+
+class TestCouldBeAScientificName:
+    """What tells a latin name the map does not know from a localized word.
+
+    This is the whole safety argument for the English-name lookup: it may
+    only override what the API put between the brackets when that string
+    cannot be a scientific name whatever it names.
+    """
+
+    @pytest.mark.parametrize(
+        "latin",
+        ["Asteraceae", "Ambrosia artemisiifolia", "Ambrosia × helenae", "Poaceae"],
+    )
+    def test_latin_names_could_be_one(self, script, latin):
+        assert script.could_be_a_scientific_name(latin)
+
+    @pytest.mark.parametrize("latin", ["ambrózia", "Амброзия", "パセリ", "", "räven"])
+    def test_a_localized_word_could_not(self, script, latin):
+        assert not script.could_be_a_scientific_name(latin)
 
 
 class TestPollTitlesFromContamination:
@@ -188,6 +230,42 @@ class TestRepairDb:
         assert changes == []
         assert len(warnings) == 1
         assert db["sv"]["poll_titles"][0]["latin"] == "Nonexistentia"
+
+    def test_keeps_a_latin_the_api_sent_that_no_map_knows(self, script):
+        # The repair rewrites a file we ship, so an entry the API recorded
+        # correctly must survive it. Reading "Artemisia" as the latin name
+        # here would record the composite family as mugwort, and the next
+        # repair run would then confirm that as correct.
+        db = {
+            "de": {
+                "lang_code": "de",
+                "poll_titles": [
+                    {"name": "Artemisia", "latin": "Asteraceae", "poll_id": 300}
+                ],
+            }
+        }
+        changes, warnings = script.repair_db(db)
+
+        assert changes == []
+        assert db["de"]["poll_titles"][0]["latin"] == "Asteraceae"
+        assert len(warnings) == 1
+
+    def test_a_correctly_recorded_entry_survives_a_round_trip(self, script):
+        db = {
+            "de": {
+                "lang_code": "de",
+                "poll_titles": [
+                    {"name": "Gräser", "latin": "Poaceae", "poll_id": 5},
+                    {"name": "Artemisia", "latin": "Asteraceae", "poll_id": 300},
+                ],
+            }
+        }
+        before = json.dumps(db, sort_keys=True)
+
+        script.repair_db(db)
+        script.repair_db(db)
+
+        assert json.dumps(db, sort_keys=True) == before
 
     def test_tolerates_an_error_entry(self, script):
         db = {"tr": {"lang_code": "tr", "error": "request error: timeout"}}
