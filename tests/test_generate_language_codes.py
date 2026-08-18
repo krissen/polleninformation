@@ -226,6 +226,30 @@ class TestPollTitlesFromContamination:
         assert poll_titles[0]["name"] == "Ragweed"
 
 
+class TestUnreadableEntryWarning:
+    """The one path in this script that destroys something says so first."""
+
+    @pytest.mark.parametrize("entry", ["oops", 42, ["sk"], True])
+    def test_an_entry_that_cannot_be_read_is_announced(self, script, entry):
+        warning = script.unreadable_entry_warning({"sk": entry}, "sk")
+
+        assert warning is not None
+        assert "overwriting" in warning
+        # It is refetched, which is the behaviour being announced.
+        assert script.needs_fetch({"sk": entry}, "sk")
+
+    def test_a_language_that_is_absent_says_nothing(self, script):
+        assert script.unreadable_entry_warning({}, "sk") is None
+
+    def test_an_error_entry_says_nothing(self, script):
+        db = {"sk": {"lang_code": "sk", "error": "request error: timeout"}}
+        assert script.unreadable_entry_warning(db, "sk") is None
+
+    def test_a_good_entry_says_nothing(self, script):
+        db = {"sk": {"lang_code": "sk", "poll_titles": []}}
+        assert script.unreadable_entry_warning(db, "sk") is None
+
+
 class TestLanguageEntryFromResponse:
     """What one language's response is worth, before it reaches the file.
 

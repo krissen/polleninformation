@@ -298,6 +298,24 @@ def needs_fetch(db, lang_code):
     return not isinstance(entry, dict) or "error" in entry
 
 
+def unreadable_entry_warning(db, lang_code):
+    """Warn about a language entry that will be refetched and overwritten.
+
+    needs_fetch treats an entry it cannot read as one to fetch again, which
+    is right: an entry that is not an object holds nothing worth keeping. But
+    it is the one place in this script that destroys something, so it says
+    so first rather than doing it quietly. An entry that is simply absent, or
+    one that records an error, is the ordinary case and says nothing.
+    """
+    entry = db.get(lang_code)
+    if entry is None or isinstance(entry, dict):
+        return None
+    return (
+        f"the file holds {entry!r} for this language, which is not an entry "
+        f"this can read; refetching and overwriting it"
+    )
+
+
 def language_entry_from_response(lang_code, data):
     """Return the db entry for one language's response, plus warnings.
 
@@ -441,6 +459,9 @@ def run_fetch():
         if not needs_fetch(db, lang_code):
             print(f"{lang_code}: Already in db, skipping.")
             continue
+
+        if warning := unreadable_entry_warning(db, lang_code):
+            print(f"{lang_code}: WARNING: {warning}")
 
         params = {
             "country": COUNTRY,
