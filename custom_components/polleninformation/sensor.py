@@ -801,7 +801,14 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
         to different allergens. The name pass therefore skips any entry that
         identifies as a different allergen, and a name match only ever lands
         on an entry that nothing else claims.
+
+        Entries that identify no allergen are dropped first, by the same
+        predicate the setup path uses to decide which ones become sensors. A
+        non-object entry beside a good one used to raise here on every update,
+        which takes out every pollen sensor of the location rather than the
+        one bad entry.
         """
+        contamination = usable_contamination(contamination)
         for item in contamination:
             if allergen_slug_for_item(item) == self._allergen_slug:
                 return item

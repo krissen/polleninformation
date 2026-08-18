@@ -2159,6 +2159,87 @@ class TestABlockOfUnusableEntriesReadsAsEmpty:
         assert "data_stale" not in sensor.extra_state_attributes
 
 
+# One non-object element beside a good one. The coordinator validates that
+# contamination is a list and says nothing about what is in it.
+NON_OBJECT_ELEMENT_RESPONSE = {
+    "contamination": [
+        "oops",
+        123,
+        None,
+        ["x"],
+        {
+            "poll_title": "Birke (Betula)",
+            "contamination_1": 3,
+            "contamination_2": 2,
+            "contamination_3": 1,
+            "contamination_4": 0,
+        },
+    ],
+    "allergyrisk": {"allergyrisk_1": 5.0},
+    "allergyrisk_hourly": {"allergyrisk_hourly_1": [5.0] * 24},
+}
+
+
+class TestANonObjectEntryCostsOnlyItself:
+    """One junk element may not take the whole location down with it.
+
+    Everything else on this branch degrades a single sensor. This one raised
+    inside setup, which fails the config entry: every sensor for the location
+    disappears, risk sensors included. It raised again on every read, so
+    fixing setup alone would not have been enough.
+    """
+
+    async def test_setup_survives_and_keeps_the_good_entry(self, hass):
+        entities = await _setup_entities(
+            hass,
+            "de",
+            response=NON_OBJECT_ELEMENT_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        unique_ids = {e.unique_id for e in entities if e.unique_id}
+
+        assert "polleninformation_hamburg_birch" in unique_ids
+
+    async def test_the_risk_sensors_survive_too(self, hass):
+        entities = await _setup_entities(
+            hass,
+            "de",
+            response=NON_OBJECT_ELEMENT_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        unique_ids = {e.unique_id for e in entities if e.unique_id}
+
+        assert "polleninformation_hamburg_allergy_risk" in unique_ids
+
+    async def test_the_junk_is_warned_about(self, hass, caplog):
+        with caplog.at_level(logging.WARNING):
+            await _setup_entities(
+                hass,
+                "de",
+                response=NON_OBJECT_ELEMENT_RESPONSE,
+                language_block=EMPTY_LANGUAGE_BLOCK,
+            )
+        skipped = [
+            r for r in caplog.records if "identifies no allergen" in r.getMessage()
+        ]
+        assert len(skipped) == 4
+
+    async def test_reading_the_sensor_survives_it(self, hass):
+        # The read path matters as much as setup: the response is re-read on
+        # every refresh, so a fix in setup alone would leave the sensor
+        # raising for as long as the API sends that element.
+        entities = await _setup_entities(
+            hass,
+            "de",
+            response=NON_OBJECT_ELEMENT_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        sensor = _by_type(entities, PolleninformationSensor)
+
+        assert sensor.native_value == "hoch"
+        assert len(sensor.extra_state_attributes["forecast"]) == 4
+
+
 class TestEveryEntityReportsTheSameOutage:
     """The timestamp belongs to the response, so siblings must agree on it.
 
