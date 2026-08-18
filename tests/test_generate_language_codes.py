@@ -185,6 +185,94 @@ class TestPollTitlesFromContamination:
         assert poll_titles[0]["name"] == "Ragweed"
 
 
+class TestLanguageEntryFromResponse:
+    """What one language's response is worth, before it reaches the file.
+
+    A response no allergen can be read from is recorded as an error rather
+    than as a language that has none, because only an error entry is fetched
+    again. An empty response and a malformed one are not told apart here: for
+    this file they are the same defect, a language with no allergen names.
+    """
+
+    def test_a_good_response_records_its_allergens(self, script):
+        entry, warnings = script.language_entry_from_response(
+            "sk",
+            {"contamination": [{"poll_title": "Trávy (Poaceae)", "poll_id": 5}]},
+        )
+
+        assert entry["lang_code"] == "sk"
+        assert entry["lang"] == "Slovak"
+        assert entry["poll_titles"] == [
+            {"name": "Trávy", "latin": "Poaceae", "poll_id": 5}
+        ]
+        assert warnings == []
+
+    def test_a_top_level_that_is_not_an_object_is_an_error_entry(self, script):
+        # An array is what an upstream error looks like, and recording it as a
+        # language with no allergens would be permanent.
+        entry, _ = script.language_entry_from_response("sk", [])
+        assert "error" in entry
+        assert "top level" in entry["error"]
+
+    @pytest.mark.parametrize("data", [[], "oops", None, 42])
+    def test_no_malformed_top_level_is_recorded_as_a_success(self, script, data):
+        entry, _ = script.language_entry_from_response("sk", data)
+        assert "error" in entry
+        assert "poll_titles" not in entry
+
+    def test_a_missing_contamination_block_is_an_error_entry(self, script):
+        entry, _ = script.language_entry_from_response("sk", {"allergyrisk": {}})
+        assert "error" in entry
+
+    def test_an_empty_contamination_block_is_an_error_entry(self, script):
+        entry, _ = script.language_entry_from_response("sk", {"contamination": []})
+        assert "error" in entry
+
+    def test_a_block_of_unreadable_entries_is_an_error_entry(self, script):
+        entry, warnings = script.language_entry_from_response(
+            "sk", {"contamination": ["oops", "also oops"]}
+        )
+        assert "error" in entry
+        assert len(warnings) == 2
+
+    def test_a_readable_entry_beside_an_unreadable_one_is_kept(self, script):
+        entry, warnings = script.language_entry_from_response(
+            "sk",
+            {
+                "contamination": [
+                    "oops",
+                    {"poll_title": "Trávy (Poaceae)", "poll_id": 5},
+                ]
+            },
+        )
+        assert [poll["latin"] for poll in entry["poll_titles"]] == ["Poaceae"]
+        assert len(warnings) == 1
+
+
+class TestNeedsFetch:
+    """Which languages the next run goes back for."""
+
+    def test_a_language_that_is_not_there_is_fetched(self, script):
+        assert script.needs_fetch({}, "sk")
+
+    def test_a_recorded_language_is_not_refetched(self, script):
+        db = {"sk": {"lang_code": "sk", "poll_titles": []}}
+        assert not script.needs_fetch(db, "sk")
+
+    def test_an_error_entry_is_retried(self, script):
+        db = {"sk": {"lang_code": "sk", "error": "request error: timeout"}}
+        assert script.needs_fetch(db, "sk")
+
+    def test_a_malformed_response_is_retried_on_the_next_run(self, script):
+        # The two halves together: a response that cannot be read is recorded
+        # as an error, and an error is what the next run comes back for.
+        entry, _ = script.language_entry_from_response("sk", [])
+        assert script.needs_fetch({"sk": entry}, "sk")
+
+    def test_a_language_that_is_not_an_object_is_refetched(self, script):
+        assert script.needs_fetch({"sk": "oops"}, "sk")
+
+
 class TestRepairDb:
     """The offline pass that lets an already recorded entry correct itself."""
 

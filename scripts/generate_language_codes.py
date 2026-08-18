@@ -234,6 +234,54 @@ def poll_titles_from_contamination(contamination):
     return poll_titles, warnings
 
 
+def needs_fetch(db, lang_code):
+    """Whether a language still has to be fetched.
+
+    An entry that records an error is retried, which is the only reason the
+    error is written to the file at all: a language whose response could not
+    be read has to come back on the next run rather than sit there forever.
+    """
+    entry = db.get(lang_code)
+    return not isinstance(entry, dict) or "error" in entry
+
+
+def language_entry_from_response(lang_code, data):
+    """Return the db entry for one language's response, plus warnings.
+
+    A response this cannot take a single allergen from is recorded as an
+    error, whatever shape caused it: a top level that is not an object, no
+    contamination block, a block that is not a list, an empty block, or a
+    block of entries none of which could be read.
+
+    An empty response and a malformed one are not distinguishable here, and
+    for this file they do not need to be. Both leave a language with no
+    allergen names, which is the one thing the file exists to hold, so both
+    have to be fetched again rather than saved as a language that legitimately
+    has none. Recording either as a success would be permanent: needs_fetch
+    only retries an entry that carries an error.
+    """
+    warnings = []
+    poll_titles = []
+    if not isinstance(data, dict):
+        error = (
+            f"malformed response: the top level is {type(data).__name__}, not an object"
+        )
+    elif "contamination" not in data:
+        error = "malformed response: no contamination block"
+    else:
+        poll_titles, warnings = poll_titles_from_contamination(data["contamination"])
+        error = "the response carries no allergens" if not poll_titles else None
+
+    if error:
+        return {"error": error, "lang_code": lang_code}, warnings
+
+    return {
+        "lang_code": lang_code,
+        "lang": get_language_name(lang_code),
+        "poll_titles": poll_titles,
+    }, warnings
+
+
 def repair_db(db):
     """Revalidate every latin name already in the db, in place.
 
@@ -310,7 +358,7 @@ def run_fetch():
     base_url = "https://www.polleninformation.at/api/forecast/public"
 
     for lang_code in LANG_CODES:
-        if lang_code in db and "error" not in db[lang_code]:
+        if not needs_fetch(db, lang_code):
             print(f"{lang_code}: Already in db, skipping.")
             continue
 
@@ -337,19 +385,16 @@ def run_fetch():
         # cannot be read costs its own line and not the whole language, and a
         # bug here surfaces as a traceback rather than as an error entry
         # persisted in a file that is never refetched.
-        contamination = data.get("contamination", []) if isinstance(data, dict) else []
-        poll_titles, warnings = poll_titles_from_contamination(contamination)
+        entry, warnings = language_entry_from_response(lang_code, data)
 
         for warning in warnings:
             print(f"{lang_code}: WARNING: {warning}")
 
-        entry = {
-            "lang_code": lang_code,
-            "lang": get_language_name(lang_code),
-            "poll_titles": poll_titles,
-        }
         db[lang_code] = entry
-        print(f"{lang_code}: OK, {len(poll_titles)} allergens")
+        if "error" in entry:
+            print(f"{lang_code}: [{entry['error']}]")
+        else:
+            print(f"{lang_code}: OK, {len(entry['poll_titles'])} allergens")
         save_db(db)
         time.sleep(DELAY_SEC)
 
