@@ -63,10 +63,18 @@ class TestResolveLatin:
     def test_known_latin_is_kept_without_a_warning(self, script):
         assert script.resolve_latin("Trávy", "Poaceae") == ("Poaceae", [])
 
-    def test_genus_and_species_is_kept(self, script):
+    def test_genus_and_species_is_recorded_as_the_genus(self, script):
+        # Every consumer of this file matches a latin name exactly, and the
+        # one the restore path holds is the map's own key.
         latin, warnings = script.resolve_latin("Ambrosia", "Ambrosia artemisiifolia")
-        assert latin == "Ambrosia artemisiifolia"
-        assert warnings == []
+        assert latin == "Ambrosia"
+        assert len(warnings) == 1
+
+    @pytest.mark.parametrize("sent", ["poaceae", " Poaceae ", "POACEAE"])
+    def test_a_recognized_latin_is_recorded_under_the_map_key(self, script, sent):
+        latin, warnings = script.resolve_latin("Trávy", sent)
+        assert latin == "Poaceae"
+        assert len(warnings) == 1
 
     def test_a_declared_alias_is_recorded_as_the_name_it_stands_for(self, script):
         # The sk shape: the API put the Slovak word for ragweed where the
@@ -261,7 +269,7 @@ class TestShippedLanguageMap:
             (lang_code, entry["name"], entry["latin"])
             for lang_code, block in db.items()
             for entry in block.get("poll_titles", [])
-            if not script.english_name_for_latin(entry["latin"])
+            if not script.canonical_latin(entry["latin"])
         ]
         assert unrecognized == []
 

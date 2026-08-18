@@ -31,9 +31,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from custom_components.polleninformation.sensor import (
+    LATIN_NAME_ALIASES,
     canonical_latin,
-    english_name_for_display_name,
-    english_name_for_latin,
 )
 
 # ================================
@@ -135,12 +134,20 @@ def resolve_latin(name, latin):
     not always use brackets at all, so a transcribed latin name is checked
     against the integration's own maps before it is trusted:
 
-    1. a latin name LATIN_TO_ENGLISH_NAME knows is recorded as sent;
+    1. a latin name LATIN_TO_ENGLISH_NAME knows is recorded under that map's
+       own key, so "poaceae" and "Ambrosia artemisiifolia" are recorded as
+       "Poaceae" and "Ambrosia";
     2. a spelling LATIN_NAME_ALIASES declares, such as the Slovak "ambrózia",
        is recorded as the latin name it stands for;
     3. the display name is read as a latin name only when the API sent none,
        which is the shape reported in issue #71;
     4. anything else is warned about and recorded exactly as the API sent it.
+
+    Rungs 1 to 3 all record a key of LATIN_TO_ENGLISH_NAME, never the string
+    the API happened to send, because every consumer of this file matches a
+    latin name exactly: an entry recorded as "Ambrosia artemisiifolia" is not
+    found again by the restore path, which holds "Ambrosia". The name field
+    already preserves the API's own wording.
 
     A latin name the API did send is otherwise authoritative even when nothing
     resolves it, exactly as it is for the sensors: "Artemisia (Asteraceae)" is
@@ -151,25 +158,30 @@ def resolve_latin(name, latin):
     hide a genuinely new allergen, which is the one case where this file has
     something to tell us.
     """
-    if latin and english_name_for_latin(latin):
-        canonical = canonical_latin(latin)
-        if canonical != latin:
+    if latin and (canonical := canonical_latin(latin)):
+        if canonical == latin:
+            return latin, []
+        if latin.strip().lower() in LATIN_NAME_ALIASES:
             warning = (
                 f"{name!r}: the API sent {latin!r} where the latin name goes, "
                 f"which is a known spelling of {canonical!r}; recording that"
             )
-            return canonical, [warning]
-        return latin, []
+        else:
+            warning = (
+                f"{name!r}: the API spells the latin name {latin!r}; recording "
+                f"it as {canonical!r}, the spelling every lookup matches on"
+            )
+        return canonical, [warning]
 
     sent = f"latin name {latin!r}" if latin else "no latin name"
 
-    if not latin and english_name_for_display_name(name):
+    if not latin and (canonical := canonical_latin(name)):
         # The display name is itself a latin name, so record it as one.
         warning = (
             f"{name!r}: the API sent {sent} and a display name that is one; "
-            f"recording {name!r}"
+            f"recording {canonical!r}"
         )
-        return name, [warning]
+        return canonical, [warning]
 
     if latin:
         warning = (

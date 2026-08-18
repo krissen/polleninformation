@@ -173,15 +173,47 @@ def _latin_name_index() -> dict[str, str]:
     return index
 
 
-def canonical_latin(latin: str | None) -> str | None:
-    """Return the spelling of a latin name the maps use.
+def resolve_latin_alias(latin: str | None) -> str | None:
+    """Return the latin name a declared spelling stands for.
 
     Only a spelling declared in LATIN_NAME_ALIASES is rewritten, so a latin
-    name the API sent that no map knows is returned unchanged.
+    name the API sent that no map knows is returned unchanged, species and
+    all.
     """
     if not latin:
         return latin
     return LATIN_NAME_ALIASES.get(latin.strip().lower(), latin)
+
+
+@lru_cache(maxsize=1)
+def _canonical_latin_index() -> dict[str, str]:
+    """The key of LATIN_TO_ENGLISH_NAME per spelling that resolves to it."""
+    index = {latin.lower(): latin for latin in LATIN_TO_ENGLISH_NAME}
+    for latin in LATIN_TO_ENGLISH_NAME:
+        index.setdefault(latin.split()[0].lower(), latin)
+    for alias, latin in LATIN_NAME_ALIASES.items():
+        index.setdefault(alias, latin)
+    return index
+
+
+def canonical_latin(latin: str | None) -> str | None:
+    """Return the key of LATIN_TO_ENGLISH_NAME a latin name resolves to.
+
+    None when no map knows it. This is the spelling anything keyed by latin
+    name has to store, because the lookups against a language block match
+    exactly: an entry recorded as "poaceae" or "Ambrosia artemisiifolia" is
+    never found again by a consumer holding "Poaceae" or "Ambrosia".
+
+    A latin name that carries a species falls back to its genus, exactly as
+    english_name_for_latin does, so the two agree on what is recognized.
+    """
+    if not latin:
+        return None
+    index = _canonical_latin_index()
+    key = latin.strip().lower()
+    if canonical := index.get(key):
+        return canonical
+    return index.get(key.split()[0]) if key.split() else None
 
 
 def english_name_for_latin(latin: str | None) -> str | None:
@@ -501,7 +533,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         # A spelling the API is known to send in place of a latin name is
         # reported as the name it stands for, so the attribute carries a latin
         # name rather than a localized word.
-        allergen_la = canonical_latin(latin) if latin else ""
+        allergen_la = resolve_latin_alias(latin) if latin else ""
         if allergen_la != latin:
             _LOGGER.debug(
                 "Reporting %r as %r for allergen %r",

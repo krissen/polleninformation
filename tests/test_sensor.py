@@ -29,6 +29,7 @@ from custom_components.polleninformation.sensor import (
     entity_id_available,
     extract_allergen_slug_from_unique_id,
     localized_risk_object_id_suffixes,
+    resolve_latin_alias,
     scale_allergy_risk,
 )
 from custom_components.polleninformation.utils import slugify
@@ -1393,10 +1394,29 @@ class TestDeclaredLatinNameAliases:
     def test_the_alias_is_matched_case_insensitively(self):
         assert english_name_for_latin("Ambrózia") == "ragweed"
 
-    def test_canonical_latin_rewrites_only_a_declared_alias(self):
+    def test_the_alias_resolver_rewrites_only_a_declared_alias(self):
+        # What the sensor reports as name_la: a declared spelling becomes the
+        # name it stands for, and everything else is left exactly as sent,
+        # species and all.
+        assert resolve_latin_alias("ambrózia") == "Ambrosia"
+        assert resolve_latin_alias("Asteraceae") == "Asteraceae"
+        assert resolve_latin_alias("Ambrosia artemisiifolia") == (
+            "Ambrosia artemisiifolia"
+        )
+        assert resolve_latin_alias("") == ""
+        assert resolve_latin_alias(None) is None
+
+    def test_canonical_latin_returns_the_map_key(self):
+        # What anything keyed by latin name has to store, since the language
+        # block lookups match exactly.
         assert canonical_latin("ambrózia") == "Ambrosia"
-        assert canonical_latin("Asteraceae") == "Asteraceae"
-        assert canonical_latin("") == ""
+        assert canonical_latin("poaceae") == "Poaceae"
+        assert canonical_latin(" Poaceae ") == "Poaceae"
+        assert canonical_latin("Ambrosia artemisiifolia") == "Ambrosia"
+
+    def test_canonical_latin_knows_nothing_it_should_not(self):
+        assert canonical_latin("Asteraceae") is None
+        assert canonical_latin("") is None
         assert canonical_latin(None) is None
 
     def test_every_alias_names_an_allergen_the_map_knows(self):
