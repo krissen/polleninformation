@@ -86,6 +86,12 @@ LATIN_TO_ENGLISH_NAME = {
 # added after seeing it. A latin name the API sends that is simply not in the
 # map above is left alone, because it identifies its allergen whatever we can
 # resolve it to. Keys are lowercase; lookups normalize.
+#
+# A key here may not be a latin name the map above already knows, genus keys
+# included: the indexes let the real name win and resolve_latin_alias lets the
+# alias win, so such a key would make the two disagree about the same string
+# with nothing to warn about it. The value must be a key of the map above.
+# Both properties are pinned in tests/test_sensor.py.
 LATIN_NAME_ALIASES = {
     "ambrózia": "Ambrosia",
 }

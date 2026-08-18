@@ -1422,6 +1422,23 @@ class TestDeclaredLatinNameAliases:
     def test_every_alias_names_an_allergen_the_map_knows(self):
         assert set(LATIN_NAME_ALIASES.values()) <= set(LATIN_TO_ENGLISH_NAME)
 
+    def test_no_alias_shadows_a_latin_name_the_map_knows(self):
+        # The other half of the same property. Both indexes fold the aliases
+        # in with setdefault, so a real latin name wins there, while
+        # resolve_latin_alias reads the table directly and lets the alias win.
+        # A key that is also a real latin name would therefore make the file
+        # and the sensors disagree about the same string, with nothing to warn
+        # about it and every test green.
+        known = {latin.lower() for latin in LATIN_TO_ENGLISH_NAME}
+        known |= {latin.split()[0].lower() for latin in LATIN_TO_ENGLISH_NAME}
+        assert not (set(LATIN_NAME_ALIASES) & known)
+
+    def test_the_two_resolvers_agree_on_every_alias(self):
+        """What the shadowing rule is for, stated as the property itself."""
+        for alias, latin in LATIN_NAME_ALIASES.items():
+            assert resolve_latin_alias(alias) == latin
+            assert canonical_latin(alias) == latin
+
     async def _setup(self, hass):
         return await _setup_entities(
             hass,
