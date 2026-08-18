@@ -335,33 +335,82 @@ def unreadable_entry_warning(db, lang_code):
     )
 
 
+def allergen_key(poll):
+    """Return what identifies an allergen ACROSS two fetches of one language.
+
+    poll_id first, because it is the API's own identifier and the one thing
+    that survives a latin name being corrected: keying on the latin instead
+    would file the corrected spelling as a second allergen rather than as the
+    same one. Then the latin name, then the display name, for an entry the API
+    sent without an id.
+    """
+    poll_id = poll.get("poll_id")
+    if poll_id is not None:
+        return ("poll_id", poll_id)
+    if latin := poll.get("latin"):
+        return ("latin", latin.strip().lower())
+    if name := poll.get("name"):
+        return ("name", name.strip().lower())
+    return None
+
+
 def entry_after_retry(previous, entry):
     """Return the entry to store, given what the file already held.
 
     A retry may improve an entry and may not impoverish it. An entry marked
-    incomplete is fetched again, and that retry can fail or come back
-    malformed; storing the error entry it produces would drop allergen names
-    the file already had, which is the trade the incomplete marker exists to
-    refuse. Eleven localized names beside a failure are worth more to a sensor
-    than none, exactly as they were worth more than an error entry.
+    incomplete is fetched again, and that retry can come back failed, poorer,
+    or clean. Only the last of those may replace what is there.
 
-    So a failure keeps what was there, records that the retry failed, and
-    leaves the language retryable. The stored message says the names are from
-    an earlier fetch, because an entry carrying both names and a failure
-    should not read as a clean partial.
+    A FAILED retry keeps everything and records that it failed. The stored
+    message says the names are from an earlier fetch, because an entry
+    carrying both names and a failure should not read as a clean partial.
+
+    A POORER retry, one that is itself incomplete, is merged per allergen:
+    every name it did read wins, since it is the newer one, and every allergen
+    it did not read keeps the name the file already had. Neither half of a
+    wholesale comparison is right on its own. Keeping the old entry because it
+    has more names would throw away a name the API has just corrected;
+    replacing it because the response is newer would drop ten names to gain
+    one, which is the trade the incomplete marker exists to refuse.
+
+    A CLEAN retry replaces the entry outright, which is what bounds the merge.
+    An allergen that has genuinely left the API for this language disappears
+    from the file on the first response that reads cleanly. Until then the
+    response is one we have admitted we cannot fully read, and in it a missing
+    allergen and an unreadable one are the same observation: the entry we
+    could not read may BE the allergen that looks missing. Dropping it would
+    infer a disappearance from the one response that cannot support the
+    inference.
     """
-    if "error" not in entry:
-        return entry
-    if not isinstance(previous, dict) or not previous.get("poll_titles"):
+    if "error" in entry:
+        if not isinstance(previous, dict) or not previous.get("poll_titles"):
+            return entry
+        kept = dict(previous)
+        kept["incomplete"] = True
+        kept["retry_error"] = (
+            f"the last retry failed ({entry['error']}); the allergen names in "
+            f"this entry are from an earlier fetch"
+        )
+        return kept
+
+    if not entry.get("incomplete") or not isinstance(previous, dict):
         return entry
 
-    kept = dict(previous)
-    kept["incomplete"] = True
-    kept["retry_error"] = (
-        f"the last retry failed ({entry['error']}); the allergen names in this "
-        f"entry are from an earlier fetch"
-    )
-    return kept
+    previous_titles = previous.get("poll_titles")
+    if not isinstance(previous_titles, list):
+        return entry
+
+    fresh_keys = {allergen_key(poll) for poll in entry["poll_titles"]}
+    kept = [
+        poll
+        for poll in previous_titles
+        if isinstance(poll, dict)
+        and (key := allergen_key(poll)) is not None
+        and key not in fresh_keys
+    ]
+    if not kept:
+        return entry
+    return {**entry, "poll_titles": [*entry["poll_titles"], *kept]}
 
 
 def language_entry_from_response(lang_code, data):

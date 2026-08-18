@@ -581,6 +581,30 @@ class TestRunFetchWritesThroughTheRetryRule:
         assert "retry_error" not in db["sk"]
         assert not script.needs_fetch(db, "sk")
 
+    def test_a_poorer_retry_keeps_the_names_it_did_not_read(
+        self, script, monkeypatch, tmp_path
+    ):
+        # Codex's case, driven through the write: three allergens on disk, a
+        # retry that reads one and loses another to a malformed entry.
+        payload = {
+            "contamination": [
+                {"poll_title": "Traviny (Poaceae)", "poll_id": 5},
+                {"poll_title": "()", "poll_id": 2},
+            ]
+        }
+        db = self._run(
+            script,
+            monkeypatch,
+            tmp_path,
+            {"sk": RICHER_PREVIOUS},
+            self._answer(payload),
+        )
+        by_id = {poll["poll_id"]: poll["name"] for poll in db["sk"]["poll_titles"]}
+
+        assert by_id == {5: "Traviny", 2: "Breza", 1: "Jelša"}
+        assert db["sk"]["incomplete"] is True
+        assert script.needs_fetch(db, "sk")
+
     def test_a_language_with_nothing_to_lose_records_the_error(
         self, script, monkeypatch, tmp_path
     ):
@@ -591,6 +615,111 @@ class TestRunFetchWritesThroughTheRetryRule:
 
         assert "error" in db["sk"]
         assert "poll_titles" not in db["sk"]
+
+
+# The same language after a retry that read one allergen and lost another.
+RICHER_PREVIOUS = {
+    "lang_code": "sk",
+    "lang": "Slovak",
+    "poll_titles": [
+        {"name": "Trávy", "latin": "Poaceae", "poll_id": 5},
+        {"name": "Breza", "latin": "Betula", "poll_id": 2},
+        {"name": "Jelša", "latin": "Alnus", "poll_id": 1},
+    ],
+    "incomplete": True,
+}
+
+
+POORER_RETRY = {
+    "lang_code": "sk",
+    "lang": "Slovak",
+    "poll_titles": [{"name": "Traviny", "latin": "Poaceae", "poll_id": 5}],
+    "incomplete": True,
+}
+
+
+class TestAPoorerRetryIsMergedPerAllergen:
+    """The success-but-poorer path, which is the same invariant as the failure.
+
+    A retry that is itself incomplete has read some allergens and lost
+    others. Every name it read is the newer one and wins; every allergen it
+    did not read keeps the name the file already had. Wholesale comparison is
+    wrong in both directions: keeping the old entry for having more names
+    throws away a name the API has just corrected, and taking the new one for
+    being newer drops ten names to gain one.
+    """
+
+    def test_the_names_the_retry_lost_are_kept(self, script):
+        got = script.entry_after_retry(RICHER_PREVIOUS, POORER_RETRY)
+
+        assert {poll["poll_id"] for poll in got["poll_titles"]} == {5, 2, 1}
+
+    def test_the_name_the_retry_read_is_the_new_one(self, script):
+        got = script.entry_after_retry(RICHER_PREVIOUS, POORER_RETRY)
+        by_id = {poll["poll_id"]: poll["name"] for poll in got["poll_titles"]}
+
+        # Fresher for the allergen it read, kept for the two it did not.
+        assert by_id[5] == "Traviny"
+        assert by_id[2] == "Breza"
+        assert by_id[1] == "Jelša"
+
+    def test_no_allergen_is_recorded_twice(self, script):
+        got = script.entry_after_retry(RICHER_PREVIOUS, POORER_RETRY)
+        keys = [poll["poll_id"] for poll in got["poll_titles"]]
+
+        assert len(keys) == len(set(keys))
+
+    def test_a_corrected_latin_name_replaces_rather_than_duplicates(self, script):
+        # Keyed on poll_id, so the same allergen under a corrected spelling is
+        # the same allergen. Keying on the latin name would file it twice.
+        poorer = {
+            "lang_code": "sk",
+            "lang": "Slovak",
+            "poll_titles": [{"name": "Trávy", "latin": "Poaceae", "poll_id": 5}],
+            "incomplete": True,
+        }
+        previous = {
+            "lang_code": "sk",
+            "poll_titles": [{"name": "Trávy", "latin": "poaceae", "poll_id": 5}],
+            "incomplete": True,
+        }
+        got = script.entry_after_retry(previous, poorer)
+
+        assert got["poll_titles"] == poorer["poll_titles"]
+
+    def test_the_merged_entry_stays_retryable(self, script):
+        got = script.entry_after_retry(RICHER_PREVIOUS, POORER_RETRY)
+
+        assert got["incomplete"] is True
+        assert script.needs_fetch({"sk": got}, "sk")
+
+    def test_a_clean_retry_replaces_the_entry_outright(self, script):
+        # What bounds the merge: an allergen that has genuinely left the API
+        # for this language is gone from the file on the first response that
+        # reads cleanly, and only then.
+        clean = {
+            "lang_code": "sk",
+            "lang": "Slovak",
+            "poll_titles": [{"name": "Traviny", "latin": "Poaceae", "poll_id": 5}],
+        }
+        got = script.entry_after_retry(RICHER_PREVIOUS, clean)
+
+        assert got == clean
+        assert not script.needs_fetch({"sk": got}, "sk")
+
+    def test_an_entry_without_a_poll_id_is_kept_by_its_latin_name(self, script):
+        previous = {
+            "lang_code": "sk",
+            "poll_titles": [{"name": "Breza", "latin": "Betula", "poll_id": None}],
+            "incomplete": True,
+        }
+        got = script.entry_after_retry(previous, POORER_RETRY)
+
+        assert {poll["latin"] for poll in got["poll_titles"]} == {"Poaceae", "Betula"}
+
+    def test_a_first_fetch_has_nothing_to_merge(self, script):
+        assert script.entry_after_retry(None, POORER_RETRY) == POORER_RETRY
+        assert script.entry_after_retry({"error": "x"}, POORER_RETRY) == POORER_RETRY
 
 
 class TestNeedsFetch:
