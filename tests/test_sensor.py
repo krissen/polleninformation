@@ -1633,3 +1633,8 @@ class TestStaleSensorRecovery:
         )
         sensor.coordinator.data = ENGLISH_DOCK_SORREL_RESPONSE
         assert sensor.native_value == "moderate"
+
+    async def test_latin_name_is_derived_from_the_slug(self, hass):
+        sensor = await self._recreate(hass, "de", "polleninformation_hamburg_birch")
+        sensor.coordinator.data = GERMAN_BIRCH_RESPONSE
+        assert sensor.extra_state_attributes["name_la"] == "Betula"

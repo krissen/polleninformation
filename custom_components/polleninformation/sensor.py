@@ -173,6 +173,14 @@ def english_name_for_latin(latin: str | None) -> str | None:
     return index.get(key.split()[0]) if key.split() else None
 
 
+@lru_cache(maxsize=1)
+def _slug_index() -> dict[str, tuple[str, str]]:
+    """Canonical English name and latin name per allergen slug."""
+    return {
+        slugify(name): (name, latin) for latin, name in LATIN_TO_ENGLISH_NAME.items()
+    }
+
+
 def allergen_slug_for_item(item: dict) -> str | None:
     """Return the canonical allergen slug for a contamination entry, or None.
 
@@ -566,23 +574,28 @@ async def async_setup_entry(hass, entry, async_add_entities):
                     stale_since=stale_since,
                 )
             else:
-                allergen_en = allergen_slug.replace("_", " ").title()
+                # The slug is all the registry keeps, so the names are
+                # derived back from it; the API is not answering right now.
+                allergen_en, allergen_la = _slug_index().get(
+                    allergen_slug, (allergen_slug.replace("_", " "), "")
+                )
+                allergen_name = capitalize_first(allergen_en)
                 icon = ALLERGEN_ICON_MAP.get(
                     allergen_slug, ALLERGEN_ICON_MAP["default"]
                 )
                 sensor = PolleninformationSensor(
                     coordinator=coordinator,
                     sensor_type="pollen",
-                    allergen_name=allergen_en,
+                    allergen_name=allergen_name,
                     allergen_en=allergen_en,
                     allergen_slug=allergen_slug,
-                    allergen_latin="",
+                    allergen_latin=allergen_la,
                     levels_current=levels_current,
                     levels_en=levels_en,
                     location_slug=location_slug,
                     location_title=location_title,
                     icon=icon,
-                    display_name=display_overrides.get(allergen_slug, allergen_en),
+                    display_name=display_overrides.get(allergen_slug, allergen_name),
                     is_stale=True,
                     stale_since=stale_since,
                 )
