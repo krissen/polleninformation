@@ -16,17 +16,20 @@ from custom_components.polleninformation.const import DOMAIN
 from custom_components.polleninformation.sensor import (
     ALLERGEN_ICON_MAP,
     KNOWN_ALLERGEN_SLUGS,
+    LATIN_NAME_ALIASES,
     LATIN_TO_ENGLISH_NAME,
     RISK_SLUGS,
     AllergyRiskHourlySensor,
     AllergyRiskSensor,
     PolleninformationSensor,
     async_setup_entry,
+    canonical_latin,
     capitalize_first,
     english_name_for_latin,
     entity_id_available,
     extract_allergen_slug_from_unique_id,
     localized_risk_object_id_suffixes,
+    resolve_latin_alias,
     scale_allergy_risk,
 )
 from custom_components.polleninformation.utils import slugify
@@ -1360,6 +1363,110 @@ class TestPresentLatinIsAuthoritative:
         )
 
 
+# The Slovak response spells ragweed's latin name "ambrózia", which is the
+# Slovak word rather than a candidate scientific name. Nothing in the static
+# map matches it, so before it was declared an alias the allergen was unknown.
+SLOVAK_RAGWEED_RESPONSE = {
+    "contamination": [
+        {
+            "poll_title": "Ragweed (ambrózia)",
+            "contamination_1": 1,
+            "contamination_2": 0,
+            "contamination_3": 0,
+            "contamination_4": 0,
+        }
+    ],
+    "allergyrisk": {"allergyrisk_1": 5.0},
+    "allergyrisk_hourly": {"allergyrisk_hourly_1": [5.0] * 24},
+}
+
+
+class TestDeclaredLatinNameAliases:
+    """A spelling declared in LATIN_NAME_ALIASES resolves like the name itself.
+
+    The alias table is an allow-list: only a spelling we have seen the API
+    send is rewritten, so an unknown latin name is never guessed at.
+    """
+
+    def test_the_alias_resolves_to_its_allergen(self):
+        assert english_name_for_latin("ambrózia") == "ragweed"
+
+    def test_the_alias_is_matched_case_insensitively(self):
+        assert english_name_for_latin("Ambrózia") == "ragweed"
+
+    def test_the_alias_resolver_rewrites_only_a_declared_alias(self):
+        # What the sensor reports as name_la: a declared spelling becomes the
+        # name it stands for, and everything else is left exactly as sent,
+        # species and all.
+        assert resolve_latin_alias("ambrózia") == "Ambrosia"
+        assert resolve_latin_alias("Asteraceae") == "Asteraceae"
+        assert resolve_latin_alias("Ambrosia artemisiifolia") == (
+            "Ambrosia artemisiifolia"
+        )
+        assert resolve_latin_alias("") == ""
+        assert resolve_latin_alias(None) is None
+
+    def test_canonical_latin_returns_the_map_key(self):
+        # What anything keyed by latin name has to store, since the language
+        # block lookups match exactly.
+        assert canonical_latin("ambrózia") == "Ambrosia"
+        assert canonical_latin("poaceae") == "Poaceae"
+        assert canonical_latin(" Poaceae ") == "Poaceae"
+        assert canonical_latin("Ambrosia artemisiifolia") == "Ambrosia"
+
+    def test_canonical_latin_knows_nothing_it_should_not(self):
+        assert canonical_latin("Asteraceae") is None
+        assert canonical_latin("") is None
+        assert canonical_latin(None) is None
+
+    def test_every_alias_names_an_allergen_the_map_knows(self):
+        assert set(LATIN_NAME_ALIASES.values()) <= set(LATIN_TO_ENGLISH_NAME)
+
+    def test_no_alias_shadows_a_latin_name_the_map_knows(self):
+        # The other half of the same property. Both indexes fold the aliases
+        # in with setdefault, so a real latin name wins there, while
+        # resolve_latin_alias reads the table directly and lets the alias win.
+        # A key that is also a real latin name would therefore make the file
+        # and the sensors disagree about the same string, with nothing to warn
+        # about it and every test green.
+        known = {latin.lower() for latin in LATIN_TO_ENGLISH_NAME}
+        known |= {latin.split()[0].lower() for latin in LATIN_TO_ENGLISH_NAME}
+        assert not (set(LATIN_NAME_ALIASES) & known)
+
+    def test_the_two_resolvers_agree_on_every_alias(self):
+        """What the shadowing rule is for, stated as the property itself."""
+        for alias, latin in LATIN_NAME_ALIASES.items():
+            assert resolve_latin_alias(alias) == latin
+            assert canonical_latin(alias) == latin
+
+    async def _setup(self, hass):
+        return await _setup_entities(
+            hass,
+            "sk",
+            response=SLOVAK_RAGWEED_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+
+    async def test_a_slovak_install_gets_the_canonical_slug(self, hass):
+        entities = await self._setup(hass)
+        unique_ids = {e.unique_id for e in entities if e.unique_id}
+        assert "polleninformation_hamburg_ragweed" in unique_ids
+
+    async def test_the_alias_is_reported_as_the_name_it_stands_for(self, hass):
+        # Not a canonicalization rule: the alias case is the one where what
+        # the API sent and the map key happen to coincide. What the two paths
+        # do with a latin name that is not an alias is pinned in
+        # TestReportedLatinNameAcrossAnOutage.
+        entities = await self._setup(hass)
+        sensor = _by_type(entities, PolleninformationSensor)
+        assert sensor.extra_state_attributes["name_la"] == "Ambrosia"
+
+    async def test_no_unknown_allergen_warning(self, hass, caplog):
+        with caplog.at_level(logging.WARNING):
+            await self._setup(hass)
+        assert not [r for r in caplog.records if "Unknown allergen" in r.getMessage()]
+
+
 # The canonical slug for every allergen, pinned. These slugs are a public
 # contract: they are the entity_id suffix, they are in every unique_id, and
 # the pollen forecast card matches on them. A change to an API display name or
@@ -1639,6 +1746,20 @@ class TestStateMachineCollision:
 
 EMPTY_RESPONSE = {"contamination": [], "allergyrisk": {}, "allergyrisk_hourly": {}}
 
+GERMAN_BIRCH_RESPONSE_WITHOUT_LATIN = {
+    "contamination": [
+        {
+            "poll_title": "Birke",
+            "contamination_1": 3,
+            "contamination_2": 2,
+            "contamination_3": 1,
+            "contamination_4": 0,
+        }
+    ],
+    "allergyrisk": {},
+    "allergyrisk_hourly": {},
+}
+
 GERMAN_BIRCH_RESPONSE = {
     "contamination": [
         {
@@ -1807,7 +1928,634 @@ class TestStaleSensorRecovery:
         assert sensor.native_value is None
 
 
-class TestEveryEntityReportsTheSameOutage:
+class TestAnEntryThatIdentifiesNothingGetsNoSensor:
+    """The setup path agrees with the language map generator.
+
+    The test is what the entry identifies, not whether its title can be read:
+    "()" is a non-blank title with nothing in either half of it. Such an entry
+    names no allergen, so building a sensor from it manufactures an entity
+    with no name, no latin name and an entity_id ending in nothing, which no
+    later response and no restore path can match back to an allergen. The
+    generator refuses to record one; the runtime refuses to build one.
+    """
+
+    @staticmethod
+    def _response(item):
+        return {
+            "contamination": [
+                item,
+                {
+                    "poll_title": "Birke (Betula)",
+                    "contamination_1": 3,
+                    "contamination_2": 2,
+                    "contamination_3": 1,
+                    "contamination_4": 0,
+                },
+            ],
+            "allergyrisk": {"allergyrisk_1": 5.0},
+            "allergyrisk_hourly": {"allergyrisk_hourly_1": [5.0] * 24},
+        }
+
+    @pytest.mark.parametrize(
+        "item",
+        [
+            # Nothing to read at all.
+            {"poll_title": "", "contamination_1": 1},
+            {"poll_title": "   ", "contamination_1": 1},
+            {"poll_title": 123, "contamination_1": 1},
+            {"contamination_1": 1},
+            # Readable, and still naming nothing.
+            {"poll_title": "()", "contamination_1": 1},
+            {"poll_title": "( )", "contamination_1": 1},
+            {"poll_title": "  (  )  ", "contamination_1": 1},
+            {"poll_title": "()extra", "contamination_1": 1},
+        ],
+    )
+    async def test_no_sensor_is_built_for_it(self, hass, item):
+        entities = await _setup_entities(
+            hass,
+            "de",
+            response=self._response(item),
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        pollen = [e for e in entities if isinstance(e, PolleninformationSensor)]
+
+        # Only the birch entry beside it became a sensor.
+        assert len(pollen) == 1
+        assert pollen[0].unique_id == "polleninformation_hamburg_birch"
+
+    @pytest.mark.parametrize("poll_title", ["", "()"])
+    async def test_no_entity_id_ending_in_nothing(self, hass, poll_title):
+        entities = await _setup_entities(
+            hass,
+            "de",
+            response=self._response({"poll_title": poll_title, "contamination_1": 1}),
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        unique_ids = {e.unique_id for e in entities if e.unique_id}
+
+        assert "polleninformation_hamburg_" not in unique_ids
+
+    async def test_a_latin_name_alone_is_still_an_allergen(self, hass):
+        # The other side of the rule: "(Poaceae)" has no display name in this
+        # language, but it identifies an allergen and keeps its sensor.
+        entities = await _setup_entities(
+            hass,
+            "de",
+            response=self._response({"poll_title": "(Poaceae)", "contamination_1": 1}),
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        unique_ids = {e.unique_id for e in entities if e.unique_id}
+
+        assert "polleninformation_hamburg_grasses" in unique_ids
+
+    async def test_it_is_warned_about(self, hass, caplog):
+        with caplog.at_level(logging.WARNING):
+            await _setup_entities(
+                hass,
+                "de",
+                response=self._response({"poll_title": "", "contamination_1": 1}),
+                language_block=EMPTY_LANGUAGE_BLOCK,
+            )
+        assert [r for r in caplog.records if "identifies no allergen" in r.getMessage()]
+
+    async def test_a_readable_entry_is_untouched(self, hass):
+        # The guard may not cost an ordinary allergen its sensor.
+        entities = await _setup_entities(hass, "de")
+        sensor = _by_type(entities, PolleninformationSensor)
+        assert sensor.unique_id == "polleninformation_hamburg_ragweed"
+
+
+class TestReportedLatinNameAcrossAnOutage:
+    """What name_la says on each path, including where they differ.
+
+    The setup path reports what the API sent about this allergen, species
+    included. The restore path has only the slug to work from, so the most it
+    can say is the key of LATIN_TO_ENGLISH_NAME. For an allergen the API
+    spells with a genus alone the two coincide; for one it spells with a
+    species they do not, and that difference is deliberate: matching them
+    would mean discarding a species the API did send.
+    """
+
+    async def test_the_setup_path_reports_the_species_the_api_sent(self, hass):
+        entities = await _setup_entities(hass, "de")
+        sensor = _by_type(entities, PolleninformationSensor)
+        assert sensor.extra_state_attributes["name_la"] == "Ambrosia artemisiifolia"
+
+    async def test_the_restore_path_reports_the_map_key(self, hass):
+        sensor = await _recreate_stale(hass, "de", "polleninformation_hamburg_ragweed")
+        assert sensor.extra_state_attributes["name_la"] == "Ambrosia"
+
+    async def test_the_difference_lasts_no_longer_than_the_outage(self, hass):
+        # The restore path only runs while the API is answering with nothing.
+        # The first answer that carries data goes through setup again, so the
+        # species comes back with it.
+        stale = await _recreate_stale(hass, "de", "polleninformation_hamburg_ragweed")
+        assert stale.extra_state_attributes["name_la"] == "Ambrosia"
+
+        entities = await _setup_entities(hass, "de")
+        recovered = _by_type(entities, PolleninformationSensor)
+        assert recovered.extra_state_attributes["name_la"] == "Ambrosia artemisiifolia"
+
+    async def test_the_paths_agree_when_the_api_sends_the_genus_alone(self, hass):
+        # Most allergens, and the reason the difference is easy to miss.
+        entities = await _setup_entities(hass, "de", response=GERMAN_BIRCH_RESPONSE)
+        setup_sensor = _by_type(entities, PolleninformationSensor)
+        stale = await _recreate_stale(hass, "de", "polleninformation_hamburg_birch")
+
+        assert setup_sensor.extra_state_attributes["name_la"] == "Betula"
+        assert stale.extra_state_attributes["name_la"] == "Betula"
+
+
+# A response with entries in it, none of which identify an allergen. The raw
+# block is non-empty, so before the emptiness test was moved onto the usable
+# entries this looked like a response carrying data while building no sensors
+# at all.
+ALL_UNUSABLE_RESPONSE = {
+    "contamination": [
+        {"poll_title": "()", "contamination_1": 1},
+        {"poll_title": "", "contamination_1": 2},
+        {"contamination_1": 3},
+    ],
+    "allergyrisk": {},
+    "allergyrisk_hourly": {},
+}
+
+ALL_UNUSABLE_WITH_RISK_RESPONSE = {
+    "contamination": [{"poll_title": "()", "contamination_1": 1}],
+    "allergyrisk": {"allergyrisk_1": 5.0},
+    "allergyrisk_hourly": {"allergyrisk_hourly_1": [5.0] * 24},
+}
+
+
+class TestABlockOfUnusableEntriesReadsAsEmpty:
+    """Entities are kept and marked stale, not lost.
+
+    Every entry in the block identifies nothing, so no sensor is built from
+    any of them. Counting the raw list would call that a response carrying
+    data, and the sensors this location already has would then simply not be
+    added: absent from Home Assistant rather than present and stale, which is
+    what the user sees.
+    """
+
+    async def _setup_with_registered(self, hass, response, slugs=("birch",)):
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        for slug in slugs:
+            unique_id = f"polleninformation_hamburg_{slug}"
+            ent_reg.async_get_or_create(
+                "sensor",
+                DOMAIN,
+                unique_id,
+                suggested_object_id=unique_id,
+                config_entry=entry,
+            )
+        return await _setup_entities(
+            hass,
+            "de",
+            entry=entry,
+            response=response,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+
+    async def test_a_registered_sensor_is_recreated_rather_than_lost(self, hass):
+        entities = await self._setup_with_registered(hass, ALL_UNUSABLE_RESPONSE)
+        unique_ids = {e.unique_id for e in entities if e.unique_id}
+
+        assert "polleninformation_hamburg_birch" in unique_ids
+
+    async def test_the_recreated_sensor_is_marked_stale(self, hass):
+        entities = await self._setup_with_registered(hass, ALL_UNUSABLE_RESPONSE)
+        sensor = _by_type(entities, PolleninformationSensor)
+
+        assert sensor.extra_state_attributes["data_stale"] is True
+
+    async def test_no_sensor_is_built_from_the_unusable_entries(self, hass):
+        entities = await self._setup_with_registered(hass, ALL_UNUSABLE_RESPONSE)
+        pollen = [e for e in entities if isinstance(e, PolleninformationSensor)]
+
+        # Only the recreated one, nothing manufactured from the junk.
+        assert len(pollen) == 1
+
+    async def test_risk_entities_are_recreated_too(self, hass):
+        entities = await self._setup_with_registered(
+            hass, ALL_UNUSABLE_RESPONSE, slugs=("birch", "allergy_risk")
+        )
+        unique_ids = {e.unique_id for e in entities if e.unique_id}
+
+        assert "polleninformation_hamburg_allergy_risk" in unique_ids
+
+    async def test_risk_data_keeps_the_response_from_being_stale(self, hass):
+        # The two tests are not the same question and are allowed to disagree:
+        # the pollen block carried nothing usable, so its sensors are
+        # recreated, while the response as a whole did carry data, so nothing
+        # is marked stale and the risk sensors report real readings.
+        entities = await self._setup_with_registered(
+            hass, ALL_UNUSABLE_WITH_RISK_RESPONSE
+        )
+        sensor = _by_type(entities, PolleninformationSensor)
+
+        assert "data_stale" not in sensor.extra_state_attributes
+
+
+# One non-object element beside a good one. The coordinator validates that
+# contamination is a list and says nothing about what is in it.
+NON_OBJECT_ELEMENT_RESPONSE = {
+    "contamination": [
+        "oops",
+        123,
+        None,
+        ["x"],
+        {
+            "poll_title": "Birke (Betula)",
+            "contamination_1": 3,
+            "contamination_2": 2,
+            "contamination_3": 1,
+            "contamination_4": 0,
+        },
+    ],
+    "allergyrisk": {"allergyrisk_1": 5.0},
+    "allergyrisk_hourly": {"allergyrisk_hourly_1": [5.0] * 24},
+}
+
+
+class TestANonObjectEntryCostsOnlyItself:
+    """One junk element may not take the whole location down with it.
+
+    Everything else on this branch degrades a single sensor. This one raised
+    inside setup, which fails the config entry: every sensor for the location
+    disappears, risk sensors included. It raised again on every read, so
+    fixing setup alone would not have been enough.
+    """
+
+    async def test_setup_survives_and_keeps_the_good_entry(self, hass):
+        entities = await _setup_entities(
+            hass,
+            "de",
+            response=NON_OBJECT_ELEMENT_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        unique_ids = {e.unique_id for e in entities if e.unique_id}
+
+        assert "polleninformation_hamburg_birch" in unique_ids
+
+    async def test_the_risk_sensors_survive_too(self, hass):
+        entities = await _setup_entities(
+            hass,
+            "de",
+            response=NON_OBJECT_ELEMENT_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        unique_ids = {e.unique_id for e in entities if e.unique_id}
+
+        assert "polleninformation_hamburg_allergy_risk" in unique_ids
+
+    async def test_the_junk_is_warned_about(self, hass, caplog):
+        with caplog.at_level(logging.WARNING):
+            await _setup_entities(
+                hass,
+                "de",
+                response=NON_OBJECT_ELEMENT_RESPONSE,
+                language_block=EMPTY_LANGUAGE_BLOCK,
+            )
+        skipped = [
+            r for r in caplog.records if "identifies no allergen" in r.getMessage()
+        ]
+        assert len(skipped) == 4
+
+    async def test_reading_the_sensor_survives_it(self, hass):
+        # The read path matters as much as setup: the response is re-read on
+        # every refresh, so a fix in setup alone would leave the sensor
+        # raising for as long as the API sends that element.
+        entities = await _setup_entities(
+            hass,
+            "de",
+            response=NON_OBJECT_ELEMENT_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        sensor = _by_type(entities, PolleninformationSensor)
+
+        assert sensor.native_value == "hoch"
+        assert len(sensor.extra_state_attributes["forecast"]) == 4
+
+
+class TestTheLanguageMapIsReadDefensively:
+    """The shipped map is an input too, and the only one nothing type checks.
+
+    The API's response is parsed and filtered before anything reads it. The
+    language block is loaded from a file and its latin name goes straight into
+    a lookup that calls .strip(), so a map holding the wrong shape would raise
+    inside setup and take the whole config entry down: every sensor for the
+    location, for a bad row in a file the user can edit.
+    """
+
+    RESPONSE = {
+        "contamination": [
+            {"poll_title": "Birke", "contamination_1": 3},
+        ],
+        "allergyrisk": {"allergyrisk_1": 5.0},
+        "allergyrisk_hourly": {"allergyrisk_hourly_1": [5.0] * 24},
+    }
+
+    @pytest.mark.parametrize(
+        "block",
+        [
+            {"poll_titles": [{"name": "Birke", "latin": ["Betula"]}]},
+            {"poll_titles": [{"name": "Birke", "latin": 5}]},
+            {"poll_titles": ["oops", {"name": "Birke", "latin": "Betula"}]},
+            {"poll_titles": None},
+            {"poll_titles": {}},
+        ],
+    )
+    async def test_setup_survives_a_map_of_the_wrong_shape(self, hass, block):
+        entities = await _setup_entities(
+            hass, "de", response=self.RESPONSE, language_block=block
+        )
+
+        # The entry still becomes a sensor; only its latin name is missing.
+        assert [e for e in entities if isinstance(e, PolleninformationSensor)]
+
+    async def test_a_well_formed_map_still_supplies_the_latin_name(self, hass):
+        entities = await _setup_entities(
+            hass,
+            "de",
+            response=self.RESPONSE,
+            language_block={"poll_titles": [{"name": "Birke", "latin": "Betula"}]},
+        )
+        sensor = _by_type(entities, PolleninformationSensor)
+
+        assert sensor.extra_state_attributes["name_la"] == "Betula"
+        assert sensor.unique_id == "polleninformation_hamburg_birch"
+
+
+class TestFindItemIsSafeWithoutItsCallers:
+    """The block is filtered by _find_item itself, not by its callers.
+
+    These pass today and are meant to: they document the invariant rather
+    than fix a reachable bug. _find_item filters the block through the shared
+    predicate before either pass, so handing it the raw block directly is
+    already safe, and the unpack below that filter cannot meet a None. What
+    they pin is that the filter stays inside the function, where it does not
+    depend on who calls it.
+    """
+
+    @staticmethod
+    def _sensor(hass_coordinator):
+        return PolleninformationSensor(
+            coordinator=hass_coordinator,
+            sensor_type="pollen",
+            allergen_name="Birke",
+            allergen_en="birch",
+            allergen_slug="birch",
+            allergen_latin="Betula",
+            levels_current=["none", "low", "moderate", "high", "very high"],
+            levels_en=["none", "low", "moderate", "high", "very high"],
+            location_slug="hamburg",
+            location_title="Hamburg",
+            icon="mdi:tree-outline",
+        )
+
+    def test_an_unusable_entry_handed_straight_to_it_is_skipped(self):
+        sensor = self._sensor(_make_coordinator({"contamination": []}))
+        block = [
+            "oops",
+            {"poll_title": "()"},
+            {"poll_title": 5},
+            {},
+            {"poll_title": "Birke (Betula)", "contamination_1": 2},
+        ]
+
+        # The raw block, unfiltered by any caller.
+        assert sensor._find_item(block) == block[-1]
+
+    def test_a_block_of_nothing_usable_finds_nothing(self):
+        sensor = self._sensor(_make_coordinator({"contamination": []}))
+
+        assert sensor._find_item(["oops", {"poll_title": "()"}, {}]) is None
+
+
+class TestABlockThatIsNotAnObject:
+    """The same assumption one level up, over the risk blocks.
+
+    allergyrisk and allergyrisk_hourly are read with .get, so a block that
+    arrives as a list or a string raised on the first read and took the
+    entity down with it. A block that is not an object carries nothing, which
+    is what an absent one means too.
+    """
+
+    @pytest.mark.parametrize("risk", [["oops"], "x", 42, None])
+    async def test_the_daily_risk_sensor_reports_nothing(self, hass, risk):
+        entities = await _setup_entities(
+            hass,
+            "de",
+            response={**RAGWEED_RESPONSE, "allergyrisk": risk},
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        sensor = _by_type(entities, PolleninformationSensor)
+
+        # The pollen sensor is unaffected, and nothing raised on the way here.
+        assert sensor.native_value is not None
+
+    @pytest.mark.parametrize("risk", [["oops"], "x", 42])
+    async def test_reading_a_risk_sensor_survives_it(self, hass, risk):
+        entities = await _setup_entities(hass, "de")
+        sensor = _by_type(entities, AllergyRiskSensor)
+        sensor.coordinator.data = {**RAGWEED_RESPONSE, "allergyrisk": risk}
+
+        assert sensor.native_value is None
+        assert "forecast" not in sensor.extra_state_attributes
+
+    @pytest.mark.parametrize("risk", [["oops"], "x", 42])
+    async def test_reading_an_hourly_risk_sensor_survives_it(self, hass, risk):
+        entities = await _setup_entities(hass, "de")
+        sensor = _by_type(entities, AllergyRiskHourlySensor)
+        sensor.coordinator.data = {**RAGWEED_RESPONSE, "allergyrisk_hourly": risk}
+
+        assert sensor.native_value is None
+
+
+class TestTheRiskGateAtSetup:
+    """Risk sensors are gated on the API having SENT pollen data.
+
+    Not on our having read it. An empty contamination block means the API had
+    nothing to say and a risk number beside it is meaningless, which is what
+    the gate was written for. A block we could not parse is the opposite: the
+    forecast was there, we failed at it, and the risk reading is real.
+    """
+
+    @staticmethod
+    def _response(contamination, **blocks):
+        return {
+            "contamination": contamination,
+            "allergyrisk": {"allergyrisk_1": 7.0},
+            "allergyrisk_hourly": {"allergyrisk_hourly_1": [7.0] * 24},
+            **blocks,
+        }
+
+    async def _setup(self, hass, response):
+        return await _setup_entities(
+            hass, "de", response=response, language_block=EMPTY_LANGUAGE_BLOCK
+        )
+
+    async def test_a_real_reading_survives_a_block_we_could_not_parse(self, hass):
+        entities = await self._setup(
+            hass, self._response([{"poll_title": "()"}, {"poll_title": ""}])
+        )
+        unique_ids = {e.unique_id for e in entities if e.unique_id}
+
+        assert "polleninformation_hamburg_allergy_risk" in unique_ids
+        assert "polleninformation_hamburg_allergy_risk_hourly" in unique_ids
+
+    async def test_the_reading_is_the_one_the_api_sent(self, hass):
+        entities = await self._setup(hass, self._response([{"poll_title": "()"}]))
+        sensor = _by_type(entities, AllergyRiskSensor)
+
+        # 7.0 on the API's 0-10 scale, scaled to the 0-4 level names.
+        assert sensor.native_value == "hoch"
+
+    async def test_an_empty_block_still_suppresses_them(self, hass):
+        # Unchanged, and the reason the gate exists: the API said nothing at
+        # all, so a risk number beside it means nothing either.
+        entities = await self._setup(hass, self._response([]))
+        unique_ids = {e.unique_id for e in entities if e.unique_id}
+
+        assert "polleninformation_hamburg_allergy_risk" not in unique_ids
+
+    async def test_a_risk_block_that_is_not_an_object_builds_no_sensor(self, hass):
+        # The fifth emptiness site. This gate kept its own raw read, so a
+        # non-object block was truthy here and empty for every other reader:
+        # the entity was built and then reported unknown forever.
+        entities = await self._setup(
+            hass,
+            self._response(
+                [{"poll_title": "Birke (Betula)", "contamination_1": 1}],
+                allergyrisk=["x"],
+            ),
+        )
+        unique_ids = {e.unique_id for e in entities if e.unique_id}
+
+        assert "polleninformation_hamburg_allergy_risk" not in unique_ids
+        # The hourly block is fine, so its sensor is unaffected.
+        assert "polleninformation_hamburg_allergy_risk_hourly" in unique_ids
+
+
+class TestTheHourlyReaderTakesAnyShape:
+    """A day of readings is a sequence, and the reader says so.
+
+    usable_risk_block answers the shared question, whether there is anything
+    here to read. What a value must LOOK like to be read is per reader: the
+    daily one wants a number and already swallows anything else, this one
+    wants a sequence of hours. A scalar has no length and a mapping is indexed
+    by key, so both used to raise inside the property, once per entity per
+    read.
+    """
+
+    @staticmethod
+    def _sensor(values):
+        return AllergyRiskHourlySensor(
+            coordinator=_make_coordinator(
+                {"allergyrisk_hourly": {"allergyrisk_hourly_1": values}}
+            ),
+            levels_current=["none", "low", "moderate", "high", "very high"],
+            location_slug="hamburg",
+            location_title="Hamburg",
+        )
+
+    @pytest.mark.parametrize("values", [5, 5.0, True, "abc", {"a": 1}, None, []])
+    def test_a_day_that_is_not_a_sequence_reports_unknown(self, values):
+        sensor = self._sensor(values)
+
+        assert sensor.native_value is None
+        # No forecast, whether the block was refused by the predicate or the
+        # day inside it turned out not to be a day.
+        assert sensor.extra_state_attributes.get("forecast", []) == []
+
+    def test_a_real_day_still_reads(self):
+        sensor = self._sensor([6.0] * 24)
+
+        assert sensor.native_value is not None
+        assert len(sensor.extra_state_attributes["forecast"]) == 24
+
+    def test_a_short_day_reads_the_hours_it_has(self):
+        sensor = self._sensor([6.0, 6.0, 6.0])
+
+        assert len(sensor.extra_state_attributes["forecast"]) == 3
+
+
+class TestARiskBlockWithNothingReadable:
+    """Nonempty is not usable, one level deeper than last time.
+
+    block_of answers whether there is a block; the callers were using it to
+    answer whether there is anything to read. {"error": "upstream failure"}
+    is an object, so the outage was cleared, the pollen sensors were
+    recreated for want of data, and nothing carried the marker.
+    """
+
+    UNREADABLE = {
+        "contamination": [{"poll_title": "()"}, {"poll_title": ""}],
+        "allergyrisk": {"error": "upstream failure"},
+        "allergyrisk_hourly": {},
+    }
+
+    READABLE = {
+        "contamination": [{"poll_title": "()"}],
+        "allergyrisk": {"allergyrisk_1": 7.0},
+        "allergyrisk_hourly": {"allergyrisk_hourly_1": [7.0] * 24},
+    }
+
+    async def _with_registered(self, hass, response):
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        for slug in ("birch", "allergy_risk"):
+            unique_id = f"polleninformation_hamburg_{slug}"
+            ent_reg.async_get_or_create(
+                "sensor",
+                DOMAIN,
+                unique_id,
+                suggested_object_id=unique_id,
+                config_entry=entry,
+            )
+        return await _setup_entities(
+            hass,
+            "de",
+            entry=entry,
+            response=response,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+
+    async def test_the_sensors_carry_the_marker(self, hass):
+        entities = await self._with_registered(hass, self.UNREADABLE)
+        sensor = _by_type(entities, PolleninformationSensor)
+
+        assert sensor.extra_state_attributes["data_stale"] is True
+
+    async def test_no_risk_sensor_is_built_from_it(self, hass):
+        entities = await _setup_entities(
+            hass, "de", response=self.UNREADABLE, language_block=EMPTY_LANGUAGE_BLOCK
+        )
+        unique_ids = {e.unique_id for e in entities if e.unique_id}
+
+        assert "polleninformation_hamburg_allergy_risk" not in unique_ids
+
+    async def test_a_readable_reading_beside_unusable_pollen_still_survives(self, hass):
+        # ORDER #21 A restored this; it must not regress.
+        entities = await _setup_entities(
+            hass, "de", response=self.READABLE, language_block=EMPTY_LANGUAGE_BLOCK
+        )
+        risk = _by_type(entities, AllergyRiskSensor)
+
+        assert risk.native_value == "hoch"
+        assert "data_stale" not in risk.extra_state_attributes
+
+    async def test_reading_an_unreadable_block_reports_unknown(self, hass):
+        entities = await _setup_entities(hass, "de")
+        risk = _by_type(entities, AllergyRiskSensor)
+        risk.coordinator.data = self.UNREADABLE
+
+        assert risk.native_value is None
+
     """The timestamp belongs to the response, so siblings must agree on it.
 
     The per-outage semantics themselves are the coordinator's, and are tested

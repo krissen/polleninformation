@@ -38,10 +38,13 @@ from .const import (
 )
 from .const_levels import ALLERGEN_DISPLAY_OVERRIDES, LEVELS, RISK_SENSOR_NAMES
 from .utils import (
+    allergen_names_from_item,
     async_get_language_block,
     get_allergen_info_by_latin,
     normalize,
     slugify,
+    usable_contamination,
+    usable_risk_block,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -75,6 +78,25 @@ LATIN_TO_ENGLISH_NAME = {
     "Tilia": "linden",
     "Ulmus": "elm",
     "Urticaceae": "nettle family",
+}
+
+# Spellings the API sends in the latin field that are not latin names, and the
+# name each one stands for. The Slovak response spells ragweed "ambrózia",
+# which is the Slovak word rather than a candidate scientific name, so nothing
+# above matches it and the allergen would be unknown.
+#
+# This is an allow-list on purpose: every entry is a fact about the API's data,
+# added after seeing it. A latin name the API sends that is simply not in the
+# map above is left alone, because it identifies its allergen whatever we can
+# resolve it to. Keys are lowercase; lookups normalize.
+#
+# A key here may not be a latin name the map above already knows, genus keys
+# included: the indexes let the real name win and resolve_latin_alias lets the
+# alias win, so such a key would make the two disagree about the same string
+# with nothing to warn about it. The value must be a key of the map above.
+# Both properties are pinned in tests/test_sensor.py.
+LATIN_NAME_ALIASES = {
+    "ambrózia": "Ambrosia",
 }
 
 # Icons group the allergens by pollen source, which is what makes a list of
@@ -155,7 +177,69 @@ def _latin_name_index() -> dict[str, str]:
     index = {latin.lower(): name for latin, name in LATIN_TO_ENGLISH_NAME.items()}
     for latin, name in LATIN_TO_ENGLISH_NAME.items():
         index.setdefault(latin.split()[0].lower(), name)
+    for alias, latin in LATIN_NAME_ALIASES.items():
+        index.setdefault(alias, LATIN_TO_ENGLISH_NAME[latin])
     return index
+
+
+def resolve_latin_alias(latin: str | None) -> str | None:
+    """Return the latin name a declared spelling stands for.
+
+    Only a spelling declared in LATIN_NAME_ALIASES is rewritten, so a latin
+    name the API sent that no map knows is returned unchanged, species and
+    all.
+    """
+    if not latin:
+        return latin
+    return LATIN_NAME_ALIASES.get(latin.strip().lower(), latin)
+
+
+@lru_cache(maxsize=1)
+def _canonical_latin_index() -> dict[str, str]:
+    """The key of LATIN_TO_ENGLISH_NAME per spelling that resolves to it."""
+    index = {latin.lower(): latin for latin in LATIN_TO_ENGLISH_NAME}
+    for latin in LATIN_TO_ENGLISH_NAME:
+        index.setdefault(latin.split()[0].lower(), latin)
+    for alias, latin in LATIN_NAME_ALIASES.items():
+        index.setdefault(alias, latin)
+    return index
+
+
+def canonical_latin(latin: str | None) -> str | None:
+    """Return the key of LATIN_TO_ENGLISH_NAME a latin name resolves to.
+
+    None when no map knows it. This is the spelling anything keyed by latin
+    name has to store, because the lookups against a language block match
+    exactly: an entry recorded as "poaceae" or "Ambrosia artemisiifolia" is
+    never found again by a consumer holding "Poaceae" or "Ambrosia".
+
+    A latin name that carries a species falls back to its genus, exactly as
+    english_name_for_latin does, so the two agree on what is recognized.
+    """
+    if not latin:
+        return None
+    index = _canonical_latin_index()
+    key = latin.strip().lower()
+    if canonical := index.get(key):
+        return canonical
+    return index.get(key.split()[0]) if key.split() else None
+
+
+def canonical_latin_for_display_name(name: str | None) -> str | None:
+    """Return the map key for a display name that IS a latin name, or None.
+
+    The display-name half of canonical_latin, and it does NOT fall back to
+    the genus, exactly as english_name_for_display_name does not: a display
+    name that merely begins with a genus is prose, and "Ambrosia hojas" is
+    not ragweed. The genus fallback belongs to the latin field, where a name
+    carrying a species really does resolve to its genus.
+
+    The pair mirrors english_name_for_latin and english_name_for_display_name
+    on purpose. Anything keyed by latin name has to agree with the sensors
+    about which allergen an entry is, and the two cannot agree if one of them
+    guesses from a first word where the other refuses to.
+    """
+    return _canonical_latin_index().get(name.strip().lower()) if name else None
 
 
 def english_name_for_latin(latin: str | None) -> str | None:
@@ -198,17 +282,26 @@ def allergen_slug_for_item(item: dict) -> str | None:
     The latin name in poll_title is the only part of the entry that does not
     vary with the configured language, so it is what identifies an allergen
     for a sensor that only knows its own slug.
+
+    The title is parsed by the shared helper rather than here. This used to
+    split the brackets itself and read poll_title without a guard, which was
+    safe only because both callers happen to filter the block first: safety by
+    call order, which lasts exactly until someone calls it from somewhere
+    else. An entry the helper cannot read identifies nothing, which is the
+    same answer this gave for a title it could not place.
     """
-    poll_title = item.get("poll_title", "")
-    if "(" in poll_title and ")" in poll_title:
-        latin = poll_title.split("(", 1)[1].split(")", 1)[0].strip()
+    parsed = allergen_names_from_item(item)
+    if parsed is None:
+        return None
+    name, latin = parsed
+    if latin:
         name_en = english_name_for_latin(latin)
     else:
         # No latin at all: the API sometimes sends the latin name as the
         # display name instead (e.g. "Artemisia"), so the name itself is the
         # last chance to identify the entry. Only tried when no latin was
         # sent, so an entry that carries one is identified by that alone.
-        name_en = english_name_for_display_name(poll_title)
+        name_en = english_name_for_display_name(name)
     return slugify(name_en) if name_en else None
 
 
@@ -379,8 +472,19 @@ async def async_setup_entry(hass, entry, async_add_entities):
     }
 
     has_data = coordinator.data is not None
-    contamination = coordinator.data.get("contamination", []) if has_data else []
+    raw_contamination = coordinator.data.get("contamination", []) if has_data else []
+    # Emptiness is a question about usable allergens, not about how many
+    # entries the API sent. An entry that identifies nothing builds no sensor,
+    # so a block of nothing but those is as empty as a block of none, and
+    # counting the raw list instead would leave the sensors this location
+    # already has absent rather than recreated and marked stale.
+    contamination = usable_contamination(raw_contamination)
     is_data_empty = len(contamination) == 0
+    for item in raw_contamination:
+        if allergen_names_from_item(item) is None:
+            _LOGGER.warning(
+                "Skipping a pollen entry that identifies no allergen: %r", item
+            )
 
     # Options override data (options flow writes to entry.options)
     def _opt(key, default=None):
@@ -429,15 +533,33 @@ async def async_setup_entry(hass, entry, async_add_entities):
     allergen_renames: list[tuple[str, str]] = []
 
     for item in contamination:
-        poll_title_full = item.get("poll_title", "<unknown>")
-        poll_title_local = capitalize_first(poll_title_full.split("(", 1)[0].strip())
-        latin = None
-        if "(" in poll_title_full and ")" in poll_title_full:
-            latin = poll_title_full.split("(", 1)[1].split(")", 1)[0].strip()
-        if not latin:
-            for allergen in language_block_current.get("poll_titles", []):
-                if allergen.get("name") == poll_title_local:
-                    latin = allergen.get("latin")
+        # Every entry here identifies an allergen: usable_contamination has
+        # already dropped the ones that do not, warned about each, and counted
+        # what is left towards is_data_empty above.
+        name, latin = allergen_names_from_item(item)
+        poll_title_local = capitalize_first(name)
+        if not latin and poll_title_local:
+            # A blank never matches a blank, in either direction: the language
+            # map can hold an entry whose name is blank, for an allergen the
+            # API named by its latin name alone, and matching that against a
+            # blank display name would hand the nameless entry the other one's
+            # latin name and make it that allergen.
+            #
+            # No accepted entry can reach here with a blank display name any
+            # more: reaching this line at all means no latin name was sent,
+            # and the guard above then refuses the entry unless it has a
+            # display name. Kept because it costs one comparison and it is
+            # what makes that reasoning safe to change.
+            # Read defensively: this is the shipped language map, not the
+            # response, and it is the one input on this path nothing type
+            # checks. A latin name that is not a string would raise on the
+            # lookups below and take the whole config entry down.
+            for allergen in language_block_current.get("poll_titles") or []:
+                if not isinstance(allergen, dict):
+                    continue
+                if allergen.get("name") and allergen["name"] == poll_title_local:
+                    if isinstance(allergen.get("latin"), str):
+                        latin = allergen["latin"]
                     break
         # Resolution order: the static latin map, then the English language
         # block, then the name the API sent in the configured language. Only
@@ -472,7 +594,22 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 latin or "",
             )
         allergen_en = mapped_en or legacy_en
-        allergen_la = latin if latin else ""
+        # name_la reports what the API said about this allergen, so a latin
+        # name that carries a species keeps it: "Ambrosia artemisiifolia" is
+        # more than the genus and the attribute is where that belongs. The one
+        # rewrite is a spelling the API is known to send in place of a latin
+        # name, so the attribute carries a latin name rather than a localized
+        # word. Deliberately not canonicalized: the restore path below can
+        # only report the genus, and matching it here would mean discarding a
+        # species the API did send. See the comment there.
+        allergen_la = resolve_latin_alias(latin) if latin else ""
+        if allergen_la != latin:
+            _LOGGER.debug(
+                "Reporting %r as %r for allergen %r",
+                latin,
+                allergen_la,
+                poll_title_local,
+            )
         slug_en = slugify(allergen_en) if allergen_en else slugify(poll_title_local)
         legacy_slug = slugify(legacy_en) if legacy_en else slug_en
         if legacy_slug and legacy_slug != slug_en:
@@ -499,10 +636,19 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     migrate_localized_allergen_ids(hass, location_slug, allergen_renames)
 
-    # Allergy risk daily sensor - only if contamination has data (otherwise allergyrisk is meaningless)
+    # The risk sensors are gated on the API having SENT pollen data, not on our
+    # having been able to read it. An empty contamination block means the API
+    # had nothing to say and a risk number beside it would be meaningless,
+    # which is what this gate was written for. A block we could not parse is
+    # the opposite case: the forecast was there, we failed at it, and the risk
+    # reading beside it is real and readable. Throwing it away would lose a
+    # number the API did send.
+    api_sent_pollen = (
+        bool(raw_contamination) if isinstance(raw_contamination, list) else False
+    )
     allergyrisk = (
-        coordinator.data.get("allergyrisk", {})
-        if has_data and not is_data_empty
+        usable_risk_block(coordinator.data, "allergyrisk")
+        if has_data and api_sent_pollen
         else {}
     )
     if allergyrisk:
@@ -517,10 +663,12 @@ async def async_setup_entry(hass, entry, async_add_entities):
         if sensor.unique_id:
             new_unique_ids.add(sensor.unique_id)
 
-    # Allergy risk hourly sensor - only if contamination has data (otherwise allergyrisk is meaningless)
+    # Gated the same way, and read through the same helper: a block that is
+    # not an object is empty here exactly as it is for the sensor that reads
+    # it and for the coordinator, rather than truthy in this one place.
     allergyrisk_hourly = (
-        coordinator.data.get("allergyrisk_hourly", {})
-        if has_data and not is_data_empty
+        usable_risk_block(coordinator.data, "allergyrisk_hourly")
+        if has_data and api_sent_pollen
         else {}
     )
     if allergyrisk_hourly:
@@ -567,6 +715,16 @@ async def async_setup_entry(hass, entry, async_add_entities):
             else:
                 # The slug is all the registry keeps, so the names are
                 # derived back from it; the API is not answering right now.
+                # That makes name_la the key of LATIN_TO_ENGLISH_NAME here,
+                # which is the genus for every allergen the API spells with
+                # one, where the setup path reports the species alongside it
+                # when the API sends one. The slug does not carry a species,
+                # so this is the most this path can say. A sensor whose latin
+                # name has a species therefore reports the genus alone for as
+                # long as the outage lasts, and reports the species again on
+                # the first answer. Reporting the genus in both places would
+                # remove the difference by throwing away what the API told us,
+                # which is the wrong way to make two paths agree.
                 allergen_en, allergen_la = _slug_index().get(
                     allergen_slug, (allergen_slug.replace("_", " "), "")
                 )
@@ -688,7 +846,14 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
         to different allergens. The name pass therefore skips any entry that
         identifies as a different allergen, and a name match only ever lands
         on an entry that nothing else claims.
+
+        Entries that identify no allergen are dropped first, by the same
+        predicate the setup path uses to decide which ones become sensors. A
+        non-object entry beside a good one used to raise here on every update,
+        which takes out every pollen sensor of the location rather than the
+        one bad entry.
         """
+        contamination = usable_contamination(contamination)
         for item in contamination:
             if allergen_slug_for_item(item) == self._allergen_slug:
                 return item
@@ -696,8 +861,17 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
             slug = allergen_slug_for_item(item)
             if slug is not None and slug != self._allergen_slug:
                 continue
-            poll_title = item.get("poll_title", "").split("(", 1)[0].strip()
-            if poll_title.lower() == self._allergen_name.lower():
+            # The display name through the shared parse, not a third reading
+            # of "the part before the bracket". The None cannot happen: the
+            # list was filtered by the same predicate at the top of this
+            # function, not by whoever called it. Handled anyway, so the line
+            # states the invariant instead of depending on a filter four lines
+            # up staying where it is.
+            parsed = allergen_names_from_item(item)
+            if parsed is None:
+                continue
+            name, _ = parsed
+            if name.lower() == self._allergen_name.lower():
                 return item
         return None
 
@@ -814,11 +988,7 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self) -> str | None:
-        allergyrisk = (
-            self.coordinator.data.get("allergyrisk", {})
-            if self.coordinator.data
-            else {}
-        )
+        allergyrisk = usable_risk_block(self.coordinator.data, "allergyrisk")
         if not allergyrisk:
             return None
         value = allergyrisk.get("allergyrisk_1", None)
@@ -829,11 +999,7 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        allergyrisk = (
-            self.coordinator.data.get("allergyrisk", {})
-            if self.coordinator.data
-            else {}
-        )
+        allergyrisk = usable_risk_block(self.coordinator.data, "allergyrisk")
         if not allergyrisk:
             attrs: dict[str, Any] = {
                 "location_title": self._location_title,
@@ -885,6 +1051,20 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
         return attrs
 
 
+def hourly_readings(block, field):
+    """Return one day's hourly readings as a sequence.
+
+    Deliberately NOT in usable_risk_block. That predicate answers the question
+    every caller shares, whether there is anything here to read. What shape a
+    value must have to BE read belongs to the reader: the daily sensor wants a
+    number and scale_allergy_risk already swallows anything that is not one,
+    while this one wants a sequence of hours. A scalar has no length, and a
+    mapping is indexed by key rather than by hour, so neither is a day.
+    """
+    values = block.get(field)
+    return values if isinstance(values, (list, tuple)) else []
+
+
 class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
     """Hourly allergy risk sensor."""
 
@@ -928,15 +1108,13 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self) -> str | None:
-        allergyrisk_hourly = (
-            self.coordinator.data.get("allergyrisk_hourly", {})
-            if self.coordinator.data
-            else {}
+        allergyrisk_hourly = usable_risk_block(
+            self.coordinator.data, "allergyrisk_hourly"
         )
         if not allergyrisk_hourly:
             return None
         now_hour = dt_util.now().hour
-        values = allergyrisk_hourly.get("allergyrisk_hourly_1", [])
+        values = hourly_readings(allergyrisk_hourly, "allergyrisk_hourly_1")
         if 0 <= now_hour < len(values):
             raw = values[now_hour]
             scaled = scale_allergy_risk(raw)
@@ -946,10 +1124,8 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        allergyrisk_hourly = (
-            self.coordinator.data.get("allergyrisk_hourly", {})
-            if self.coordinator.data
-            else {}
+        allergyrisk_hourly = usable_risk_block(
+            self.coordinator.data, "allergyrisk_hourly"
         )
         if not allergyrisk_hourly:
             attrs: dict[str, Any] = {
@@ -963,7 +1139,7 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
         base_time = dt_util.now().replace(hour=0, minute=0, second=0, microsecond=0)
         forecast = []
         for day in range(1, 5):
-            values = allergyrisk_hourly.get(f"allergyrisk_hourly_{day}", [])
+            values = hourly_readings(allergyrisk_hourly, f"allergyrisk_hourly_{day}")
             for hour, raw in enumerate(values):
                 dt = base_time + timedelta(days=day - 1, hours=hour)
                 scaled = scale_allergy_risk(raw)
@@ -982,7 +1158,7 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
                 )
 
         now_hour = dt_util.now().hour
-        values_today = allergyrisk_hourly.get("allergyrisk_hourly_1", [])
+        values_today = hourly_readings(allergyrisk_hourly, "allergyrisk_hourly_1")
         raw_now = values_today[now_hour] if 0 <= now_hour < len(values_today) else None
         scaled_now = scale_allergy_risk(raw_now) if raw_now is not None else None
         named_now = (
