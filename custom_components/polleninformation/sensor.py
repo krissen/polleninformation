@@ -855,9 +855,15 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
             if slug is not None and slug != self._allergen_slug:
                 continue
             # The display name through the shared parse, not a third reading
-            # of "the part before the bracket". Every entry here identifies an
-            # allergen, so the parse cannot answer None.
-            name, _ = allergen_names_from_item(item)
+            # of "the part before the bracket". The None cannot happen: the
+            # list was filtered by the same predicate at the top of this
+            # function, not by whoever called it. Handled anyway, so the line
+            # states the invariant instead of depending on a filter four lines
+            # up staying where it is.
+            parsed = allergen_names_from_item(item)
+            if parsed is None:
+                continue
+            name, _ = parsed
             if name.lower() == self._allergen_name.lower():
                 return item
         return None

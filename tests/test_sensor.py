@@ -2240,6 +2240,52 @@ class TestANonObjectEntryCostsOnlyItself:
         assert len(sensor.extra_state_attributes["forecast"]) == 4
 
 
+class TestFindItemIsSafeWithoutItsCallers:
+    """The block is filtered by _find_item itself, not by its callers.
+
+    These pass today and are meant to: they document the invariant rather
+    than fix a reachable bug. _find_item filters the block through the shared
+    predicate before either pass, so handing it the raw block directly is
+    already safe, and the unpack below that filter cannot meet a None. What
+    they pin is that the filter stays inside the function, where it does not
+    depend on who calls it.
+    """
+
+    @staticmethod
+    def _sensor(hass_coordinator):
+        return PolleninformationSensor(
+            coordinator=hass_coordinator,
+            sensor_type="pollen",
+            allergen_name="Birke",
+            allergen_en="birch",
+            allergen_slug="birch",
+            allergen_latin="Betula",
+            levels_current=["none", "low", "moderate", "high", "very high"],
+            levels_en=["none", "low", "moderate", "high", "very high"],
+            location_slug="hamburg",
+            location_title="Hamburg",
+            icon="mdi:tree-outline",
+        )
+
+    def test_an_unusable_entry_handed_straight_to_it_is_skipped(self):
+        sensor = self._sensor(_make_coordinator({"contamination": []}))
+        block = [
+            "oops",
+            {"poll_title": "()"},
+            {"poll_title": 5},
+            {},
+            {"poll_title": "Birke (Betula)", "contamination_1": 2},
+        ]
+
+        # The raw block, unfiltered by any caller.
+        assert sensor._find_item(block) == block[-1]
+
+    def test_a_block_of_nothing_usable_finds_nothing(self):
+        sensor = self._sensor(_make_coordinator({"contamination": []}))
+
+        assert sensor._find_item(["oops", {"poll_title": "()"}, {}]) is None
+
+
 class TestABlockThatIsNotAnObject:
     """The same assumption one level up, over the risk blocks.
 
