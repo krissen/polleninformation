@@ -29,7 +29,6 @@ from custom_components.polleninformation.sensor import (
 )
 from custom_components.polleninformation.utils import slugify
 
-
 # --- Helper function tests (pure, no HA dependency) ---
 
 
@@ -1191,6 +1190,81 @@ class TestLatinGenusAsDisplayName:
         assert (
             ent_reg.async_get_entity_id(
                 "sensor", DOMAIN, "polleninformation_hamburg_artemisia"
+            )
+            is None
+        )
+
+
+# An allergen whose latin name the static map does not know, but whose display
+# name happens to be the latin genus of a different allergen. The English
+# language block knows the latin name, so it must win: the display name is only
+# a last resort.
+UNKNOWN_LATIN_WITH_GENUS_NAME_RESPONSE = {
+    "contamination": [
+        {
+            "poll_title": "Artemisia (Asteraceae)",
+            "contamination_1": 1,
+            "contamination_2": 0,
+            "contamination_3": 0,
+            "contamination_4": 0,
+        }
+    ],
+    "allergyrisk": {"allergyrisk_1": 5.0},
+    "allergyrisk_hourly": {"allergyrisk_hourly_1": [5.0] * 24},
+}
+
+COMPOSITE_FAMILY_LANGUAGE_BLOCK = {
+    "poll_titles": [{"name": "Composite family", "latin": "Asteraceae"}]
+}
+
+
+class TestEnglishBlockOutranksTheDisplayName:
+    """The English language block wins over a display name that is a genus.
+
+    The display-name lookup exists for allergens whose latin name is missing.
+    It must not outrank the English language block, because slugging the
+    allergen from the wrong source both names the entity after a different
+    allergen and makes the migration rename an existing entity onto it.
+    """
+
+    async def _setup(self, hass, entry=None):
+        return await _setup_entities(
+            hass,
+            "de",
+            entry=entry,
+            response=UNKNOWN_LATIN_WITH_GENUS_NAME_RESPONSE,
+            language_block=COMPOSITE_FAMILY_LANGUAGE_BLOCK,
+        )
+
+    async def test_slug_comes_from_the_english_block(self, hass):
+        entities = await self._setup(hass)
+        unique_ids = {e.unique_id for e in entities if e.unique_id}
+        assert "polleninformation_hamburg_composite_family" in unique_ids
+        assert "polleninformation_hamburg_mugwort" not in unique_ids
+
+    async def test_no_rename_onto_another_allergen(self, hass):
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            "polleninformation_hamburg_composite_family",
+            suggested_object_id="polleninformation_hamburg_composite_family",
+            config_entry=entry,
+        )
+
+        await self._setup(hass, entry=entry)
+
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_composite_family"
+            )
+            == "sensor.polleninformation_hamburg_composite_family"
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_mugwort"
             )
             is None
         )
