@@ -12,9 +12,9 @@
   icon, and an "Unknown allergen" warning was logged for it at every restart.
   The display name is now tried against the same map when the API sends no
   latin name of its own, and an entity already created as `..._artemisia` is
-  renamed to `..._mugwort`, so its history is kept. The lookup only runs once
-  nothing else has identified the allergen, so it can never override an
-  allergen the integration already knows.
+  renamed to `..._mugwort`, so its history is kept. The lookup only runs when
+  the API sent no latin name at all, so a latin name it did send is never
+  overridden by the display name.
   (PR #72 by @ethanhawkes-gif, thanks @robercrack)
 
 - **The latin name is reported even when the API omits it** — an allergen

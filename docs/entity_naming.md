@@ -18,8 +18,8 @@ For an allergen the slug comes from the allergen's latin name, looked up in
 accepts both genus-only and genus-plus-species spellings. When the API sends no
 latin name at all, which happens when it puts the genus in the display name
 instead (`poll_title` "Artemisia"), the display name is looked up in the same
-map. That lookup runs only once the latin lookup and the English language block
-have both come up empty, so it cannot outrank them. If a latin name is not
+map. That lookup is gated on the missing latin name, so a latin name the API
+did send stays authoritative even when no map knows it. If a latin name is not
 in the map, the code falls back to the English language block and then to the
 name the API sent in the configured language. It also logs a warning asking for
 a bug report, so a new allergen surfaces instead of quietly producing a
