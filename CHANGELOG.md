@@ -85,6 +85,37 @@
   missing since a gap that ended hours ago. Each outage now carries its own
   timestamp.
 
+- **A rename can no longer take a different allergen's sensor** — an
+  installation whose sensor IDs were built from a localized allergen name has
+  them renamed to the English form, and the old name is worked out from the
+  API's own answer. The API sends a display name and a latin name, and they do
+  not always describe the same allergen: a response whose display name is one
+  allergen's English name while its latin name identifies another one made the
+  integration look for a sensor under the first allergen's name and rename it
+  to the second. That took an existing sensor, its ID and its whole history,
+  and nothing undid it afterwards. A candidate that is another allergen's own
+  name is now refused, and the refusal is logged. In v0.5.4 this could happen
+  for the ten allergens the integration's English allergen list does not carry
+  (Ailanthus altissima, Castanea, Fagus, Fraxinus, Plantago, Quercus, Rumex,
+  Salix, Tilia, Ulmus), where the old name always falls back to the name the
+  API sent.
+
+- **Sensors record which allergen they are** — an allergen the integration's
+  maps do not know keeps a sensor under the localized name the API sent, and
+  Home Assistant's registry stores nothing that says which allergen such a
+  sensor is: the name it was created under is all there is to go on. If the
+  API later sends that same name for a different allergen, the rename above
+  has nothing to check against and would take the sensor and its history for
+  the newcomer. Each sensor now records its latin name on its own registry
+  entry, where a restart keeps it, and a rename contradicting what a sensor
+  records is refused and logged. The record is written for every allergen the
+  API identifies, not only for sensors created from now on, so an existing
+  installation starts recording the sensors it already has on the first update
+  after upgrading. A sensor that has recorded nothing yet is treated exactly as
+  before, so nothing that works today stops working. Only this integration's
+  own entry is written and only when the value would change, so the rest of the
+  registry entry, including anything you have customized, is left alone.
+
 ## v0.5.4 — Allergen icons (2026-08-10)
 
 ### Bug fixes
