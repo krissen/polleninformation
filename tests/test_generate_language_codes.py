@@ -956,6 +956,11 @@ class TestTheFileAndTheRuntimeAgree:
             "Ragweed (ambrózia)",
             "Nässlor (Nonexistentia)",
             "Något nytt",
+            # Brackets with nothing in them: the API sent no latin name, so
+            # both sides fall back to the display name. The runtime used to
+            # read the empty brackets as a latin name it could not place and
+            # resolve to nothing, while the file recorded Artemisia.
+            "Artemisia ()",
         ],
     )
     def test_both_sides_resolve_the_same_input_the_same_way(self, script, poll_title):
@@ -972,6 +977,10 @@ class TestTheFileAndTheRuntimeAgree:
     def test_a_display_name_that_is_a_latin_name_resolves_on_both_sides(self, script):
         assert self._runtime_allergen("Artemisia") == "mugwort"
         assert self._recorded_allergen(script, "Artemisia") == "mugwort"
+
+    def test_empty_brackets_resolve_to_the_display_name_on_both_sides(self, script):
+        assert self._runtime_allergen("Artemisia ()") == "mugwort"
+        assert self._recorded_allergen(script, "Artemisia ()") == "mugwort"
 
 
 class TestShippedLanguageMap:

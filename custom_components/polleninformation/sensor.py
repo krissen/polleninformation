@@ -283,17 +283,25 @@ def allergen_slug_for_item(item: dict) -> str | None:
     vary with the configured language, so it is what identifies an allergen
     for a sensor that only knows its own slug.
 
+    The title is parsed by the shared helper rather than here. This used to
+    split the brackets itself and read poll_title without a guard, which was
+    safe only because both callers happen to filter the block first: safety by
+    call order, which lasts exactly until someone calls it from somewhere
+    else. An entry the helper cannot read identifies nothing, which is the
+    same answer this gave for a title it could not place.
     """
-    poll_title = item.get("poll_title", "")
-    if "(" in poll_title and ")" in poll_title:
-        latin = poll_title.split("(", 1)[1].split(")", 1)[0].strip()
+    parsed = allergen_names_from_item(item)
+    if parsed is None:
+        return None
+    name, latin = parsed
+    if latin:
         name_en = english_name_for_latin(latin)
     else:
         # No latin at all: the API sometimes sends the latin name as the
         # display name instead (e.g. "Artemisia"), so the name itself is the
         # last chance to identify the entry. Only tried when no latin was
         # sent, so an entry that carries one is identified by that alone.
-        name_en = english_name_for_display_name(poll_title)
+        name_en = english_name_for_display_name(name)
     return slugify(name_en) if name_en else None
 
 
