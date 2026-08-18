@@ -282,6 +282,7 @@ def allergen_slug_for_item(item: dict) -> str | None:
     The latin name in poll_title is the only part of the entry that does not
     vary with the configured language, so it is what identifies an allergen
     for a sensor that only knows its own slug.
+
     """
     poll_title = item.get("poll_title", "")
     if "(" in poll_title and ")" in poll_title:
@@ -620,10 +621,19 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     migrate_localized_allergen_ids(hass, location_slug, allergen_renames)
 
-    # Allergy risk daily sensor - only if contamination has data (otherwise allergyrisk is meaningless)
+    # The risk sensors are gated on the API having SENT pollen data, not on our
+    # having been able to read it. An empty contamination block means the API
+    # had nothing to say and a risk number beside it would be meaningless,
+    # which is what this gate was written for. A block we could not parse is
+    # the opposite case: the forecast was there, we failed at it, and the risk
+    # reading beside it is real and readable. Throwing it away would lose a
+    # number the API did send.
+    api_sent_pollen = (
+        bool(raw_contamination) if isinstance(raw_contamination, list) else False
+    )
     allergyrisk = (
-        coordinator.data.get("allergyrisk", {})
-        if has_data and not is_data_empty
+        block_of(coordinator.data, "allergyrisk")
+        if has_data and api_sent_pollen
         else {}
     )
     if allergyrisk:
@@ -638,10 +648,12 @@ async def async_setup_entry(hass, entry, async_add_entities):
         if sensor.unique_id:
             new_unique_ids.add(sensor.unique_id)
 
-    # Allergy risk hourly sensor - only if contamination has data (otherwise allergyrisk is meaningless)
+    # Gated the same way, and read through the same helper: a block that is
+    # not an object is empty here exactly as it is for the sensor that reads
+    # it and for the coordinator, rather than truthy in this one place.
     allergyrisk_hourly = (
-        coordinator.data.get("allergyrisk_hourly", {})
-        if has_data and not is_data_empty
+        block_of(coordinator.data, "allergyrisk_hourly")
+        if has_data and api_sent_pollen
         else {}
     )
     if allergyrisk_hourly:

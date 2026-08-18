@@ -2280,6 +2280,71 @@ class TestABlockThatIsNotAnObject:
         assert sensor.native_value is None
 
 
+class TestTheRiskGateAtSetup:
+    """Risk sensors are gated on the API having SENT pollen data.
+
+    Not on our having read it. An empty contamination block means the API had
+    nothing to say and a risk number beside it is meaningless, which is what
+    the gate was written for. A block we could not parse is the opposite: the
+    forecast was there, we failed at it, and the risk reading is real.
+    """
+
+    @staticmethod
+    def _response(contamination, **blocks):
+        return {
+            "contamination": contamination,
+            "allergyrisk": {"allergyrisk_1": 7.0},
+            "allergyrisk_hourly": {"allergyrisk_hourly_1": [7.0] * 24},
+            **blocks,
+        }
+
+    async def _setup(self, hass, response):
+        return await _setup_entities(
+            hass, "de", response=response, language_block=EMPTY_LANGUAGE_BLOCK
+        )
+
+    async def test_a_real_reading_survives_a_block_we_could_not_parse(self, hass):
+        entities = await self._setup(
+            hass, self._response([{"poll_title": "()"}, {"poll_title": ""}])
+        )
+        unique_ids = {e.unique_id for e in entities if e.unique_id}
+
+        assert "polleninformation_hamburg_allergy_risk" in unique_ids
+        assert "polleninformation_hamburg_allergy_risk_hourly" in unique_ids
+
+    async def test_the_reading_is_the_one_the_api_sent(self, hass):
+        entities = await self._setup(hass, self._response([{"poll_title": "()"}]))
+        sensor = _by_type(entities, AllergyRiskSensor)
+
+        # 7.0 on the API's 0-10 scale, scaled to the 0-4 level names.
+        assert sensor.native_value == "hoch"
+
+    async def test_an_empty_block_still_suppresses_them(self, hass):
+        # Unchanged, and the reason the gate exists: the API said nothing at
+        # all, so a risk number beside it means nothing either.
+        entities = await self._setup(hass, self._response([]))
+        unique_ids = {e.unique_id for e in entities if e.unique_id}
+
+        assert "polleninformation_hamburg_allergy_risk" not in unique_ids
+
+    async def test_a_risk_block_that_is_not_an_object_builds_no_sensor(self, hass):
+        # The fifth emptiness site. This gate kept its own raw read, so a
+        # non-object block was truthy here and empty for every other reader:
+        # the entity was built and then reported unknown forever.
+        entities = await self._setup(
+            hass,
+            self._response(
+                [{"poll_title": "Birke (Betula)", "contamination_1": 1}],
+                allergyrisk=["x"],
+            ),
+        )
+        unique_ids = {e.unique_id for e in entities if e.unique_id}
+
+        assert "polleninformation_hamburg_allergy_risk" not in unique_ids
+        # The hourly block is fine, so its sensor is unaffected.
+        assert "polleninformation_hamburg_allergy_risk_hourly" in unique_ids
+
+
 class TestEveryEntityReportsTheSameOutage:
     """The timestamp belongs to the response, so siblings must agree on it.
 
