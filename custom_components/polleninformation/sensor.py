@@ -854,8 +854,11 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
             slug = allergen_slug_for_item(item)
             if slug is not None and slug != self._allergen_slug:
                 continue
-            poll_title = item.get("poll_title", "").split("(", 1)[0].strip()
-            if poll_title.lower() == self._allergen_name.lower():
+            # The display name through the shared parse, not a third reading
+            # of "the part before the bracket". Every entry here identifies an
+            # allergen, so the parse cannot answer None.
+            name, _ = allergen_names_from_item(item)
+            if name.lower() == self._allergen_name.lower():
                 return item
         return None
 
