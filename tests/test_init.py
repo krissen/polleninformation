@@ -188,6 +188,11 @@ class TestOptionsReloadConsistency:
 
 EMPTY_PAYLOAD = {"contamination": []}
 FULL_PAYLOAD = {"contamination": [{"poll_title": "Birch (Betula)"}]}
+RISK_ONLY_PAYLOAD = {
+    "contamination": [],
+    "allergyrisk": {"allergyrisk_1": 7.5},
+    "allergyrisk_hourly": {"allergyrisk_hourly_1": [7.5] * 24},
+}
 
 E1 = datetime(2026, 8, 18, 6, 0, tzinfo=timezone.utc)
 E2 = datetime(2026, 8, 18, 18, 0, tzinfo=timezone.utc)
@@ -253,6 +258,33 @@ class TestEmptySince:
         await self._fetch(coordinator, FULL_PAYLOAD, E1)
         await self._fetch(coordinator, EMPTY_PAYLOAD, E2)
         assert coordinator.empty_since == E2.isoformat()
+
+    async def test_a_risk_only_response_is_not_empty(self, hass):
+        """A response with risk data carried data, whatever contamination says.
+
+        The risk sensors would otherwise report a current value while the
+        whole location advertised itself stale.
+        """
+        coordinator = self._make_coordinator(hass)
+        await self._fetch(coordinator, RISK_ONLY_PAYLOAD, E1)
+        assert coordinator.empty_since is None
+
+    async def test_a_risk_only_response_ends_an_outage(self, hass):
+        """The other side of it: such a response clears an existing mark."""
+        coordinator = self._make_coordinator(hass)
+        await self._fetch(coordinator, EMPTY_PAYLOAD, E1)
+        await self._fetch(coordinator, RISK_ONLY_PAYLOAD, E2)
+        assert coordinator.empty_since is None
+
+    async def test_every_block_empty_is_an_outage(self, hass):
+        """Only a response with nothing in any block is stale."""
+        coordinator = self._make_coordinator(hass)
+        await self._fetch(
+            coordinator,
+            {"contamination": [], "allergyrisk": {}, "allergyrisk_hourly": {}},
+            E1,
+        )
+        assert coordinator.empty_since == E1.isoformat()
 
     async def test_a_failed_fetch_does_not_stamp_it(self, hass):
         """A fetch that never returned says nothing about the response."""

@@ -181,8 +181,16 @@ class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):
         The timestamp is taken on the way into an outage and cleared on the
         way out, so it dates the outage being reported and every entity of
         the location reports the same value for it.
+
+        Every block counts, not just contamination: a response carrying only
+        risk data still carried data, and marking it stale would tell the
+        risk sensors they are stale while they report a current reading.
         """
-        if result.get("contamination"):
+        if (
+            result.get("contamination")
+            or result.get("allergyrisk")
+            or result.get("allergyrisk_hourly")
+        ):
             self.empty_since = None
         elif self.empty_since is None:
             self.empty_since = dt_util.now().isoformat()
