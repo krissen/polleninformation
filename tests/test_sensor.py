@@ -1922,6 +1922,9 @@ class TestGenusPrefixedNameOnTheSetupPath:
         )
 
 
+EN_LEVELS = ["none", "low", "moderate", "high", "very high"]
+
+
 class TestPartialDataIsNotFreshData:
     """A sensor with no readable value must not report itself fresh.
 
@@ -1930,12 +1933,10 @@ class TestPartialDataIsNotFreshData:
     unknown while clearing the stale marker.
     """
 
-    LEVELS = ["none", "low", "moderate", "high", "very high"]
-
     def _risk(self, cls, data, is_stale=True):
         return cls(
             coordinator=_make_coordinator(data),
-            levels_current=self.LEVELS,
+            levels_current=EN_LEVELS,
             location_slug="hamburg",
             location_title="Hamburg",
             is_stale=is_stale,
@@ -2017,8 +2018,8 @@ class TestPartialDataIsNotFreshData:
             allergen_en="birch",
             allergen_slug="birch",
             allergen_latin="Betula",
-            levels_current=self.LEVELS,
-            levels_en=self.LEVELS,
+            levels_current=EN_LEVELS,
+            levels_en=EN_LEVELS,
             location_slug="hamburg",
             location_title="Hamburg",
             icon="mdi:tree-outline",
