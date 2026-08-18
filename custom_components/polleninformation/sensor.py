@@ -40,6 +40,7 @@ from .const_levels import ALLERGEN_DISPLAY_OVERRIDES, LEVELS, RISK_SENSOR_NAMES
 from .utils import (
     allergen_names_from_item,
     async_get_language_block,
+    block_of,
     get_allergen_info_by_latin,
     normalize,
     slugify,
@@ -934,11 +935,7 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self) -> str | None:
-        allergyrisk = (
-            self.coordinator.data.get("allergyrisk", {})
-            if self.coordinator.data
-            else {}
-        )
+        allergyrisk = block_of(self.coordinator.data, "allergyrisk")
         if not allergyrisk:
             return None
         value = allergyrisk.get("allergyrisk_1", None)
@@ -949,11 +946,7 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        allergyrisk = (
-            self.coordinator.data.get("allergyrisk", {})
-            if self.coordinator.data
-            else {}
-        )
+        allergyrisk = block_of(self.coordinator.data, "allergyrisk")
         if not allergyrisk:
             attrs: dict[str, Any] = {
                 "location_title": self._location_title,
@@ -1048,11 +1041,7 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self) -> str | None:
-        allergyrisk_hourly = (
-            self.coordinator.data.get("allergyrisk_hourly", {})
-            if self.coordinator.data
-            else {}
-        )
+        allergyrisk_hourly = block_of(self.coordinator.data, "allergyrisk_hourly")
         if not allergyrisk_hourly:
             return None
         now_hour = dt_util.now().hour
@@ -1066,11 +1055,7 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        allergyrisk_hourly = (
-            self.coordinator.data.get("allergyrisk_hourly", {})
-            if self.coordinator.data
-            else {}
-        )
+        allergyrisk_hourly = block_of(self.coordinator.data, "allergyrisk_hourly")
         if not allergyrisk_hourly:
             attrs: dict[str, Any] = {
                 "location_title": self._location_title,

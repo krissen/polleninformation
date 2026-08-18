@@ -2240,6 +2240,46 @@ class TestANonObjectEntryCostsOnlyItself:
         assert len(sensor.extra_state_attributes["forecast"]) == 4
 
 
+class TestABlockThatIsNotAnObject:
+    """The same assumption one level up, over the risk blocks.
+
+    allergyrisk and allergyrisk_hourly are read with .get, so a block that
+    arrives as a list or a string raised on the first read and took the
+    entity down with it. A block that is not an object carries nothing, which
+    is what an absent one means too.
+    """
+
+    @pytest.mark.parametrize("risk", [["oops"], "x", 42, None])
+    async def test_the_daily_risk_sensor_reports_nothing(self, hass, risk):
+        entities = await _setup_entities(
+            hass,
+            "de",
+            response={**RAGWEED_RESPONSE, "allergyrisk": risk},
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        sensor = _by_type(entities, PolleninformationSensor)
+
+        # The pollen sensor is unaffected, and nothing raised on the way here.
+        assert sensor.native_value is not None
+
+    @pytest.mark.parametrize("risk", [["oops"], "x", 42])
+    async def test_reading_a_risk_sensor_survives_it(self, hass, risk):
+        entities = await _setup_entities(hass, "de")
+        sensor = _by_type(entities, AllergyRiskSensor)
+        sensor.coordinator.data = {**RAGWEED_RESPONSE, "allergyrisk": risk}
+
+        assert sensor.native_value is None
+        assert "forecast" not in sensor.extra_state_attributes
+
+    @pytest.mark.parametrize("risk", [["oops"], "x", 42])
+    async def test_reading_an_hourly_risk_sensor_survives_it(self, hass, risk):
+        entities = await _setup_entities(hass, "de")
+        sensor = _by_type(entities, AllergyRiskHourlySensor)
+        sensor.coordinator.data = {**RAGWEED_RESPONSE, "allergyrisk_hourly": risk}
+
+        assert sensor.native_value is None
+
+
 class TestEveryEntityReportsTheSameOutage:
     """The timestamp belongs to the response, so siblings must agree on it.
 

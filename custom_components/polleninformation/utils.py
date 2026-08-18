@@ -333,6 +333,20 @@ def allergen_names_from_item(item):
     return name, latin
 
 
+def block_of(data, key):
+    """Return data[key] when it is an object, and an empty one otherwise.
+
+    The API's blocks are read with .get, so a block that arrives as a list or
+    a string raises on the first read and takes the whole entity down with it.
+    A block that is not an object carries nothing this can use, which is what
+    an absent one means too.
+    """
+    if not isinstance(data, dict):
+        return {}
+    value = data.get(key)
+    return value if isinstance(value, dict) else {}
+
+
 def usable_contamination(contamination):
     """Return the contamination entries that identify an allergen."""
     if not isinstance(contamination, list):
