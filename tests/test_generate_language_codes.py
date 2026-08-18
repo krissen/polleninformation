@@ -8,6 +8,8 @@ import requests at import time, which is why those live inside run_fetch.
 
 import importlib.util
 import json
+import sys
+import types
 from pathlib import Path
 from unittest.mock import patch
 
@@ -409,6 +411,186 @@ class TestLanguageEntryFromResponse:
 
         assert "incomplete" not in entry
         assert not script.needs_fetch({"sk": entry}, "sk")
+
+
+# A language the file already holds names for, marked for another try. What a
+# failed retry must not be allowed to take away.
+PARTIAL_ENTRY = {
+    "lang_code": "sk",
+    "lang": "Slovak",
+    "poll_titles": [{"name": "Trávy", "latin": "Poaceae", "poll_id": 5}],
+    "incomplete": True,
+}
+
+PARTIAL_DB = {"sk": PARTIAL_ENTRY}
+
+
+class TestARetryNeverImpoverishesAnEntry:
+    """A retry may improve what the file holds and may not take from it.
+
+    The incomplete marker exists because eleven localized names are worth
+    more to a sensor than none. The retry it schedules must not then do the
+    thing the marker refused: a failed or malformed retry that replaced the
+    entry with an error object would drop those names and send every allergen
+    in that language back to its English name.
+    """
+
+    @pytest.mark.parametrize(
+        "failure",
+        [
+            {"error": "request error: timeout", "lang_code": "sk"},
+            {"error": "malformed response: no contamination block", "lang_code": "sk"},
+            {"error": "the response carries no allergens", "lang_code": "sk"},
+        ],
+    )
+    def test_a_failed_retry_keeps_the_names(self, script, failure):
+        kept = script.entry_after_retry(PARTIAL_ENTRY, failure)
+
+        assert kept["poll_titles"] == PARTIAL_ENTRY["poll_titles"]
+
+    def test_a_failed_retry_says_the_names_are_old(self, script):
+        # The record may not read as a clean partial when it is a partial
+        # plus a failure.
+        kept = script.entry_after_retry(
+            PARTIAL_ENTRY, {"error": "request error: timeout", "lang_code": "sk"}
+        )
+
+        assert "earlier fetch" in kept["retry_error"]
+        assert "request error: timeout" in kept["retry_error"]
+
+    def test_a_failed_retry_stays_retryable(self, script):
+        kept = script.entry_after_retry(
+            PARTIAL_ENTRY, {"error": "request error: timeout", "lang_code": "sk"}
+        )
+
+        assert script.needs_fetch({"sk": kept}, "sk")
+
+    def test_a_clean_retry_replaces_the_entry(self, script):
+        fresh = {
+            "lang_code": "sk",
+            "lang": "Slovak",
+            "poll_titles": [
+                {"name": "Trávy", "latin": "Poaceae", "poll_id": 5},
+                {"name": "Breza", "latin": "Betula", "poll_id": 2},
+            ],
+        }
+        got = script.entry_after_retry(PARTIAL_ENTRY, fresh)
+
+        assert got == fresh
+        assert "incomplete" not in got
+        assert "retry_error" not in got
+        assert not script.needs_fetch({"sk": got}, "sk")
+
+    @pytest.mark.parametrize(
+        "previous",
+        [
+            None,
+            "oops",
+            {"lang_code": "sk", "error": "request error: timeout"},
+            {"lang_code": "sk", "poll_titles": []},
+        ],
+    )
+    def test_nothing_to_keep_records_the_error_as_before(self, script, previous):
+        failure = {"error": "request error: timeout", "lang_code": "sk"}
+        assert script.entry_after_retry(previous, failure) == failure
+
+    def test_a_complete_entry_is_never_retried_and_so_never_clobbered(self, script):
+        # The answer to whether a transient failure can cost a COMPLETE
+        # language its names: it is not reachable, because such an entry is
+        # never fetched again. Pinned both ways, so neither half can drift.
+        complete = {
+            "lang_code": "sk",
+            "lang": "Slovak",
+            "poll_titles": [{"name": "Trávy", "latin": "Poaceae", "poll_id": 5}],
+        }
+        assert not script.needs_fetch({"sk": complete}, "sk")
+        kept = script.entry_after_retry(
+            complete, {"error": "request error: timeout", "lang_code": "sk"}
+        )
+        assert kept["poll_titles"] == complete["poll_titles"]
+
+
+class TestRunFetchWritesThroughTheRetryRule:
+    """The rule where it actually lands: the two lines that write the file.
+
+    Both failure paths in run_fetch assign to db[lang_code], and either one
+    could drop an entry's allergen names. Exercised end to end, with the
+    network and the environment stubbed, because a helper that gets this
+    right is worth nothing if the caller writes past it.
+    """
+
+    @staticmethod
+    def _run(script, monkeypatch, tmp_path, existing, responder):
+        db_file = tmp_path / "language_map.json"
+        db_file.write_text(json.dumps(existing), encoding="utf-8")
+        monkeypatch.setattr(script, "DB_FILE", str(db_file))
+        monkeypatch.setattr(script, "LANG_CODES", ["sk"])
+        monkeypatch.setattr(script, "DELAY_SEC", 0)
+        monkeypatch.setenv("API_KEY", "test-key")
+        monkeypatch.setitem(
+            sys.modules, "requests", types.SimpleNamespace(get=responder)
+        )
+        monkeypatch.setitem(
+            sys.modules, "dotenv", types.SimpleNamespace(load_dotenv=lambda **kw: None)
+        )
+        script.run_fetch()
+        return json.loads(db_file.read_text(encoding="utf-8"))
+
+    @staticmethod
+    def _answer(payload):
+        def responder(*args, **kwargs):
+            return types.SimpleNamespace(
+                raise_for_status=lambda: None, json=lambda: payload
+            )
+
+        return responder
+
+    def test_a_request_failure_keeps_the_names_on_disk(
+        self, script, monkeypatch, tmp_path
+    ):
+        def boom(*args, **kwargs):
+            raise RuntimeError("timeout")
+
+        db = self._run(script, monkeypatch, tmp_path, PARTIAL_DB, boom)
+
+        assert db["sk"]["poll_titles"] == PARTIAL_ENTRY["poll_titles"]
+        assert "earlier fetch" in db["sk"]["retry_error"]
+        assert script.needs_fetch(db, "sk")
+
+    def test_a_malformed_response_keeps_the_names_on_disk(
+        self, script, monkeypatch, tmp_path
+    ):
+        db = self._run(
+            script, monkeypatch, tmp_path, PARTIAL_DB, self._answer({"nope": 1})
+        )
+
+        assert db["sk"]["poll_titles"] == PARTIAL_ENTRY["poll_titles"]
+        assert "earlier fetch" in db["sk"]["retry_error"]
+
+    def test_a_clean_retry_replaces_what_was_there(self, script, monkeypatch, tmp_path):
+        payload = {
+            "contamination": [
+                {"poll_title": "Trávy (Poaceae)", "poll_id": 5},
+                {"poll_title": "Breza (Betula)", "poll_id": 2},
+            ]
+        }
+        db = self._run(script, monkeypatch, tmp_path, PARTIAL_DB, self._answer(payload))
+
+        assert len(db["sk"]["poll_titles"]) == 2
+        assert "incomplete" not in db["sk"]
+        assert "retry_error" not in db["sk"]
+        assert not script.needs_fetch(db, "sk")
+
+    def test_a_language_with_nothing_to_lose_records_the_error(
+        self, script, monkeypatch, tmp_path
+    ):
+        def boom(*args, **kwargs):
+            raise RuntimeError("timeout")
+
+        db = self._run(script, monkeypatch, tmp_path, {}, boom)
+
+        assert "error" in db["sk"]
+        assert "poll_titles" not in db["sk"]
 
 
 class TestNeedsFetch:

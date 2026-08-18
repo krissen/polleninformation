@@ -335,6 +335,35 @@ def unreadable_entry_warning(db, lang_code):
     )
 
 
+def entry_after_retry(previous, entry):
+    """Return the entry to store, given what the file already held.
+
+    A retry may improve an entry and may not impoverish it. An entry marked
+    incomplete is fetched again, and that retry can fail or come back
+    malformed; storing the error entry it produces would drop allergen names
+    the file already had, which is the trade the incomplete marker exists to
+    refuse. Eleven localized names beside a failure are worth more to a sensor
+    than none, exactly as they were worth more than an error entry.
+
+    So a failure keeps what was there, records that the retry failed, and
+    leaves the language retryable. The stored message says the names are from
+    an earlier fetch, because an entry carrying both names and a failure
+    should not read as a clean partial.
+    """
+    if "error" not in entry:
+        return entry
+    if not isinstance(previous, dict) or not previous.get("poll_titles"):
+        return entry
+
+    kept = dict(previous)
+    kept["incomplete"] = True
+    kept["retry_error"] = (
+        f"the last retry failed ({entry['error']}); the allergen names in this "
+        f"entry are from an earlier fetch"
+    )
+    return kept
+
+
 def language_entry_from_response(lang_code, data):
     """Return the db entry for one language's response, plus warnings.
 
@@ -517,13 +546,16 @@ def run_fetch():
             "longitude": LON,
             "apikey": api_key,
         }
+        previous = db.get(lang_code)
         try:
             resp = requests.get(base_url, params=params, headers=HEADERS, timeout=20)
             resp.raise_for_status()
             data = resp.json()
         except Exception as e:
             print(f"{lang_code}: [request error: {e}]")
-            db[lang_code] = {"error": str(e), "lang_code": lang_code}
+            db[lang_code] = entry_after_retry(
+                previous, {"error": str(e), "lang_code": lang_code}
+            )
             save_db(db)
             time.sleep(DELAY_SEC)
             continue
@@ -538,9 +570,12 @@ def run_fetch():
         for warning in warnings:
             print(f"{lang_code}: WARNING: {warning}")
 
+        entry = entry_after_retry(previous, entry)
         db[lang_code] = entry
         if "error" in entry:
             print(f"{lang_code}: [{entry['error']}]")
+        elif "retry_error" in entry:
+            print(f"{lang_code}: [{entry['retry_error']}]")
         else:
             print(f"{lang_code}: OK, {len(entry['poll_titles'])} allergens")
         save_db(db)
