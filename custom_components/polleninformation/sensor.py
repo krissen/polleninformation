@@ -17,14 +17,13 @@ import logging
 from datetime import timedelta
 from functools import lru_cache
 from pathlib import Path
-
-from homeassistant.util import dt as dt_util
-from homeassistant.util import slugify as ha_slugify
 from typing import Any
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
+from homeassistant.util import slugify as ha_slugify
 
 from .const import (
     CONF_COUNTRY,
@@ -318,12 +317,128 @@ def entity_id_available(hass, ent_reg, entity_id: str) -> bool:
     )
 
 
+ALLERGEN_IDENTITY_OPTION = "latin"
+
+
+def allergen_identity_key(latin) -> str | None:
+    """Return the key two latin names must share to be the same allergen.
+
+    The map's own spelling when it knows the name, so that "Ambrosia",
+    "Ambrosia artemisiifolia" and every alias of them answer alike; the genus
+    of the name itself when no map knows it. That second half is the point:
+    the rows this exists to protect are exactly the ones no map can place, so
+    a key that only spoke for known allergens would say "unknown" for the
+    whole population it was written for.
+
+    Both halves fall back to the genus, and they have to fall together. A
+    known name resolves through canonical_latin, which drops a species; if an
+    unknown name did not, one allergen would contradict ITSELF as soon as the
+    API sent "Nonexistentia" for one language and "Nonexistentia vulgaris" for
+    another, and the migration would be refused naming the very allergen it
+    is. That is the whole unmapped population, which is the population this
+    was written for.
+
+    The cost is that two unmapped names sharing a first word answer alike.
+    They share a genus, and a genus is what this integration means by an
+    allergen everywhere else: LATIN_TO_ENGLISH_NAME is keyed by one, and every
+    lookup that reads the API's latin field already drops the species. Folding
+    here is that same rule reaching the names no map happens to carry, rather
+    than a new rule invented for them.
+    """
+    if not isinstance(latin, str) or not latin.strip():
+        return None
+    return canonical_latin(latin) or latin.strip().lower().split()[0]
+
+
+def stored_allergen_latin(ent_reg, entity_id) -> str | None:
+    """Return the latin name a registry row records for itself, or None.
+
+    None means the row does not say, which is every row on every installation
+    that upgraded into this. Absent has to mean UNKNOWN rather than mismatch:
+    a row that says nothing about itself gets exactly the behaviour it had
+    before there was anywhere to say it.
+    """
+    entry = ent_reg.async_get(entity_id)
+    if entry is None:
+        return None
+    stored = (entry.options.get(DOMAIN) or {}).get(ALLERGEN_IDENTITY_OPTION)
+    return stored if isinstance(stored, str) and stored.strip() else None
+
+
+def store_allergen_identity(ent_reg, entity_id, latin) -> None:
+    """Record which allergen a registry row is, where a restart keeps it.
+
+    The registry stores a slug, a display name and an icon, and no allergen
+    identity, so for a slug no map can place there has been nothing to check a
+    rename against and a legacy candidate had to be trusted on its name alone.
+    Per-entity options under this integration's own domain are the sanctioned
+    place to keep something of ours: they are written to the registry store
+    and read back at load, unlike state attributes, which are not persisted at
+    all.
+
+    Only this integration's key is written, and the other keys under it are
+    carried over, so nothing else on the row is touched. A row already
+    recorded as this allergen is left alone rather than rewritten, and the
+    comparison is by identity rather than by spelling so that the two paths
+    which can name the same allergen -- the response, which may send a
+    species, and a recreated sensor, which can only name the genus -- do not
+    take turns overwriting each other.
+    """
+    key = allergen_identity_key(latin)
+    if not key or not entity_id:
+        return
+    entry = ent_reg.async_get(entity_id)
+    if entry is None:
+        return
+    options = dict(entry.options.get(DOMAIN) or {})
+    if allergen_identity_key(options.get(ALLERGEN_IDENTITY_OPTION)) == key:
+        return
+    options[ALLERGEN_IDENTITY_OPTION] = latin.strip()
+    ent_reg.async_update_entity_options(entity_id, DOMAIN, options)
+
+
+def record_identified_allergens(hass, location_slug, identified_latins) -> None:
+    """Record the response's allergens on rows this pass will not add.
+
+    An entity disabled in the registry is aborted before it is added -- the
+    platform checks registry_entry.disabled and returns without ever calling
+    add_to_platform_finish -- so async_added_to_hass never runs for it and its
+    row would stay unrecorded for exactly as long as it stayed disabled, which
+    is exactly as long as it stays unprotected. The row is there and the
+    response identifies its allergen; only the entity is absent.
+
+    Called AFTER the migration and never before. A row stamped first would be
+    stamped with the claiming allergen's own latin name, and the guard would
+    then be weighing evidence the rename manufactured for itself. By this
+    point every rename is settled, so the row found under a canonical slug is
+    the row that allergen ended up with.
+
+    Rows created in this pass have no registry entry yet and are not reached
+    here; async_added_to_hass records those. Where the two overlap the second
+    write is a no-op, because a row already recorded as this allergen is left
+    alone.
+    """
+    if not identified_latins:
+        return
+
+    ent_reg = er.async_get(hass)
+    for slug, latin in identified_latins.items():
+        entity_id = ent_reg.async_get_entity_id(
+            "sensor", DOMAIN, f"polleninformation_{location_slug}_{slug}"
+        )
+        if entity_id:
+            store_allergen_identity(ent_reg, entity_id, latin)
+
+
 def migrate_localized_allergen_ids(hass, location_slug, renames) -> None:
     """Rename allergen ids that were derived from a localized allergen name.
 
-    The renames are (legacy_slug, canonical_slug) pairs derived from the
-    current API response, so only ids this integration can itself have
-    produced are ever considered. The unique_id is always migrated; the
+    The renames are (legacy_slug, canonical_slug, claim_latin) triples derived
+    from the current API response, so only ids this integration can itself
+    have produced are ever considered. The latin name travels with the pair
+    because it is what the claiming allergen IS, and the slug it wants is not:
+    two allergens can want the same slug across time, which is the whole
+    reason a row records what it is. The unique_id is always migrated; the
     entity_id only when it is exactly what this integration would have
     generated, so an entity_id the user chose is kept even when it happens to
     end in the old slug. Either step is skipped with a warning when its
@@ -333,10 +448,33 @@ def migrate_localized_allergen_ids(hass, location_slug, renames) -> None:
         return
 
     ent_reg = er.async_get(hass)
-    for legacy_slug, canonical_slug in renames:
+    for legacy_slug, canonical_slug, claim_latin in renames:
         legacy_unique_id = f"polleninformation_{location_slug}_{legacy_slug}"
         entity_id = ent_reg.async_get_entity_id("sensor", DOMAIN, legacy_unique_id)
         if entity_id is None:
+            continue
+
+        # A row that records which allergen it is settles what its slug
+        # cannot. The display name it was created under can since have been
+        # given to a different allergen, and renaming then does not recover
+        # this allergen's old entity, it takes another one's row and its
+        # history with nothing to reverse it.
+        #
+        # A row that records nothing keeps exactly the behaviour it had
+        # before there was anywhere to record it, and so does a claim with no
+        # latin name of its own: absent is unknown on either side, never
+        # mismatch. Only two names that both say something, and say different
+        # things, stop a migration.
+        recorded = stored_allergen_latin(ent_reg, entity_id)
+        recorded_key = allergen_identity_key(recorded)
+        claim_key = allergen_identity_key(claim_latin)
+        if recorded_key and claim_key and recorded_key != claim_key:
+            _LOGGER.warning(
+                "Not migrating %s to %s: it is recorded as %s",
+                entity_id,
+                canonical_slug,
+                recorded,
+            )
             continue
 
         canonical_unique_id = f"polleninformation_{location_slug}_{canonical_slug}"
@@ -530,7 +668,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     entities: list[SensorEntity] = []
     new_unique_ids: set[str] = set()
-    allergen_renames: list[tuple[str, str]] = []
+    allergen_renames: list[tuple[str, str, str]] = []
+    identified_latins: dict[str, str] = {}
 
     for item in contamination:
         # Every entry here identifies an allergen: usable_contamination has
@@ -611,9 +750,44 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 poll_title_local,
             )
         slug_en = slugify(allergen_en) if allergen_en else slugify(poll_title_local)
-        legacy_slug = slugify(legacy_en) if legacy_en else slug_en
-        if legacy_slug and legacy_slug != slug_en:
-            allergen_renames.append((legacy_slug, slug_en))
+        # Every slug a previous version could have given this allergen, not
+        # only the one the current language block implies. Before the display
+        # name was resolvable, an allergen the block could not place was
+        # slugged from the name the API sent, so that slug is a candidate
+        # whatever the block says NOW. It matters because the block itself
+        # changes: repairing a missing latin name in the map turned the
+        # English-block lookup from a miss into a hit, which made legacy_en
+        # equal allergen_en and queued no rename at all, leaving the old
+        # entity orphaned beside a new one. A candidate is only ever acted on
+        # when an entity with that unique_id actually exists, so listing one
+        # that never occurred costs nothing.
+        legacy_candidates = [
+            slugify(legacy_en) if legacy_en else "",
+            slugify(poll_title_local),
+        ]
+        for legacy_slug in dict.fromkeys(legacy_candidates):
+            if not legacy_slug or legacy_slug == slug_en:
+                continue
+            if legacy_slug in KNOWN_ALLERGEN_SLUGS:
+                # The candidate names a DIFFERENT allergen, so renaming would
+                # not recover this allergen's old entity, it would take that
+                # other allergen's row and its history. Both candidates come
+                # from the live response in the end: the display name always,
+                # and the English-block name whenever the block has no entry
+                # for the latin the API sent, which is the case for the ten
+                # allergens the map does not cover. A title like
+                # "Birch (Artemisia)" resolves to mugwort and would otherwise
+                # claim the birch row.
+                _LOGGER.warning(
+                    "Not migrating %r to %r: %r is another allergen's name",
+                    legacy_slug,
+                    slug_en,
+                    legacy_slug,
+                )
+                continue
+            allergen_renames.append((legacy_slug, slug_en, allergen_la))
+        if allergen_la:
+            identified_latins.setdefault(slug_en, allergen_la)
         icon = ALLERGEN_ICON_MAP.get(slug_en, ALLERGEN_ICON_MAP["default"])
 
         sensor = PolleninformationSensor(
@@ -629,12 +803,14 @@ async def async_setup_entry(hass, entry, async_add_entities):
             location_title=location_title,
             icon=icon,
             display_name=display_overrides.get(slug_en, poll_title_local),
+            identity_from_response=True,
         )
         entities.append(sensor)
         if sensor.unique_id:
             new_unique_ids.add(sensor.unique_id)
 
     migrate_localized_allergen_ids(hass, location_slug, allergen_renames)
+    record_identified_allergens(hass, location_slug, identified_latins)
 
     # The risk sensors are gated on the API having SENT pollen data, not on our
     # having been able to read it. An empty contamination block means the API
@@ -799,6 +975,7 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
         location_title: str,
         icon: str,
         display_name: str | None = None,
+        identity_from_response: bool = False,
     ) -> None:
         super().__init__(coordinator)
         self.sensor_type = sensor_type
@@ -812,6 +989,10 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
         self._levels_en = levels_en
         self._location_slug = location_slug
         self._location_title = location_title
+        # Whether this response identified the allergen, rather than the slug
+        # in the registry having been read back and turned into a latin name
+        # again. Only the first is evidence about the row.
+        self._identity_from_response = identity_from_response
 
         self._attr_name = self._display_name
         self._attr_unique_id = f"polleninformation_{location_slug}_{allergen_slug}"
@@ -821,6 +1002,33 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
             "name": f"Polleninformation ({location_title})",
             "manufacturer": "Austrian Pollen Information Service",
         }
+
+    async def async_added_to_hass(self) -> None:
+        """Record on the registry row which allergen this sensor is.
+
+        Here rather than in setup for two reasons. The row of an entity being
+        created does not exist while setup runs, so setup could only ever
+        record the allergens that already had a sensor; and by this point the
+        entity_id is the migrated one, where writing earlier would stamp the
+        very row the migration is still deciding about, with a latin name
+        taken from the same response that is claiming it. Evidence a rename
+        manufactures for itself is not evidence.
+
+        Every allergen this response identified is recorded, not only a newly
+        created one, so an installation upgrading into this starts accounting
+        for the sensors it already has on the first start rather than only for
+        sensors made afterwards. An allergen the response does not carry is
+        not recorded, which includes every sensor recreated from the registry
+        during an outage: what such a sensor knows about its latin name it
+        derived from its own slug, so recording it would write down the
+        assumption the recording exists to check rather than something the API
+        said. Its row keeps whatever it already had.
+        """
+        await super().async_added_to_hass()
+        if self._identity_from_response:
+            store_allergen_identity(
+                er.async_get(self.hass), self.entity_id, self._allergen_latin
+            )
 
     @property
     def suggested_object_id(self) -> str:

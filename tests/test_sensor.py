@@ -1,11 +1,14 @@
 """Tests for sensor helper functions and sensor classes."""
 
+import json
 import logging
 from datetime import datetime, timezone
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 from zoneinfo import ZoneInfo
 
 import pytest
+from homeassistant.core import callback
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -29,6 +32,7 @@ from custom_components.polleninformation.sensor import (
     entity_id_available,
     extract_allergen_slug_from_unique_id,
     localized_risk_object_id_suffixes,
+    migrate_localized_allergen_ids,
     resolve_latin_alias,
     scale_allergy_risk,
 )
@@ -446,6 +450,54 @@ def _make_entry(lang, options=None):
         },
         options=options or {},
     )
+
+
+SHIPPED_LANGUAGE_MAP = json.loads(
+    (
+        Path(__file__).resolve().parent.parent
+        / "custom_components"
+        / "polleninformation"
+        / "language_map.json"
+    ).read_text(encoding="utf-8")
+)
+
+
+def shipped_block(lang):
+    """The language block this integration actually ships for a language."""
+    return next(
+        block
+        for block in SHIPPED_LANGUAGE_MAP.values()
+        if block.get("lang_code") == lang
+    )
+
+
+async def _setup_with_shipped_blocks(hass, lang, response, entry=None):
+    """Run setup with the REAL map, one block per language, as at runtime.
+
+    Every other setup helper here hands the same block to both lookups, and
+    most migration tests hand them an empty one. The map is an input, and an
+    empty one is a configuration we never ship: the bug this exists for was
+    invisible until the block carried what the file carries.
+    """
+    if entry is None:
+        entry = _make_entry(lang)
+        entry.add_to_hass(hass)
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = _make_coordinator(response)
+
+    entities = []
+
+    def _add(new_entities, update_before_add=False):
+        entities.extend(new_entities)
+
+    async def _block(_hass, lang_code):
+        return shipped_block(lang_code)
+
+    with patch(
+        "custom_components.polleninformation.sensor.async_get_language_block",
+        AsyncMock(side_effect=_block),
+    ):
+        await async_setup_entry(hass, entry, _add)
+    return entities
 
 
 async def _setup_entities(
@@ -1219,6 +1271,834 @@ class TestLatinGenusAsDisplayName:
             )
             is None
         )
+
+
+# The Spanish response for mugwort, which the API sends as a bare latin genus.
+SPANISH_MUGWORT_RESPONSE = {
+    "contamination": [
+        {
+            "poll_title": "Artemisia",
+            "contamination_1": 2,
+            "contamination_2": 1,
+            "contamination_3": 0,
+            "contamination_4": 0,
+        }
+    ],
+    "allergyrisk": {"allergyrisk_1": 5.0},
+    "allergyrisk_hourly": {"allergyrisk_hourly_1": [5.0] * 24},
+}
+
+ITALIAN_RAGWEED_RESPONSE = {
+    "contamination": [
+        {
+            "poll_title": "Ambrosia",
+            "contamination_1": 2,
+            "contamination_2": 1,
+            "contamination_3": 0,
+            "contamination_4": 0,
+        }
+    ],
+    "allergyrisk": {"allergyrisk_1": 5.0},
+    "allergyrisk_hourly": {"allergyrisk_hourly_1": [5.0] * 24},
+}
+
+
+async def _setup_through_the_platform(hass, lang, response, entry=None):
+    """Run setup the way Home Assistant does, so the entities are really added.
+
+    The helper above hands async_add_entities a list collector, which is
+    enough for anything decided during setup but never registers an entity or
+    runs its lifecycle. Anything an entity does on being added -- writing to
+    its own registry row, here -- is invisible to that helper and has to be
+    exercised through the platform.
+    """
+    if entry is None:
+        entry = _make_entry(lang)
+        entry.add_to_hass(hass)
+
+    async def _block(_hass, lang_code):
+        return shipped_block(lang_code)
+
+    with (
+        patch(
+            "custom_components.polleninformation.async_get_pollenat_data",
+            AsyncMock(return_value=response),
+        ),
+        patch(
+            "custom_components.polleninformation.sensor.async_get_language_block",
+            AsyncMock(side_effect=_block),
+        ),
+    ):
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+    return entry
+
+
+def _recorded_latin(ent_reg, entity_id):
+    """The latin name a registry row records for itself, or None."""
+    entry = ent_reg.async_get(entity_id)
+    assert entry is not None, entity_id
+    return (entry.options.get(DOMAIN) or {}).get("latin")
+
+
+class TestTheRegistryRowRecordsWhichAllergenItIs:
+    """The registry keeps nothing that says which allergen a row is.
+
+    A slug no map can place is checkable against nothing, so a rename
+    candidate has had to be trusted on its name alone. Per-entity options
+    under this integration's domain are where something of ours survives a
+    restart, so that is where the latin name goes.
+    """
+
+    @staticmethod
+    def _response(*poll_titles):
+        return {
+            "contamination": [
+                {"poll_title": title, "contamination_1": 2} for title in poll_titles
+            ],
+            "allergyrisk": {},
+            "allergyrisk_hourly": {},
+        }
+
+    async def test_a_newly_created_sensor_records_its_allergen(self, hass):
+        await _setup_through_the_platform(
+            hass, "de", self._response("Beifu\u00df (Artemisia)")
+        )
+
+        ent_reg = er.async_get(hass)
+        assert (
+            _recorded_latin(ent_reg, "sensor.polleninformation_hamburg_mugwort")
+            == "Artemisia"
+        )
+
+    async def test_a_row_that_already_existed_is_recorded_too(self, hass):
+        # The backfill. An installation upgrading into this has a row for
+        # every allergen it has ever seen and an option on none of them, so
+        # recording only what is created afterwards would leave the whole
+        # existing population unaccounted for.
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        existing = ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            "polleninformation_hamburg_mugwort",
+            suggested_object_id="polleninformation_hamburg_mugwort",
+            config_entry=entry,
+        )
+        assert existing.options.get(DOMAIN) is None
+
+        await _setup_through_the_platform(
+            hass, "de", self._response("Beifu\u00df (Artemisia)"), entry=entry
+        )
+
+        assert (
+            _recorded_latin(ent_reg, "sensor.polleninformation_hamburg_mugwort")
+            == "Artemisia"
+        )
+
+    async def test_recording_the_same_allergen_again_writes_nothing(self, hass):
+        entry = await _setup_through_the_platform(
+            hass, "de", self._response("Beifu\u00df (Artemisia)")
+        )
+        ent_reg = er.async_get(hass)
+        entity_id = "sensor.polleninformation_hamburg_mugwort"
+        before = ent_reg.async_get(entity_id).modified_at
+
+        writes = []
+
+        @callback
+        def _seen(event):
+            if "options" in event.data.get("changes", {}):
+                writes.append(event.data["entity_id"])
+
+        hass.bus.async_listen(er.EVENT_ENTITY_REGISTRY_UPDATED, _seen)
+
+        await hass.config_entries.async_unload(entry.entry_id)
+        await _setup_through_the_platform(
+            hass, "de", self._response("Beifu\u00df (Artemisia)"), entry=entry
+        )
+
+        assert writes == []
+        assert ent_reg.async_get(entity_id).modified_at == before
+
+    async def test_the_genus_a_recreated_sensor_knows_does_not_overwrite_a_species(
+        self, hass
+    ):
+        # The two paths that can name this allergen disagree in detail: the
+        # response can send a species, while a sensor rebuilt from its slug
+        # can only name the genus. They mean the same allergen, so neither
+        # may keep rewriting the other.
+        entry = await _setup_through_the_platform(
+            hass, "de", self._response("Beifu\u00df (Artemisia vulgaris)")
+        )
+        ent_reg = er.async_get(hass)
+        entity_id = "sensor.polleninformation_hamburg_mugwort"
+        assert _recorded_latin(ent_reg, entity_id) == "Artemisia vulgaris"
+
+        await hass.config_entries.async_unload(entry.entry_id)
+        await _setup_through_the_platform(
+            hass, "de", self._response("Beifu\u00df (Artemisia)"), entry=entry
+        )
+
+        assert _recorded_latin(ent_reg, entity_id) == "Artemisia vulgaris"
+
+    async def test_nothing_else_on_the_row_is_disturbed(self, hass):
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            "polleninformation_hamburg_mugwort",
+            suggested_object_id="polleninformation_hamburg_mugwort",
+            config_entry=entry,
+        )
+        entity_id = "sensor.polleninformation_hamburg_mugwort"
+        ent_reg.async_update_entity(entity_id, name="My mugwort", icon="mdi:custom")
+        # Another integration's options, which this must carry across
+        # untouched: async_update_entity_options replaces one domain's key
+        # and leaves the rest of the mapping alone.
+        ent_reg.async_update_entity_options(
+            entity_id, "conversation", {"should_expose": False}
+        )
+
+        await _setup_through_the_platform(
+            hass, "de", self._response("Beifu\u00df (Artemisia)"), entry=entry
+        )
+
+        row = ent_reg.async_get(entity_id)
+        assert row.name == "My mugwort"
+        assert row.icon == "mdi:custom"
+        assert row.options["conversation"] == {"should_expose": False}
+        assert row.options[DOMAIN]["latin"] == "Artemisia"
+
+    async def test_an_allergen_this_response_does_not_carry_records_nothing(self, hass):
+        # Nothing identified this row's allergen in this response, so nothing
+        # is known about it that was not known before.
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            "polleninformation_hamburg_birch",
+            suggested_object_id="polleninformation_hamburg_birch",
+            config_entry=entry,
+        )
+
+        await _setup_through_the_platform(
+            hass, "de", self._response("Beifu\u00df (Artemisia)"), entry=entry
+        )
+
+        assert (
+            _recorded_latin(ent_reg, "sensor.polleninformation_hamburg_birch") is None
+        )
+
+    async def test_a_disabled_row_is_recorded_too(self, hass):
+        # An entity disabled in the registry is aborted before it is added,
+        # so it never hears that it was added and could never record itself.
+        # The row is there and the response identifies its allergen; only the
+        # entity is missing. Left unrecorded it would stay unprotected for as
+        # long as it stayed disabled.
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        disabled = ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            "polleninformation_hamburg_mugwort",
+            suggested_object_id="polleninformation_hamburg_mugwort",
+            config_entry=entry,
+            disabled_by=er.RegistryEntryDisabler.USER,
+        )
+        assert disabled.disabled
+
+        await _setup_through_the_platform(
+            hass, "de", self._response("Beifu\u00df (Artemisia)"), entry=entry
+        )
+
+        row = ent_reg.async_get("sensor.polleninformation_hamburg_mugwort")
+        assert row.disabled
+        assert row.options[DOMAIN]["latin"] == "Artemisia"
+
+    async def test_a_disabled_row_migrated_in_this_pass_is_recorded_after(self, hass):
+        # The ordering pin. A disabled row is never added as an entity, so the
+        # setup-side write is its only chance, and it is renamed in this same
+        # pass. Only a write that runs AFTER the migration finds it: before,
+        # nothing carries the canonical unique_id this resolves rows by, and
+        # the row would be left unrecorded exactly as it was.
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        legacy = ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            "polleninformation_hamburg_foo",
+            suggested_object_id="polleninformation_hamburg_foo",
+            config_entry=entry,
+            disabled_by=er.RegistryEntryDisabler.USER,
+        )
+
+        await _setup_through_the_platform(
+            hass, "de", self._response("Foo (Betula)"), entry=entry
+        )
+
+        migrated = ent_reg.async_get("sensor.polleninformation_hamburg_birch")
+        assert migrated is not None
+        assert migrated.id == legacy.id
+        assert migrated.disabled
+        assert migrated.options[DOMAIN]["latin"] == "Betula"
+
+    async def test_a_refused_row_keeps_its_own_record(self, hass):
+        # A refused row is not then recorded as the allergen that was refused
+        # it. Nothing looks it up under its own legacy slug, and the write
+        # site resolves rows by canonical unique_id only, so the record it
+        # carries is the one thing about it nothing in this pass can rewrite.
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        legacy = ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            "polleninformation_hamburg_foo",
+            suggested_object_id="polleninformation_hamburg_foo",
+            config_entry=entry,
+        )
+        ent_reg.async_update_entity_options(
+            legacy.entity_id, DOMAIN, {"latin": "Nonexistentia"}
+        )
+
+        await _setup_through_the_platform(
+            hass, "de", self._response("Foo (Betula)"), entry=entry
+        )
+
+        kept = ent_reg.async_get("sensor.polleninformation_hamburg_foo")
+        assert kept is not None
+        assert kept.id == legacy.id
+        assert kept.options[DOMAIN]["latin"] == "Nonexistentia"
+
+    async def test_a_sensor_recreated_during_an_outage_records_nothing(self, hass):
+        # Such a sensor derived its latin name from its own slug, so
+        # recording it would write down the assumption the record exists to
+        # check rather than anything the API said.
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            "polleninformation_hamburg_mugwort",
+            suggested_object_id="polleninformation_hamburg_mugwort",
+            config_entry=entry,
+        )
+
+        await _setup_through_the_platform(
+            hass,
+            "de",
+            {"contamination": [], "allergyrisk": {}, "allergyrisk_hourly": {}},
+            entry=entry,
+        )
+
+        assert (
+            _recorded_latin(ent_reg, "sensor.polleninformation_hamburg_mugwort") is None
+        )
+
+
+class TestARenameThatContradictsWhatTheRowRecords:
+    """The slug guard covers known allergens; this covers the rest.
+
+    A candidate whose slug is another allergen's canonical slug is refused
+    already, because known is detectable. A slug no map can place is not, and
+    those are the rows the escape hatch keeps making: "Foo" was some allergen
+    when its row was created, and a response titled "Foo (Betula)" claims it
+    for birch now. What the row records about itself is the only thing that
+    can tell the two apart, and it is the only thing that outlives the
+    response.
+    """
+
+    @staticmethod
+    def _response(poll_title):
+        return {
+            "contamination": [{"poll_title": poll_title, "contamination_1": 2}],
+            "allergyrisk": {},
+            "allergyrisk_hourly": {},
+        }
+
+    @staticmethod
+    def _register(hass, slug, latin=None):
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        registered = ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            f"polleninformation_hamburg_{slug}",
+            suggested_object_id=f"polleninformation_hamburg_{slug}",
+            config_entry=entry,
+        )
+        if latin is not None:
+            ent_reg.async_update_entity_options(
+                registered.entity_id, DOMAIN, {"latin": latin}
+            )
+        return entry, ent_reg, registered.id
+
+    async def test_the_recorded_allergen_keeps_its_row(self, hass):
+        # Nonexistentia is in no map, which is the point: this row belongs to
+        # the population the slug guard cannot speak for, and reading the
+        # record through the allergen slugs would call it unknown and migrate
+        # it anyway.
+        entry, ent_reg, foo_id = self._register(hass, "foo", latin="Nonexistentia")
+
+        await _setup_with_shipped_blocks(
+            hass, "de", self._response("Foo (Betula)"), entry=entry
+        )
+
+        kept = ent_reg.async_get("sensor.polleninformation_hamburg_foo")
+        assert kept is not None
+        assert kept.id == foo_id
+        assert kept.unique_id == "polleninformation_hamburg_foo"
+
+    async def test_the_refusal_is_logged(self, hass, caplog):
+        entry, _, _ = self._register(hass, "foo", latin="Nonexistentia")
+
+        with caplog.at_level(logging.WARNING):
+            await _setup_with_shipped_blocks(
+                hass, "de", self._response("Foo (Betula)"), entry=entry
+            )
+
+        assert [
+            r
+            for r in caplog.records
+            if "recorded as" in r.getMessage() and "Nonexistentia" in r.getMessage()
+        ]
+
+    async def test_a_row_that_records_nothing_is_migrated_as_before(self, hass):
+        # Every row on every installation that upgrades into this. Absent has
+        # to mean unknown, or the feature would arrive by breaking the
+        # migration for everyone who has not run it yet.
+        entry, ent_reg, foo_id = self._register(hass, "foo")
+
+        await _setup_with_shipped_blocks(
+            hass, "de", self._response("Foo (Betula)"), entry=entry
+        )
+
+        migrated = ent_reg.async_get("sensor.polleninformation_hamburg_birch")
+        assert migrated is not None
+        assert migrated.id == foo_id
+
+    async def test_a_row_recording_this_same_allergen_is_migrated(self, hass):
+        entry, ent_reg, foo_id = self._register(hass, "foo", latin="Betula")
+
+        await _setup_with_shipped_blocks(
+            hass, "de", self._response("Foo (Betula)"), entry=entry
+        )
+
+        migrated = ent_reg.async_get("sensor.polleninformation_hamburg_birch")
+        assert migrated is not None
+        assert migrated.id == foo_id
+
+    async def test_a_species_does_not_contradict_its_own_genus(self, hass):
+        # The response can name a species where the record holds the genus,
+        # or the reverse. They are the same allergen and must not read as a
+        # contradiction.
+        entry, ent_reg, foo_id = self._register(hass, "foo", latin="Betula pendula")
+
+        await _setup_with_shipped_blocks(
+            hass, "de", self._response("Foo (Betula)"), entry=entry
+        )
+
+        migrated = ent_reg.async_get("sensor.polleninformation_hamburg_birch")
+        assert migrated is not None
+        assert migrated.id == foo_id
+
+    async def test_an_unknown_name_does_not_contradict_its_own_genus(self, hass):
+        # The counterpart of the test above for a name no map carries, which
+        # is the whole population this guard exists for. The API sends the
+        # genus in one language and the genus with a species in another, and
+        # one allergen must not read as two, or the migration is refused
+        # naming the allergen it actually is.
+        entry, ent_reg, foo_id = self._register(
+            hass, "foo", latin="Nonexistentia vulgaris"
+        )
+
+        migrate_localized_allergen_ids(
+            hass, "hamburg", [("foo", "birch", "Nonexistentia")]
+        )
+
+        migrated = ent_reg.async_get("sensor.polleninformation_hamburg_birch")
+        assert migrated is not None
+        assert migrated.id == foo_id
+        assert entry.entry_id
+
+    async def test_two_unmapped_names_sharing_a_first_word_fold_together(self, hass):
+        # THE PRICE of folding, and the only test that charges it. Two
+        # DIFFERENT unmapped allergens whose latin names share a genus are one
+        # allergen to this integration, so a rename the old rule refused now
+        # goes through. That is the trade taken deliberately: a genus is what
+        # this integration means by an allergen everywhere else, and the
+        # alternative made every unmapped allergen contradict itself whenever
+        # the API varied its spelling.
+        _, ent_reg, foo_id = self._register(hass, "foo", latin="Nonexistentia bar")
+
+        migrate_localized_allergen_ids(
+            hass, "hamburg", [("foo", "birch", "Nonexistentia baz")]
+        )
+
+        migrated = ent_reg.async_get("sensor.polleninformation_hamburg_birch")
+        assert migrated is not None
+        assert migrated.id == foo_id
+
+    async def test_two_unmapped_names_sharing_nothing_still_contradict(self, hass):
+        # The limit of the fold: only the FIRST word folds, so names that do
+        # not share one are still two allergens. This held before the fold as
+        # well, and it is here to catch a future widening of the rule rather
+        # than to charge its price.
+        _, ent_reg, foo_id = self._register(hass, "foo", latin="Nonexistentia")
+
+        migrate_localized_allergen_ids(hass, "hamburg", [("foo", "birch", "Alia")])
+
+        kept = ent_reg.async_get("sensor.polleninformation_hamburg_foo")
+        assert kept is not None
+        assert kept.id == foo_id
+
+    async def test_a_claim_that_names_no_allergen_is_not_a_contradiction(self, hass):
+        # Unknown on the claiming side is unknown too, never mismatch. Setup
+        # cannot currently queue such a rename -- an entry with no latin name
+        # is slugged from its display name, which is then the slug it already
+        # has -- so the migration is called directly rather than through a
+        # response that cannot produce this.
+        _, ent_reg, foo_id = self._register(hass, "foo", latin="Nonexistentia")
+
+        migrate_localized_allergen_ids(hass, "hamburg", [("foo", "birch", "")])
+
+        migrated = ent_reg.async_get("sensor.polleninformation_hamburg_birch")
+        assert migrated is not None
+        assert migrated.id == foo_id
+
+
+class TestALegacyCandidateFromTheLiveResponse:
+    """The candidate comes from the RESPONSE, so no test over the map binds it.
+
+    poll_title_local is whatever the API sent, and the English-block name
+    falls back to it whenever the block has no entry for the latin, which is
+    the case for the ten allergens the map does not cover. A title like
+    "Birch (Artemisia)" resolves to mugwort while its display name slugs to
+    birch, so the candidate would have renamed the birch row, taking that
+    allergen's history with it. Nothing creates a duplicate here and nothing
+    reverses it afterwards.
+    """
+
+    @staticmethod
+    def _response(poll_title):
+        return {
+            "contamination": [{"poll_title": poll_title, "contamination_1": 2}],
+            "allergyrisk": {},
+            "allergyrisk_hourly": {},
+        }
+
+    @staticmethod
+    def _register(hass, slug):
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        registered = ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            f"polleninformation_hamburg_{slug}",
+            suggested_object_id=f"polleninformation_hamburg_{slug}",
+            config_entry=entry,
+        )
+        return entry, ent_reg, registered.id
+
+    async def test_the_other_allergens_row_is_left_alone(self, hass):
+        entry, ent_reg, birch_id = self._register(hass, "birch")
+
+        await _setup_with_shipped_blocks(
+            hass, "de", self._response("Birch (Artemisia)"), entry=entry
+        )
+
+        kept = ent_reg.async_get("sensor.polleninformation_hamburg_birch")
+        assert kept is not None
+        assert kept.id == birch_id
+        assert kept.unique_id == "polleninformation_hamburg_birch"
+
+    async def test_no_mugwort_row_is_manufactured_from_it(self, hass):
+        entry, ent_reg, _ = self._register(hass, "birch")
+
+        await _setup_with_shipped_blocks(
+            hass, "de", self._response("Birch (Artemisia)"), entry=entry
+        )
+
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_mugwort"
+            )
+            is None
+        )
+
+    async def test_the_refusal_is_logged(self, hass, caplog):
+        entry, _, _ = self._register(hass, "birch")
+
+        with caplog.at_level(logging.WARNING):
+            await _setup_with_shipped_blocks(
+                hass, "de", self._response("Birch (Artemisia)"), entry=entry
+            )
+
+        assert [
+            r
+            for r in caplog.records
+            if "another allergen" in r.getMessage() and "birch" in r.getMessage()
+        ]
+
+    async def test_the_same_holds_for_an_allergen_the_map_does_not_cover(self, hass):
+        # The English-block candidate, which falls back to the display name
+        # when the block has no entry for the latin. Quercus is one of ten
+        # such allergens, so this shape reaches the same line by the other
+        # route, and it did so before the display-name candidate existed.
+        entry, ent_reg, birch_id = self._register(hass, "birch")
+
+        await _setup_with_shipped_blocks(
+            hass, "de", self._response("Birch (Quercus)"), entry=entry
+        )
+
+        kept = ent_reg.async_get("sensor.polleninformation_hamburg_birch")
+        assert kept is not None
+        assert kept.id == birch_id
+
+    async def test_a_localized_name_normalizing_onto_another_allergen(self, hass):
+        # The realistic route, and the one that needs no English from the API
+        # at all: the shipped Latvian name for olive is "Olīve", which
+        # slugify folds to "olive", a canonical slug. It lands on its own
+        # allergen today. Sent for a DIFFERENT allergen it would claim the
+        # olive row, so the guard has to refuse it on the slug rather than on
+        # the language it looks like.
+        entry, ent_reg, olive_id = self._register(hass, "olive")
+
+        await _setup_with_shipped_blocks(
+            hass, "lv", self._response("Olīve (Betula)"), entry=entry
+        )
+
+        kept = ent_reg.async_get("sensor.polleninformation_hamburg_olive")
+        assert kept is not None
+        assert kept.id == olive_id
+        assert kept.unique_id == "polleninformation_hamburg_olive"
+
+    @pytest.mark.parametrize(
+        ("lang", "poll_title", "slug"),
+        [
+            # The three entries in the shipped map whose display name already
+            # slugifies to a canonical allergen slug. Each lands on its OWN
+            # allergen, so each must keep working: the guard refuses a
+            # candidate that names a DIFFERENT allergen, not one that agrees.
+            ("de", "Ragweed (Ambrosia)", "ragweed"),
+            ("sk", "Ragweed (Ambrosia)", "ragweed"),
+            ("lv", "Olīve (Olea)", "olive"),
+        ],
+    )
+    async def test_the_shipped_near_collisions_keep_their_own_row(
+        self, hass, lang, poll_title, slug
+    ):
+        entry, ent_reg, original_id = self._register(hass, slug)
+
+        await _setup_with_shipped_blocks(
+            hass, lang, self._response(poll_title), entry=entry
+        )
+
+        kept = ent_reg.async_get(f"sensor.polleninformation_hamburg_{slug}")
+        assert kept is not None
+        assert kept.id == original_id
+        assert kept.unique_id == f"polleninformation_hamburg_{slug}"
+
+    async def test_an_ordinary_localized_name_is_still_migrated(self, hass):
+        # The guard may not cost the migration its actual job: "Beifuß" is
+        # nobody else's canonical slug, so it is still a candidate.
+        entry, ent_reg, original_id = self._register(hass, "beifuss")
+
+        await _setup_with_shipped_blocks(
+            hass, "de", self._response("Beifuß (Artemisia)"), entry=entry
+        )
+
+        migrated = ent_reg.async_get("sensor.polleninformation_hamburg_mugwort")
+        assert migrated is not None
+        assert migrated.id == original_id
+
+
+class TestNoLegacyCandidateCanClaimAnotherAllergen:
+    """A rename candidate that does not exist is free; one that collides is not.
+
+    The legacy candidates include the slug of the raw display name, so if any
+    language called an allergen something that slugifies to a DIFFERENT
+    allergen's canonical slug, setup would queue a rename that moves that
+    other allergen's entity onto this one. Nothing in the map does that today.
+    It is pinned because the map is data and regenerating it is a data change
+    that no code review would show, which is how the bug this fixes arrived.
+    """
+
+    @staticmethod
+    def _entries():
+        for block in SHIPPED_LANGUAGE_MAP.values():
+            lang = block.get("lang_code")
+            for entry in block.get("poll_titles", []):
+                yield lang, entry
+
+    def test_no_display_name_slugs_to_another_allergen(self):
+        collisions = [
+            (lang, entry["name"], slugify(capitalize_first(entry["name"])))
+            for lang, entry in self._entries()
+            if slugify(capitalize_first(entry["name"])) in KNOWN_ALLERGEN_SLUGS
+            and slugify(capitalize_first(entry["name"]))
+            != slugify(english_name_for_latin(entry["latin"]) or "")
+        ]
+        assert collisions == []
+
+    def test_no_two_allergens_in_one_language_share_a_display_slug(self):
+        # The other way a candidate could move the wrong entity: two entries
+        # in one language producing the same legacy slug for two canonical
+        # slugs, so whichever renames first takes the other's entity.
+        for block in SHIPPED_LANGUAGE_MAP.values():
+            seen = {}
+            for entry in block.get("poll_titles", []):
+                seen.setdefault(slugify(capitalize_first(entry["name"])), []).append(
+                    entry["name"]
+                )
+            assert all(len(names) == 1 for names in seen.values()), (
+                block.get("lang_code"),
+                {k: v for k, v in seen.items() if len(v) > 1},
+            )
+
+    def test_every_recorded_latin_still_resolves_to_a_known_allergen(self):
+        # What the collision test rests on: a display name is compared against
+        # the canonical slug its latin name resolves to, so that resolution
+        # has to exist for every entry.
+        unresolved = [
+            (lang, entry["name"], entry["latin"])
+            for lang, entry in self._entries()
+            if english_name_for_latin(entry["latin"]) is None
+        ]
+        assert unresolved == []
+
+
+class TestMigrationAgainstTheShippedMap:
+    """The migration under the configuration we actually ship.
+
+    Every other migration test hands setup an EMPTY language block, so the
+    latin backfill finds nothing and the legacy slug falls out of the display
+    name by default. With the real map the backfill DOES find a latin, the
+    English-block lookup then succeeds, and the legacy name becomes the
+    English one: identical to the canonical name, so no rename was queued and
+    the user's entity was orphaned beside a new one. The data changed what the
+    code did, which is why reading the code did not show it.
+    """
+
+    @staticmethod
+    def _register(hass, lang, slug):
+        entry = _make_entry(lang)
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        registered = ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            f"polleninformation_hamburg_{slug}",
+            suggested_object_id=f"polleninformation_hamburg_{slug}",
+            config_entry=entry,
+        )
+        return entry, ent_reg, registered.id
+
+    async def test_a_spanish_install_is_migrated(self, hass):
+        entry, ent_reg, _ = self._register(hass, "es", "artemisia")
+
+        await _setup_with_shipped_blocks(
+            hass, "es", SPANISH_MUGWORT_RESPONSE, entry=entry
+        )
+
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_mugwort"
+            )
+            == "sensor.polleninformation_hamburg_mugwort"
+        )
+        assert (
+            ent_reg.async_get_entity_id(
+                "sensor", DOMAIN, "polleninformation_hamburg_artemisia"
+            )
+            is None
+        )
+
+    async def test_the_registry_row_is_the_same_row(self, hass):
+        # The point of migrating rather than recreating: the history hangs off
+        # the registry id, so a new row beside the old one loses it.
+        entry, ent_reg, original_id = self._register(hass, "es", "artemisia")
+
+        await _setup_with_shipped_blocks(
+            hass, "es", SPANISH_MUGWORT_RESPONSE, entry=entry
+        )
+
+        migrated = ent_reg.async_get("sensor.polleninformation_hamburg_mugwort")
+        assert migrated is not None
+        assert migrated.id == original_id
+
+    async def test_only_one_entity_remains_for_the_allergen(self, hass):
+        entry, ent_reg, _ = self._register(hass, "es", "artemisia")
+
+        await _setup_with_shipped_blocks(
+            hass, "es", SPANISH_MUGWORT_RESPONSE, entry=entry
+        )
+
+        rows = [
+            e
+            for e in er.async_entries_for_config_entry(ent_reg, entry.entry_id)
+            if e.unique_id
+            and e.unique_id.startswith("polleninformation_hamburg_")
+            and not e.unique_id.endswith(("allergy_risk", "allergy_risk_hourly"))
+        ]
+        assert len(rows) == 1
+
+    async def test_an_italian_install_is_migrated_too(self, hass):
+        # The same shape in another language: the API sends the latin genus as
+        # the display name, so a pre-0.5.5 install could hold "..._ambrosia".
+        entry, ent_reg, original_id = self._register(hass, "it", "ambrosia")
+
+        await _setup_with_shipped_blocks(
+            hass, "it", ITALIAN_RAGWEED_RESPONSE, entry=entry
+        )
+
+        migrated = ent_reg.async_get("sensor.polleninformation_hamburg_ragweed")
+        assert migrated is not None
+        assert migrated.id == original_id
+
+    async def test_a_localized_name_is_still_migrated(self, hass):
+        # The case the old tests covered, re-run against the real map so the
+        # fix cannot buy the new case at its expense.
+        entry, ent_reg, original_id = self._register(hass, "de", "birke")
+
+        await _setup_with_shipped_blocks(
+            hass,
+            "de",
+            {
+                "contamination": [
+                    {"poll_title": "Birke (Betula)", "contamination_1": 2},
+                ],
+                "allergyrisk": {},
+                "allergyrisk_hourly": {},
+            },
+            entry=entry,
+        )
+
+        migrated = ent_reg.async_get("sensor.polleninformation_hamburg_birch")
+        assert migrated is not None
+        assert migrated.id == original_id
+
+    async def test_an_install_already_on_the_canonical_slug_is_left_alone(self, hass):
+        entry, ent_reg, original_id = self._register(hass, "es", "mugwort")
+
+        await _setup_with_shipped_blocks(
+            hass, "es", SPANISH_MUGWORT_RESPONSE, entry=entry
+        )
+
+        kept = ent_reg.async_get("sensor.polleninformation_hamburg_mugwort")
+        assert kept is not None
+        assert kept.id == original_id
 
 
 # An allergen whose latin name the static map does not know, but whose display
@@ -2240,6 +3120,13 @@ class TestANonObjectEntryCostsOnlyItself:
         assert len(sensor.extra_state_attributes["forecast"]) == 4
 
 
+NAMED_BIRCH_RESPONSE = {
+    "contamination": [{"poll_title": "Birke", "contamination_1": 3}],
+    "allergyrisk": {"allergyrisk_1": 5.0},
+    "allergyrisk_hourly": {"allergyrisk_hourly_1": [5.0] * 24},
+}
+
+
 class TestTheLanguageMapIsReadDefensively:
     """The shipped map is an input too, and the only one nothing type checks.
 
@@ -2249,14 +3136,6 @@ class TestTheLanguageMapIsReadDefensively:
     inside setup and take the whole config entry down: every sensor for the
     location, for a bad row in a file the user can edit.
     """
-
-    RESPONSE = {
-        "contamination": [
-            {"poll_title": "Birke", "contamination_1": 3},
-        ],
-        "allergyrisk": {"allergyrisk_1": 5.0},
-        "allergyrisk_hourly": {"allergyrisk_hourly_1": [5.0] * 24},
-    }
 
     @pytest.mark.parametrize(
         "block",
@@ -2270,7 +3149,7 @@ class TestTheLanguageMapIsReadDefensively:
     )
     async def test_setup_survives_a_map_of_the_wrong_shape(self, hass, block):
         entities = await _setup_entities(
-            hass, "de", response=self.RESPONSE, language_block=block
+            hass, "de", response=NAMED_BIRCH_RESPONSE, language_block=block
         )
 
         # The entry still becomes a sensor; only its latin name is missing.
@@ -2280,7 +3159,7 @@ class TestTheLanguageMapIsReadDefensively:
         entities = await _setup_entities(
             hass,
             "de",
-            response=self.RESPONSE,
+            response=NAMED_BIRCH_RESPONSE,
             language_block={"poll_titles": [{"name": "Birke", "latin": "Betula"}]},
         )
         sensor = _by_type(entities, PolleninformationSensor)
@@ -2483,6 +3362,19 @@ class TestTheHourlyReaderTakesAnyShape:
         assert len(sensor.extra_state_attributes["forecast"]) == 3
 
 
+UNREADABLE_RISK_RESPONSE = {
+    "contamination": [{"poll_title": "()"}, {"poll_title": ""}],
+    "allergyrisk": {"error": "upstream failure"},
+    "allergyrisk_hourly": {},
+}
+
+READABLE_RISK_RESPONSE = {
+    "contamination": [{"poll_title": "()"}],
+    "allergyrisk": {"allergyrisk_1": 7.0},
+    "allergyrisk_hourly": {"allergyrisk_hourly_1": [7.0] * 24},
+}
+
+
 class TestARiskBlockWithNothingReadable:
     """Nonempty is not usable, one level deeper than last time.
 
@@ -2491,18 +3383,6 @@ class TestARiskBlockWithNothingReadable:
     is an object, so the outage was cleared, the pollen sensors were
     recreated for want of data, and nothing carried the marker.
     """
-
-    UNREADABLE = {
-        "contamination": [{"poll_title": "()"}, {"poll_title": ""}],
-        "allergyrisk": {"error": "upstream failure"},
-        "allergyrisk_hourly": {},
-    }
-
-    READABLE = {
-        "contamination": [{"poll_title": "()"}],
-        "allergyrisk": {"allergyrisk_1": 7.0},
-        "allergyrisk_hourly": {"allergyrisk_hourly_1": [7.0] * 24},
-    }
 
     async def _with_registered(self, hass, response):
         entry = _make_entry("de")
@@ -2526,14 +3406,17 @@ class TestARiskBlockWithNothingReadable:
         )
 
     async def test_the_sensors_carry_the_marker(self, hass):
-        entities = await self._with_registered(hass, self.UNREADABLE)
+        entities = await self._with_registered(hass, UNREADABLE_RISK_RESPONSE)
         sensor = _by_type(entities, PolleninformationSensor)
 
         assert sensor.extra_state_attributes["data_stale"] is True
 
     async def test_no_risk_sensor_is_built_from_it(self, hass):
         entities = await _setup_entities(
-            hass, "de", response=self.UNREADABLE, language_block=EMPTY_LANGUAGE_BLOCK
+            hass,
+            "de",
+            response=UNREADABLE_RISK_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
         )
         unique_ids = {e.unique_id for e in entities if e.unique_id}
 
@@ -2542,7 +3425,10 @@ class TestARiskBlockWithNothingReadable:
     async def test_a_readable_reading_beside_unusable_pollen_still_survives(self, hass):
         # ORDER #21 A restored this; it must not regress.
         entities = await _setup_entities(
-            hass, "de", response=self.READABLE, language_block=EMPTY_LANGUAGE_BLOCK
+            hass,
+            "de",
+            response=READABLE_RISK_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
         )
         risk = _by_type(entities, AllergyRiskSensor)
 
@@ -2552,7 +3438,7 @@ class TestARiskBlockWithNothingReadable:
     async def test_reading_an_unreadable_block_reports_unknown(self, hass):
         entities = await _setup_entities(hass, "de")
         risk = _by_type(entities, AllergyRiskSensor)
-        risk.coordinator.data = self.UNREADABLE
+        risk.coordinator.data = UNREADABLE_RISK_RESPONSE
 
         assert risk.native_value is None
 
