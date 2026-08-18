@@ -399,10 +399,60 @@ class TestLoadDb:
         assert "not valid JSON" in str(excinfo.value)
 
 
+class TestRunRepairReachesTheValidator:
+    """The entry point may not decide what the validator gets to see.
+
+    `if not db` sent every falsy root down the "nothing to repair" path: a
+    file holding [], "", 0, false or null was reported as an empty database,
+    which is the one answer that is certainly wrong for the mode whose job is
+    to diagnose a malformed file.
+    """
+
+    @staticmethod
+    def _run(script, monkeypatch, capsys, db):
+        monkeypatch.setattr(script, "load_db", lambda: db)
+        script.run_repair()
+        return capsys.readouterr().out
+
+    @pytest.mark.parametrize("db", [[], "", 0, False, None, ["sk"], "oops", 42])
+    def test_a_non_dict_root_reaches_the_validator(
+        self, script, monkeypatch, capsys, db
+    ):
+        out = self._run(script, monkeypatch, capsys, db)
+
+        assert "root" in out
+        assert "No languages" not in out
+
+    def test_an_empty_database_is_not_a_malformed_one(
+        self, script, monkeypatch, capsys
+    ):
+        # A missing file reads as {} too, and that is the ordinary first run.
+        out = self._run(script, monkeypatch, capsys, {})
+
+        assert "No languages" in out
+        assert "root" not in out
+
+    def test_a_good_database_is_repaired_as_before(self, script, monkeypatch, capsys):
+        db = {
+            "sk": {
+                "lang_code": "sk",
+                "poll_titles": [{"name": "Trávy", "latin": "Poaceae"}],
+            }
+        }
+        out = self._run(script, monkeypatch, capsys, db)
+
+        assert "Nothing to repair" in out
+
+
 class TestRepairDbRoot:
     """The level above the per-language checks: the file's own root."""
 
-    @pytest.mark.parametrize("db", [["sk"], "oops", 42, True])
+    @pytest.mark.parametrize(
+        "db",
+        # Truthy and falsy alike: the validator never saw the falsy ones,
+        # because the entry point above returned before calling it.
+        [["sk"], "oops", 42, True, [], "", 0, False, None],
+    )
     def test_a_root_that_is_not_an_object_is_reported(self, script, db):
         changes, warnings = script.repair_db(db)
 

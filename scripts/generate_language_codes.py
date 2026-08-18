@@ -419,10 +419,19 @@ def repair_db(db):
 
 
 def run_repair():
-    """Revalidate the whole db offline and save it if anything changed."""
+    """Revalidate the whole db offline and save it if anything changed.
+
+    The only thing decided here is the message for a database that is empty
+    or absent. Everything else goes to repair_db unexamined, because an entry
+    point that judges the data before the validator sees it can silently
+    exclude the very shapes the validator exists to report: `if not db` sent
+    every falsy root, a file holding [] or "" or 0 or false or null, down the
+    "nothing to repair" path, which is the one answer that was certainly
+    wrong.
+    """
     db = load_db()
-    if not db:
-        print(f"No {DB_FILE} to repair.")
+    if isinstance(db, dict) and not db:
+        print(f"No languages in {DB_FILE} to repair.")
         return
 
     changes, warnings = repair_db(db)
