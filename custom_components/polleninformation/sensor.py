@@ -173,6 +173,17 @@ def english_name_for_latin(latin: str | None) -> str | None:
     return index.get(key.split()[0]) if key.split() else None
 
 
+def english_name_for_display_name(name: str | None) -> str | None:
+    """Return the English allergen name for a display name that IS a latin name.
+
+    Unlike english_name_for_latin this does not fall back to the first token:
+    a display name that merely begins with a genus is prose, not an identity.
+    A latin name the map knows is matched whole, genus-plus-species keys
+    included.
+    """
+    return _latin_name_index().get(name.strip().lower()) if name else None
+
+
 @lru_cache(maxsize=1)
 def _slug_index() -> dict[str, tuple[str, str]]:
     """Canonical English name and latin name per allergen slug."""
@@ -191,17 +202,13 @@ def allergen_slug_for_item(item: dict) -> str | None:
     poll_title = item.get("poll_title", "")
     if "(" in poll_title and ")" in poll_title:
         latin = poll_title.split("(", 1)[1].split(")", 1)[0].strip()
+        name_en = english_name_for_latin(latin)
     else:
-        # No latin at all: the API sometimes sends the latin genus as the
+        # No latin at all: the API sometimes sends the latin name as the
         # display name instead (e.g. "Artemisia"), so the name itself is the
         # last chance to identify the entry. Only tried when no latin was
-        # sent, so an entry that carries one is identified by that alone, and
-        # only for a single word, since a genus is one word: prose that merely
-        # begins with a genus would otherwise resolve through the genus
-        # fallback in english_name_for_latin.
-        stripped = poll_title.strip()
-        latin = stripped if len(stripped.split()) == 1 else ""
-    name_en = english_name_for_latin(latin)
+        # sent, so an entry that carries one is identified by that alone.
+        name_en = english_name_for_display_name(poll_title)
     return slugify(name_en) if name_en else None
 
 

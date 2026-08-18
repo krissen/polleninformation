@@ -1676,6 +1676,21 @@ GENUS_PREFIXED_NAME_RESPONSE = {
 }
 
 
+BINOMIAL_NAME_RESPONSE = {
+    "contamination": [
+        {
+            "poll_title": "Ailanthus altissima",
+            "contamination_1": 2,
+            "contamination_2": 1,
+            "contamination_3": 0,
+            "contamination_4": 0,
+        }
+    ],
+    "allergyrisk": {},
+    "allergyrisk_hourly": {},
+}
+
+
 class TestStaleSensorRecovery:
     """A sensor recreated during an empty response must recover on any language."""
 
@@ -1753,6 +1768,18 @@ class TestStaleSensorRecovery:
         attrs = sensor.extra_state_attributes
         assert attrs["data_stale"] is True
         assert attrs["stale_since"] is not None
+
+    async def test_recovers_when_the_display_name_is_a_binomial_key(self, hass):
+        """A binomial key in the latin map: "Ailanthus altissima".
+
+        Counting words would reject it, but it is a latin name the map knows,
+        so a stale tree of heaven sensor must pick it up like any other.
+        """
+        sensor = await self._recreate(
+            hass, "de", "polleninformation_hamburg_tree_of_heaven"
+        )
+        sensor.coordinator.data = BINOMIAL_NAME_RESPONSE
+        assert sensor.native_value == "mäßig"
 
     async def test_a_two_word_name_starting_with_a_genus_does_not_match(self, hass):
         """The display-name lookup holds only for a name that IS the genus.
@@ -1865,3 +1892,4 @@ class TestStaleSinceFollowsTheCurrentOutage:
             attrs = sensor.extra_state_attributes
         assert attrs["data_stale"] is True
         assert attrs["stale_since"] == T2.isoformat()
+
