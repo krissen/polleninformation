@@ -159,6 +159,10 @@ def resolve_latin(name, latin):
        which is the shape reported in issue #71;
     4. anything else is warned about and recorded exactly as the API sent it.
 
+    An entry whose display name is blank is warned about too, and kept: a
+    title like "(Poaceae)" identifies its allergen, so dropping it would be
+    the mistake, but it leaves the file holding half a pairing.
+
     Rungs 1 to 3 all record a key of LATIN_TO_ENGLISH_NAME, never the string
     the API happened to send, because every consumer of this file matches a
     latin name exactly: an entry recorded as "Ambrosia artemisiifolia" is not
@@ -175,8 +179,17 @@ def resolve_latin(name, latin):
     something to tell us.
     """
     if latin and (canonical := canonical_latin(latin)):
+        # A title like "(Poaceae)" names the allergen but not in this
+        # language, so the entry is kept and the missing half is reported: the
+        # file's whole job is the pairing, and half of one is worth knowing
+        # about even though it identifies its allergen perfectly well.
+        blank_name_warning = (
+            f"the API sent {canonical!r} with no display name; recording the "
+            f"entry, but this language has no name for that allergen"
+        )
+        blank_name = [] if name else [blank_name_warning]
         if canonical == latin:
-            return latin, []
+            return latin, blank_name
         if latin.strip().lower() in LATIN_NAME_ALIASES:
             warning = (
                 f"{name!r}: the API sent {latin!r} where the latin name goes, "
@@ -187,7 +200,7 @@ def resolve_latin(name, latin):
                 f"{name!r}: the API spells the latin name {latin!r}; recording "
                 f"it as {canonical!r}, the spelling every lookup matches on"
             )
-        return canonical, [warning]
+        return canonical, blank_name + [warning]
 
     sent = f"latin name {latin!r}" if latin else "no latin name"
 

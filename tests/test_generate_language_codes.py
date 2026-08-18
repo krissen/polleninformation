@@ -119,6 +119,22 @@ class TestResolveLatin:
         assert len(warnings) == 1
         assert "Keeping it" in warnings[0]
 
+    def test_a_blank_display_name_is_kept_and_warned_about(self, script):
+        # "(Poaceae)" names its allergen, so dropping it would be the mistake,
+        # but the file holds half a pairing and that is worth reporting.
+        latin, warnings = script.resolve_latin("", "Poaceae")
+
+        assert latin == "Poaceae"
+        assert len(warnings) == 1
+        assert "no display name" in warnings[0]
+        assert "Poaceae" in warnings[0]
+
+    def test_a_blank_name_beside_a_spelling_fix_warns_about_both(self, script):
+        latin, warnings = script.resolve_latin("", "poaceae")
+
+        assert latin == "Poaceae"
+        assert len(warnings) == 2
+
     def test_unknown_latin_is_kept_as_sent_and_warned_about(self, script):
         latin, warnings = script.resolve_latin("Nässlor", "Nonexistentia")
         assert latin == "Nonexistentia"
@@ -193,6 +209,15 @@ class TestPollTitlesFromContamination:
         )
         assert len(poll_titles) == 1
         assert len(warnings) == 1
+
+    def test_a_title_that_is_only_a_latin_name_is_kept(self, script):
+        poll_titles, warnings = script.poll_titles_from_contamination(
+            [{"poll_title": "(Poaceae)", "poll_id": 5}]
+        )
+
+        assert poll_titles == [{"name": "", "latin": "Poaceae", "poll_id": 5}]
+        assert len(warnings) == 1
+        assert "no display name" in warnings[0]
 
     def test_display_names_are_kept_as_the_api_sent_them(self, script):
         poll_titles, _ = script.poll_titles_from_contamination(
