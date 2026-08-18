@@ -2442,6 +2442,13 @@ class TestANonObjectEntryCostsOnlyItself:
         assert len(sensor.extra_state_attributes["forecast"]) == 4
 
 
+NAMED_BIRCH_RESPONSE = {
+    "contamination": [{"poll_title": "Birke", "contamination_1": 3}],
+    "allergyrisk": {"allergyrisk_1": 5.0},
+    "allergyrisk_hourly": {"allergyrisk_hourly_1": [5.0] * 24},
+}
+
+
 class TestTheLanguageMapIsReadDefensively:
     """The shipped map is an input too, and the only one nothing type checks.
 
@@ -2451,14 +2458,6 @@ class TestTheLanguageMapIsReadDefensively:
     inside setup and take the whole config entry down: every sensor for the
     location, for a bad row in a file the user can edit.
     """
-
-    RESPONSE = {
-        "contamination": [
-            {"poll_title": "Birke", "contamination_1": 3},
-        ],
-        "allergyrisk": {"allergyrisk_1": 5.0},
-        "allergyrisk_hourly": {"allergyrisk_hourly_1": [5.0] * 24},
-    }
 
     @pytest.mark.parametrize(
         "block",
@@ -2472,7 +2471,7 @@ class TestTheLanguageMapIsReadDefensively:
     )
     async def test_setup_survives_a_map_of_the_wrong_shape(self, hass, block):
         entities = await _setup_entities(
-            hass, "de", response=self.RESPONSE, language_block=block
+            hass, "de", response=NAMED_BIRCH_RESPONSE, language_block=block
         )
 
         # The entry still becomes a sensor; only its latin name is missing.
@@ -2482,7 +2481,7 @@ class TestTheLanguageMapIsReadDefensively:
         entities = await _setup_entities(
             hass,
             "de",
-            response=self.RESPONSE,
+            response=NAMED_BIRCH_RESPONSE,
             language_block={"poll_titles": [{"name": "Birke", "latin": "Betula"}]},
         )
         sensor = _by_type(entities, PolleninformationSensor)
@@ -2685,6 +2684,19 @@ class TestTheHourlyReaderTakesAnyShape:
         assert len(sensor.extra_state_attributes["forecast"]) == 3
 
 
+UNREADABLE_RISK_RESPONSE = {
+    "contamination": [{"poll_title": "()"}, {"poll_title": ""}],
+    "allergyrisk": {"error": "upstream failure"},
+    "allergyrisk_hourly": {},
+}
+
+READABLE_RISK_RESPONSE = {
+    "contamination": [{"poll_title": "()"}],
+    "allergyrisk": {"allergyrisk_1": 7.0},
+    "allergyrisk_hourly": {"allergyrisk_hourly_1": [7.0] * 24},
+}
+
+
 class TestARiskBlockWithNothingReadable:
     """Nonempty is not usable, one level deeper than last time.
 
@@ -2693,18 +2705,6 @@ class TestARiskBlockWithNothingReadable:
     is an object, so the outage was cleared, the pollen sensors were
     recreated for want of data, and nothing carried the marker.
     """
-
-    UNREADABLE = {
-        "contamination": [{"poll_title": "()"}, {"poll_title": ""}],
-        "allergyrisk": {"error": "upstream failure"},
-        "allergyrisk_hourly": {},
-    }
-
-    READABLE = {
-        "contamination": [{"poll_title": "()"}],
-        "allergyrisk": {"allergyrisk_1": 7.0},
-        "allergyrisk_hourly": {"allergyrisk_hourly_1": [7.0] * 24},
-    }
 
     async def _with_registered(self, hass, response):
         entry = _make_entry("de")
@@ -2728,14 +2728,17 @@ class TestARiskBlockWithNothingReadable:
         )
 
     async def test_the_sensors_carry_the_marker(self, hass):
-        entities = await self._with_registered(hass, self.UNREADABLE)
+        entities = await self._with_registered(hass, UNREADABLE_RISK_RESPONSE)
         sensor = _by_type(entities, PolleninformationSensor)
 
         assert sensor.extra_state_attributes["data_stale"] is True
 
     async def test_no_risk_sensor_is_built_from_it(self, hass):
         entities = await _setup_entities(
-            hass, "de", response=self.UNREADABLE, language_block=EMPTY_LANGUAGE_BLOCK
+            hass,
+            "de",
+            response=UNREADABLE_RISK_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
         )
         unique_ids = {e.unique_id for e in entities if e.unique_id}
 
@@ -2744,7 +2747,10 @@ class TestARiskBlockWithNothingReadable:
     async def test_a_readable_reading_beside_unusable_pollen_still_survives(self, hass):
         # ORDER #21 A restored this; it must not regress.
         entities = await _setup_entities(
-            hass, "de", response=self.READABLE, language_block=EMPTY_LANGUAGE_BLOCK
+            hass,
+            "de",
+            response=READABLE_RISK_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
         )
         risk = _by_type(entities, AllergyRiskSensor)
 
@@ -2754,7 +2760,7 @@ class TestARiskBlockWithNothingReadable:
     async def test_reading_an_unreadable_block_reports_unknown(self, hass):
         entities = await _setup_entities(hass, "de")
         risk = _by_type(entities, AllergyRiskSensor)
-        risk.coordinator.data = self.UNREADABLE
+        risk.coordinator.data = UNREADABLE_RISK_RESPONSE
 
         assert risk.native_value is None
 
