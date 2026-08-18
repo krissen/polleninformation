@@ -490,6 +490,28 @@ class TestRepairDb:
 
         assert json.dumps(db, sort_keys=True) == before
 
+    @pytest.mark.parametrize("poll_titles", [0, False, "", {}])
+    def test_a_falsy_poll_titles_of_the_wrong_type_is_reported(
+        self, script, poll_titles
+    ):
+        # The third `or` default, found in the same sweep: these read as an
+        # empty list and were skipped in silence.
+        db = {"x": {"lang_code": "x", "poll_titles": poll_titles}}
+        changes, warnings = script.repair_db(db)
+
+        assert changes == []
+        assert len(warnings) == 1
+        assert warnings[0].startswith("x: ")
+        assert db["x"]["poll_titles"] == poll_titles
+
+    def test_a_missing_poll_titles_is_not_a_complaint(self, script):
+        # The one default that is deliberate: an error entry has no allergens
+        # and never had any.
+        assert script.repair_db({"x": {"lang_code": "x"}}) == ([], [])
+
+    def test_a_null_poll_titles_is_not_a_complaint(self, script):
+        assert script.repair_db({"x": {"poll_titles": None}}) == ([], [])
+
     def test_tolerates_an_error_entry(self, script):
         db = {"tr": {"lang_code": "tr", "error": "request error: timeout"}}
         assert script.repair_db(db) == ([], [])
@@ -497,9 +519,20 @@ class TestRepairDb:
     @pytest.mark.parametrize(
         "poll",
         [
+            # Truthy non-strings: these reached canonical_latin and raised.
             {"name": "Trávy", "latin": 5},
             {"name": 5, "latin": ""},
             {"name": ["Trávy"], "latin": "Poaceae"},
+            # Falsy non-strings: these walked past the type check, because
+            # `or ""` had already turned them into a valid-looking empty
+            # string. The latin ones were then REWRITTEN from the display
+            # name, which is the malformed entry being turned into a
+            # well-formed record rather than reported.
+            {"name": "Artemisia", "latin": 0},
+            {"name": "Artemisia", "latin": False},
+            {"name": "Artemisia", "latin": []},
+            {"name": 0, "latin": "Poaceae"},
+            {"name": False, "latin": ""},
         ],
     )
     def test_a_scalar_that_is_not_a_string_does_not_abort_the_run(self, script, poll):
@@ -511,6 +544,9 @@ class TestRepairDb:
         assert changes == []
         assert len(warnings) == 1
         assert warnings[0].startswith("x: ")
+        # Reported AS a type error, not as some downstream consequence of a
+        # value that was quietly defaulted before the check could see it.
+        assert "not a string" in warnings[0]
         # The entry is left exactly as it was: a defect is reported, never
         # quietly rewritten into a well-formed record.
         assert db["x"]["poll_titles"][0] == poll

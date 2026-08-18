@@ -353,7 +353,16 @@ def repair_db(db):
         if not isinstance(entry, dict):
             warnings.append(f"{lang_code}: not an object, skipping: {entry!r}")
             continue
-        poll_titles = entry.get("poll_titles") or []
+        # Every field below is read raw and type-checked before anything is
+        # defaulted. Defaulting first, with `or`, would convert a falsy value
+        # of the wrong type into a valid-looking one and walk it past the
+        # check: a latin of 0 would read as absent, the display name would
+        # then be resolved in its place, and the malformed entry would be
+        # rewritten instead of reported. Only a missing key or an explicit
+        # null is defaulted, and that is a decision rather than a side effect.
+        poll_titles = entry.get("poll_titles")
+        if poll_titles is None:
+            poll_titles = []
         if not isinstance(poll_titles, list):
             warnings.append(
                 f"{lang_code}: poll_titles is not a list, skipping: {poll_titles!r}"
@@ -365,8 +374,12 @@ def repair_db(db):
                     f"{lang_code}: entry is not an object, skipping: {poll!r}"
                 )
                 continue
-            name = poll.get("name") or ""
-            latin = poll.get("latin") or ""
+            name = poll.get("name")
+            latin = poll.get("latin")
+            if name is None:
+                name = ""
+            if latin is None:
+                latin = ""
             if not isinstance(name, str) or not isinstance(latin, str):
                 warnings.append(
                     f"{lang_code}: name or latin is not a string, skipping: {poll!r}"
