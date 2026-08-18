@@ -620,7 +620,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     entities: list[SensorEntity] = []
     new_unique_ids: set[str] = set()
-    allergen_renames: list[tuple[str, str]] = []
+    allergen_renames: list[tuple[str, str, str]] = []
 
     for item in contamination:
         # Every entry here identifies an allergen: usable_contamination has
