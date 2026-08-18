@@ -33,6 +33,7 @@ sys.path.insert(0, str(REPO_ROOT))
 from custom_components.polleninformation.sensor import (
     LATIN_NAME_ALIASES,
     canonical_latin,
+    canonical_latin_for_display_name,
 )
 
 # ================================
@@ -170,7 +171,8 @@ def resolve_latin(name, latin):
     2. a spelling LATIN_NAME_ALIASES declares, such as the Slovak "ambrózia",
        is recorded as the latin name it stands for;
     3. the display name is read as a latin name only when the API sent none,
-       which is the shape reported in issue #71;
+       which is the shape reported in issue #71, and only on an exact match,
+       because prose that begins with a genus is not an identity;
     4. anything else is warned about and recorded exactly as the API sent it.
 
     An entry whose display name is blank is warned about too, and kept: a
@@ -218,8 +220,11 @@ def resolve_latin(name, latin):
 
     sent = f"latin name {latin!r}" if latin else "no latin name"
 
-    if not latin and (canonical := canonical_latin(name)):
-        # The display name is itself a latin name, so record it as one.
+    if not latin and (canonical := canonical_latin_for_display_name(name)):
+        # The display name is itself a latin name, so record it as one. The
+        # lookup is exact, with no genus fallback: "Ambrosia hojas" is prose
+        # that begins with a genus, and recording it as Ambrosia would file
+        # the entry under an allergen the sensors refuse to read it as.
         warning = (
             f"{name!r}: the API sent {sent} and a display name that is one; "
             f"recording {canonical!r}"

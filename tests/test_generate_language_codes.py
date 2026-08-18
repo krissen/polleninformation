@@ -13,6 +13,12 @@ from unittest.mock import patch
 
 import pytest
 
+from custom_components.polleninformation.sensor import (
+    allergen_slug_for_item,
+    english_name_for_latin,
+)
+from custom_components.polleninformation.utils import slugify
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPT_PATH = REPO_ROOT / "scripts" / "generate_language_codes.py"
 LANGUAGE_MAP = (
@@ -719,6 +725,71 @@ class TestRepairDb:
         assert changes == []
         assert len(warnings) == 1
         assert warnings[0].startswith("x: ")
+
+
+class TestTheFileAndTheRuntimeAgree:
+    """The invariant the individual fixes keep failing to hold.
+
+    An entry the generator records and the same entry as the API sends it
+    must identify the SAME allergen, or nothing, in the same cases. When they
+    disagree the file files an allergen under an identity the sensors refuse
+    to read it as, and the restore path then attaches the wrong localized
+    name to it during an outage.
+
+    "Ambrosia hojas" is the input that has caused this three times, from
+    three different directions: the setup path read it as ragweed, then a
+    reverse English-name lookup would have, then the generator's genus
+    fallback did. It is prose that begins with a genus, and neither side may
+    treat that as an identity.
+    """
+
+    @staticmethod
+    def _runtime_allergen(poll_title):
+        """The allergen the sensors read this title as, or None."""
+        return allergen_slug_for_item({"poll_title": poll_title})
+
+    @staticmethod
+    def _recorded_allergen(script, poll_title):
+        """The allergen the map entry for this title identifies, or None."""
+        poll_titles, _ = script.poll_titles_from_contamination(
+            [{"poll_title": poll_title, "poll_id": 1}]
+        )
+        if not poll_titles:
+            return None
+        name_en = english_name_for_latin(poll_titles[0]["latin"])
+        return slugify(name_en) if name_en else None
+
+    @pytest.mark.parametrize(
+        "poll_title",
+        [
+            "Ambrosia hojas",
+            "Artemisia",
+            "Ailanthus altissima",
+            "Ambrosia artemisiifolia",
+            "Ragweed (Ambrosia artemisiifolia)",
+            "Ragweed (Ambrosia)",
+            "Artemisia (Asteraceae)",
+            "(Poaceae)",
+            "Trávy (Poaceae)",
+            "Ragweed (ambrózia)",
+            "Nässlor (Nonexistentia)",
+            "Något nytt",
+        ],
+    )
+    def test_both_sides_resolve_the_same_input_the_same_way(self, script, poll_title):
+        assert self._recorded_allergen(script, poll_title) == self._runtime_allergen(
+            poll_title
+        )
+
+    def test_the_prose_case_resolves_to_nothing_on_both_sides(self, script):
+        # Stated separately from the parametrize above, because "they agree"
+        # would also be satisfied by both being wrong in the same way.
+        assert self._runtime_allergen("Ambrosia hojas") is None
+        assert self._recorded_allergen(script, "Ambrosia hojas") is None
+
+    def test_a_display_name_that_is_a_latin_name_resolves_on_both_sides(self, script):
+        assert self._runtime_allergen("Artemisia") == "mugwort"
+        assert self._recorded_allergen(script, "Artemisia") == "mugwort"
 
 
 class TestShippedLanguageMap:

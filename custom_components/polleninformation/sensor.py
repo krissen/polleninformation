@@ -225,6 +225,23 @@ def canonical_latin(latin: str | None) -> str | None:
     return index.get(key.split()[0]) if key.split() else None
 
 
+def canonical_latin_for_display_name(name: str | None) -> str | None:
+    """Return the map key for a display name that IS a latin name, or None.
+
+    The display-name half of canonical_latin, and it does NOT fall back to
+    the genus, exactly as english_name_for_display_name does not: a display
+    name that merely begins with a genus is prose, and "Ambrosia hojas" is
+    not ragweed. The genus fallback belongs to the latin field, where a name
+    carrying a species really does resolve to its genus.
+
+    The pair mirrors english_name_for_latin and english_name_for_display_name
+    on purpose. Anything keyed by latin name has to agree with the sensors
+    about which allergen an entry is, and the two cannot agree if one of them
+    guesses from a first word where the other refuses to.
+    """
+    return _canonical_latin_index().get(name.strip().lower()) if name else None
+
+
 def english_name_for_latin(latin: str | None) -> str | None:
     """Return the English allergen name for a latin name, or None if unknown.
 
