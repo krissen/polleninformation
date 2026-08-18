@@ -304,13 +304,37 @@ def split_location(locationtitle):
     return "", locationtitle
 
 
+def parse_poll_title(poll_title):
+    """Return (display name, latin name) for a poll_title, or None.
+
+    None means the title identifies no allergen: it has neither a display name
+    nor a latin name in it. "(Poaceae)" has one, "Trávy" has the other, "()"
+    has neither and names an allergen exactly as little as a missing title
+    does. The latin name is None when the API sent no brackets, or only an
+    opening one, and a string otherwise.
+
+    THE one parse. The language map generator and the sensors both call it,
+    through this or through allergen_names_from_item, because two
+    implementations of "what does this title say" drift: they did, on the
+    unmatched bracket, where one read "Artemisia (" as mugwort and the other
+    as nothing.
+    """
+    if not isinstance(poll_title, str):
+        poll_title = ""
+    name = poll_title.split("(", 1)[0].strip()
+    latin = None
+    if "(" in poll_title and ")" in poll_title:
+        latin = poll_title.split("(", 1)[1].split(")", 1)[0].strip()
+    if not name and not latin:
+        return None
+    return name, latin
+
+
 def allergen_names_from_item(item):
     """Return (display name, latin name) for a contamination entry, or None.
 
     None means the entry identifies no allergen: it is not an object, or its
-    title has neither a display name nor a latin name in it. "(Poaceae)" has
-    one, "Trávy" has the other, "()" has neither and names an allergen exactly
-    as little as a missing title does.
+    title does not name one.
 
     Shared so that the sensors and the coordinator agree on what counts as an
     allergen. They ask it for different reasons, one to build a sensor and one
@@ -321,16 +345,7 @@ def allergen_names_from_item(item):
     """
     if not isinstance(item, dict):
         return None
-    poll_title = item.get("poll_title", "")
-    if not isinstance(poll_title, str):
-        poll_title = ""
-    name = poll_title.split("(", 1)[0].strip()
-    latin = None
-    if "(" in poll_title and ")" in poll_title:
-        latin = poll_title.split("(", 1)[1].split(")", 1)[0].strip()
-    if not name and not latin:
-        return None
-    return name, latin
+    return parse_poll_title(item.get("poll_title", ""))
 
 
 def block_of(data, key):

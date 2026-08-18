@@ -35,6 +35,7 @@ from custom_components.polleninformation.sensor import (
     canonical_latin,
     canonical_latin_for_display_name,
 )
+from custom_components.polleninformation.utils import parse_poll_title
 
 # ================================
 # CONFIGURATION
@@ -143,19 +144,22 @@ def split_poll_title(poll_title):
     brackets comes back as the latin name, and a title without brackets comes
     back with none. resolve_latin decides what that is worth.
 
-    Total over whatever it is handed: a title that is not a string reads as an
-    empty one. The caller rejects such an entry before it gets here, since a
-    title that cannot be read names no allergen, but the split itself does not
-    raise on one.
+    Delegates to the integration's own parse, so that the file and the sensors
+    read a title the same way rather than nearly the same way. They differed
+    on the unmatched bracket: this kept "Artemisia (" whole and recorded
+    nothing, while the sensors split at the bracket and read mugwort.
+
+    The seam is the return shape. The shared parse answers None for a title
+    that identifies nothing and None for an absent latin name; this answers a
+    pair either way, with "" where there is no latin name, because resolve_latin
+    is written against strings and the caller decides what to do with a title
+    that names nothing.
     """
-    poll_title = poll_title if isinstance(poll_title, str) else ""
-    if "(" in poll_title and ")" in poll_title:
-        name = poll_title.split("(", 1)[0].strip()
-        latin = poll_title.split("(", 1)[1].split(")", 1)[0].strip()
-    else:
-        name = poll_title.strip()
-        latin = ""
-    return name, latin
+    parsed = parse_poll_title(poll_title)
+    if parsed is None:
+        return "", ""
+    name, latin = parsed
+    return name, latin or ""
 
 
 def resolve_latin(name, latin):

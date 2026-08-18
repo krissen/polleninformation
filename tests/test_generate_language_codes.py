@@ -1090,6 +1090,11 @@ class TestTheFileAndTheRuntimeAgree:
             # read the empty brackets as a latin name it could not place and
             # resolve to nothing, while the file recorded Artemisia.
             "Artemisia ()",
+            # An opening bracket and no closing one. The two parses differed
+            # on exactly this: the runtime split at the bracket and read
+            # mugwort, the generator kept the title whole and read nothing.
+            "Artemisia (",
+            "Artemisia (   )",
         ],
     )
     def test_both_sides_resolve_the_same_input_the_same_way(self, script, poll_title):
@@ -1118,6 +1123,12 @@ class TestTheFileAndTheRuntimeAgree:
     def test_empty_brackets_resolve_to_the_display_name_on_both_sides(self, script):
         assert self._runtime_allergen("Artemisia ()") == "mugwort"
         assert self._recorded_allergen(script, "Artemisia ()") == "mugwort"
+
+    def test_an_unmatched_bracket_resolves_to_the_display_name_on_both_sides(
+        self, script
+    ):
+        assert self._runtime_allergen("Artemisia (") == "mugwort"
+        assert self._recorded_allergen(script, "Artemisia (") == "mugwort"
 
 
 class TestShippedLanguageMap:
