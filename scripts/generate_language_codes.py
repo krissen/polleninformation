@@ -116,8 +116,12 @@ def split_poll_title(poll_title):
     This is the transcription step only: whatever the API put between the
     brackets comes back as the latin name, and a title without brackets comes
     back with none. resolve_latin decides what that is worth.
+
+    Total over whatever the API sends. A title that is not a string at all
+    reads as an empty one, which resolve_latin then warns about, because one
+    malformed entry may not cost the language its other allergens.
     """
-    poll_title = poll_title or ""
+    poll_title = poll_title if isinstance(poll_title, str) else ""
     if "(" in poll_title and ")" in poll_title:
         name = poll_title.split("(", 1)[0].strip()
         latin = poll_title.split("(", 1)[1].split(")", 1)[0].strip()
@@ -205,11 +209,22 @@ def poll_titles_from_contamination(contamination):
     """Return the poll_titles entries for a contamination block, plus warnings.
 
     Every entry in the block produces exactly one entry here, whether or not
-    its allergen is recognized.
+    its allergen is recognized. The one thing that is dropped is an entry that
+    is not an object at all, since there is nothing in it to record, and that
+    is warned about rather than passed over.
     """
     poll_titles = []
     warnings = []
+    if not isinstance(contamination, list):
+        return poll_titles, [
+            f"the API sent a contamination block that is not a list: {contamination!r}"
+        ]
     for poll in contamination:
+        if not isinstance(poll, dict):
+            warnings.append(
+                f"skipping a contamination entry that is not an object: {poll!r}"
+            )
+            continue
         name, latin = split_poll_title(poll.get("poll_title", ""))
         latin, entry_warnings = resolve_latin(name, latin)
         warnings.extend(entry_warnings)
@@ -225,13 +240,31 @@ def repair_db(db):
     Returns (changes, warnings), where a change is one corrected latin name.
     Entries are only ever rewritten, never removed: an allergen no map knows
     keeps what the API sent and is warned about again.
+
+    Total over whatever the file holds. This is the tool you reach for when
+    the file is wrong, so a shape it did not expect is reported with the
+    language it sits in rather than raised as a traceback that names neither.
     """
     changes = []
     warnings = []
     for lang_code, entry in db.items():
-        for poll in entry.get("poll_titles", []):
-            name = poll.get("name", "")
-            latin = poll.get("latin", "")
+        if not isinstance(entry, dict):
+            warnings.append(f"{lang_code}: not an object, skipping: {entry!r}")
+            continue
+        poll_titles = entry.get("poll_titles") or []
+        if not isinstance(poll_titles, list):
+            warnings.append(
+                f"{lang_code}: poll_titles is not a list, skipping: {poll_titles!r}"
+            )
+            continue
+        for poll in poll_titles:
+            if not isinstance(poll, dict):
+                warnings.append(
+                    f"{lang_code}: entry is not an object, skipping: {poll!r}"
+                )
+                continue
+            name = poll.get("name") or ""
+            latin = poll.get("latin") or ""
             resolved, entry_warnings = resolve_latin(name, latin)
             warnings.extend(f"{lang_code}: {w}" for w in entry_warnings)
             if resolved != latin:
@@ -272,7 +305,7 @@ def run_fetch():
     base_url = "https://www.polleninformation.at/api/forecast/public"
 
     for lang_code in LANG_CODES:
-        if lang_code in db:
+        if lang_code in db and "error" not in db[lang_code]:
             print(f"{lang_code}: Already in db, skipping.")
             continue
 
@@ -294,17 +327,13 @@ def run_fetch():
             time.sleep(DELAY_SEC)
             continue
 
-        # Parse forecast block for title/allergens
-        try:
-            poll_titles, warnings = poll_titles_from_contamination(
-                data.get("contamination", [])
-            )
-        except Exception as e:
-            print(f"{lang_code}: [parse error: {e}]")
-            db[lang_code] = {"error": f"parse error: {e}", "lang_code": lang_code}
-            save_db(db)
-            time.sleep(DELAY_SEC)
-            continue
+        # Parse forecast block for title/allergens. Total over anything the
+        # API can send, so there is no parse error to catch: an entry that
+        # cannot be read costs its own line and not the whole language, and a
+        # bug here surfaces as a traceback rather than as an error entry
+        # persisted in a file that is never refetched.
+        contamination = data.get("contamination", []) if isinstance(data, dict) else []
+        poll_titles, warnings = poll_titles_from_contamination(contamination)
 
         for warning in warnings:
             print(f"{lang_code}: WARNING: {warning}")

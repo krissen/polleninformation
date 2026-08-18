@@ -56,6 +56,11 @@ class TestSplitPollTitle:
     def test_empty_title(self, script):
         assert script.split_poll_title("") == ("", "")
 
+    @pytest.mark.parametrize("poll_title", [None, 123, ["Ragweed"], {"a": 1}])
+    def test_a_title_that_is_not_a_string_reads_as_empty(self, script, poll_title):
+        # Raising here would cost the language its other allergens.
+        assert script.split_poll_title(poll_title) == ("", "")
+
 
 class TestResolveLatin:
     """The validation step, over the shapes the API actually sends."""
@@ -147,6 +152,31 @@ class TestPollTitlesFromContamination:
         ]
         # One warning each for the two repairs and the unknown allergen.
         assert len(warnings) == 3
+
+    def test_one_malformed_entry_does_not_cost_the_others(self, script):
+        contamination = [
+            {"poll_title": "Trávy (Poaceae)", "poll_id": 5},
+            {"poll_title": 123, "poll_id": 6},
+            {"poll_title": "Breza (Betula)", "poll_id": 2},
+        ]
+        poll_titles, warnings = script.poll_titles_from_contamination(contamination)
+
+        assert [entry["poll_id"] for entry in poll_titles] == [5, 6, 2]
+        assert [entry["latin"] for entry in poll_titles] == ["Poaceae", "", "Betula"]
+        assert len(warnings) == 1
+
+    @pytest.mark.parametrize("contamination", ["oops", None, {"poll_title": "x"}])
+    def test_a_block_that_is_not_a_list_is_reported(self, script, contamination):
+        poll_titles, warnings = script.poll_titles_from_contamination(contamination)
+        assert poll_titles == []
+        assert len(warnings) == 1
+
+    def test_an_entry_that_is_not_an_object_is_reported(self, script):
+        poll_titles, warnings = script.poll_titles_from_contamination(
+            [{"poll_title": "Trávy (Poaceae)", "poll_id": 5}, "oops"]
+        )
+        assert len(poll_titles) == 1
+        assert len(warnings) == 1
 
     def test_display_names_are_kept_as_the_api_sent_them(self, script):
         poll_titles, _ = script.poll_titles_from_contamination(
@@ -258,6 +288,25 @@ class TestRepairDb:
     def test_tolerates_an_error_entry(self, script):
         db = {"tr": {"lang_code": "tr", "error": "request error: timeout"}}
         assert script.repair_db(db) == ([], [])
+
+    @pytest.mark.parametrize(
+        "db",
+        [
+            {"x": {"poll_titles": [{"name": None, "latin": "Nonexistentia"}]}},
+            {"x": {"poll_titles": [{"name": "Trávy", "latin": None}]}},
+            {"x": {"poll_titles": ["oops"]}},
+            {"x": {"poll_titles": "oops"}},
+            {"x": "oops"},
+        ],
+    )
+    def test_reports_a_shape_it_did_not_expect_instead_of_raising(self, script, db):
+        # --repair is the tool you reach for when the file is wrong, so a
+        # wrong file has to come back as a warning naming the language.
+        changes, warnings = script.repair_db(db)
+
+        assert changes == []
+        assert len(warnings) == 1
+        assert warnings[0].startswith("x: ")
 
 
 class TestShippedLanguageMap:
