@@ -41,7 +41,9 @@
   that found its allergen again kept reporting `data_stale` and a `stale_since`
   timestamp from hours earlier next to a perfectly current pollen level. The
   mark now follows the data and is reported only while the sensor really is
-  without a reading.
+  without a reading. It also follows the data for every sensor now, so a
+  sensor that has always had a reading and then loses it is marked too, where
+  before only sensors kept through an outage ever were.
 
 - **A new outage is timed from when it started** — the `stale_since`
   timestamp was recorded once, when Home Assistant happened to start during an
