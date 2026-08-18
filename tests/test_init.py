@@ -215,6 +215,21 @@ MALFORMED_RISK_WITH_POLLEN_PAYLOAD = {
     "allergyrisk_hourly": "x",
 }
 
+# A risk block that is a non-empty object with nothing readable in it. This is
+# what an API sends to say something went wrong, so reading it as fresh data is
+# the worst of the available readings.
+UNREADABLE_RISK_PAYLOAD = {
+    "contamination": [{"poll_title": "()"}],
+    "allergyrisk": {"error": "upstream failure"},
+    "allergyrisk_hourly": {},
+}
+
+READABLE_RISK_PAYLOAD = {
+    "contamination": [{"poll_title": "()"}],
+    "allergyrisk": {"allergyrisk_1": 7.0},
+    "allergyrisk_hourly": {},
+}
+
 RISK_ONLY_PAYLOAD = {
     "contamination": [],
     "allergyrisk": {"allergyrisk_1": 7.5},
@@ -297,6 +312,29 @@ class TestEmptySince:
         # reports unknown without a marker.
         coordinator = self._make_coordinator(hass)
         await self._fetch(coordinator, MALFORMED_RISK_WITH_POLLEN_PAYLOAD, E1)
+        assert coordinator.empty_since is None
+
+    async def test_a_risk_block_with_nothing_readable_stamps_it(self, hass):
+        # Nonempty is not usable, three levels down: the entries, then the
+        # block being an object, now the fields inside it.
+        coordinator = self._make_coordinator(hass)
+        await self._fetch(coordinator, UNREADABLE_RISK_PAYLOAD, E1)
+        assert coordinator.empty_since == E1.isoformat()
+
+    async def test_a_real_reading_beside_unusable_pollen_is_not_an_outage(self, hass):
+        # The case ORDER #21 restored, which this must not undo: the API sent
+        # a forecast we can read, so the response carried data.
+        coordinator = self._make_coordinator(hass)
+        await self._fetch(coordinator, READABLE_RISK_PAYLOAD, E1)
+        assert coordinator.empty_since is None
+
+    async def test_a_risk_of_zero_is_a_reading(self, hass):
+        coordinator = self._make_coordinator(hass)
+        await self._fetch(
+            coordinator,
+            {**READABLE_RISK_PAYLOAD, "allergyrisk": {"allergyrisk_1": 0}},
+            E1,
+        )
         assert coordinator.empty_since is None
 
     async def test_it_holds_for_the_duration_of_one_outage(self, hass):

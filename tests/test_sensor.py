@@ -2440,7 +2440,79 @@ class TestTheRiskGateAtSetup:
         assert "polleninformation_hamburg_allergy_risk_hourly" in unique_ids
 
 
-class TestEveryEntityReportsTheSameOutage:
+class TestARiskBlockWithNothingReadable:
+    """Nonempty is not usable, one level deeper than last time.
+
+    block_of answers whether there is a block; the callers were using it to
+    answer whether there is anything to read. {"error": "upstream failure"}
+    is an object, so the outage was cleared, the pollen sensors were
+    recreated for want of data, and nothing carried the marker.
+    """
+
+    UNREADABLE = {
+        "contamination": [{"poll_title": "()"}, {"poll_title": ""}],
+        "allergyrisk": {"error": "upstream failure"},
+        "allergyrisk_hourly": {},
+    }
+
+    READABLE = {
+        "contamination": [{"poll_title": "()"}],
+        "allergyrisk": {"allergyrisk_1": 7.0},
+        "allergyrisk_hourly": {"allergyrisk_hourly_1": [7.0] * 24},
+    }
+
+    async def _with_registered(self, hass, response):
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        for slug in ("birch", "allergy_risk"):
+            unique_id = f"polleninformation_hamburg_{slug}"
+            ent_reg.async_get_or_create(
+                "sensor",
+                DOMAIN,
+                unique_id,
+                suggested_object_id=unique_id,
+                config_entry=entry,
+            )
+        return await _setup_entities(
+            hass,
+            "de",
+            entry=entry,
+            response=response,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+
+    async def test_the_sensors_carry_the_marker(self, hass):
+        entities = await self._with_registered(hass, self.UNREADABLE)
+        sensor = _by_type(entities, PolleninformationSensor)
+
+        assert sensor.extra_state_attributes["data_stale"] is True
+
+    async def test_no_risk_sensor_is_built_from_it(self, hass):
+        entities = await _setup_entities(
+            hass, "de", response=self.UNREADABLE, language_block=EMPTY_LANGUAGE_BLOCK
+        )
+        unique_ids = {e.unique_id for e in entities if e.unique_id}
+
+        assert "polleninformation_hamburg_allergy_risk" not in unique_ids
+
+    async def test_a_readable_reading_beside_unusable_pollen_still_survives(self, hass):
+        # ORDER #21 A restored this; it must not regress.
+        entities = await _setup_entities(
+            hass, "de", response=self.READABLE, language_block=EMPTY_LANGUAGE_BLOCK
+        )
+        risk = _by_type(entities, AllergyRiskSensor)
+
+        assert risk.native_value == "hoch"
+        assert "data_stale" not in risk.extra_state_attributes
+
+    async def test_reading_an_unreadable_block_reports_unknown(self, hass):
+        entities = await _setup_entities(hass, "de")
+        risk = _by_type(entities, AllergyRiskSensor)
+        risk.coordinator.data = self.UNREADABLE
+
+        assert risk.native_value is None
+
     """The timestamp belongs to the response, so siblings must agree on it.
 
     The per-outage semantics themselves are the coordinator's, and are tested

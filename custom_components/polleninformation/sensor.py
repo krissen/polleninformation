@@ -40,11 +40,11 @@ from .const_levels import ALLERGEN_DISPLAY_OVERRIDES, LEVELS, RISK_SENSOR_NAMES
 from .utils import (
     allergen_names_from_item,
     async_get_language_block,
-    block_of,
     get_allergen_info_by_latin,
     normalize,
     slugify,
     usable_contamination,
+    usable_risk_block,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -647,7 +647,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         bool(raw_contamination) if isinstance(raw_contamination, list) else False
     )
     allergyrisk = (
-        block_of(coordinator.data, "allergyrisk")
+        usable_risk_block(coordinator.data, "allergyrisk")
         if has_data and api_sent_pollen
         else {}
     )
@@ -667,7 +667,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     # not an object is empty here exactly as it is for the sensor that reads
     # it and for the coordinator, rather than truthy in this one place.
     allergyrisk_hourly = (
-        block_of(coordinator.data, "allergyrisk_hourly")
+        usable_risk_block(coordinator.data, "allergyrisk_hourly")
         if has_data and api_sent_pollen
         else {}
     )
@@ -988,7 +988,7 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self) -> str | None:
-        allergyrisk = block_of(self.coordinator.data, "allergyrisk")
+        allergyrisk = usable_risk_block(self.coordinator.data, "allergyrisk")
         if not allergyrisk:
             return None
         value = allergyrisk.get("allergyrisk_1", None)
@@ -999,7 +999,7 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        allergyrisk = block_of(self.coordinator.data, "allergyrisk")
+        allergyrisk = usable_risk_block(self.coordinator.data, "allergyrisk")
         if not allergyrisk:
             attrs: dict[str, Any] = {
                 "location_title": self._location_title,
@@ -1094,7 +1094,9 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self) -> str | None:
-        allergyrisk_hourly = block_of(self.coordinator.data, "allergyrisk_hourly")
+        allergyrisk_hourly = usable_risk_block(
+            self.coordinator.data, "allergyrisk_hourly"
+        )
         if not allergyrisk_hourly:
             return None
         now_hour = dt_util.now().hour
@@ -1108,7 +1110,9 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        allergyrisk_hourly = block_of(self.coordinator.data, "allergyrisk_hourly")
+        allergyrisk_hourly = usable_risk_block(
+            self.coordinator.data, "allergyrisk_hourly"
+        )
         if not allergyrisk_hourly:
             attrs: dict[str, Any] = {
                 "location_title": self._location_title,

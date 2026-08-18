@@ -37,7 +37,7 @@ from .const import (
     DOMAIN,
     PLATFORMS,
 )
-from .utils import block_of, get_country_code_map, usable_contamination
+from .utils import get_country_code_map, usable_contamination, usable_risk_block
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -200,8 +200,8 @@ class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):
         """
         if (
             usable_contamination(result.get("contamination"))
-            or block_of(result, "allergyrisk")
-            or block_of(result, "allergyrisk_hourly")
+            or usable_risk_block(result, "allergyrisk")
+            or usable_risk_block(result, "allergyrisk_hourly")
         ):
             self.empty_since = None
         elif self.empty_since is None:

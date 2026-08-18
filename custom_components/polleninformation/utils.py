@@ -362,6 +362,33 @@ def block_of(data, key):
     return value if isinstance(value, dict) else {}
 
 
+def usable_risk_block(data, key):
+    """Return a risk block that holds a readable forecast, or an empty one.
+
+    block_of answers whether there IS a block; this answers whether there is
+    anything in it to read, which is the question every caller actually has.
+    A non-empty object with no forecast fields carries no more data than an
+    absent one: {"error": "upstream failure"} is what an API sends to say
+    something is wrong, and reading it as fresh data is the worst of the
+    available readings.
+
+    A field counts when it is one of this block's own numbered fields and
+    holds something. A risk of 0 is a real reading and counts; a null, an
+    empty list or an empty string does not.
+    """
+    block = block_of(data, key)
+    prefix = f"{key}_"
+    for field, value in block.items():
+        if not isinstance(field, str) or not field.startswith(prefix):
+            continue
+        if value is None:
+            continue
+        if isinstance(value, (list, dict, str, tuple, set)) and not value:
+            continue
+        return block
+    return {}
+
+
 def usable_contamination(contamination):
     """Return the contamination entries that identify an allergen."""
     if not isinstance(contamination, list):
