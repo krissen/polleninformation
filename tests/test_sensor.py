@@ -1731,10 +1731,29 @@ class TestARenameThatContradictsWhatTheRowRecords:
         assert migrated.id == foo_id
         assert entry.entry_id
 
-    async def test_two_unmapped_allergens_are_still_told_apart(self, hass):
-        # The price of folding, pinned so it stays a price and not a surprise:
-        # only a shared FIRST word folds. Two unmapped names that merely
-        # resemble each other still contradict.
+    async def test_two_unmapped_names_sharing_a_first_word_fold_together(self, hass):
+        # THE PRICE of folding, and the only test that charges it. Two
+        # DIFFERENT unmapped allergens whose latin names share a genus are one
+        # allergen to this integration, so a rename the old rule refused now
+        # goes through. That is the trade taken deliberately: a genus is what
+        # this integration means by an allergen everywhere else, and the
+        # alternative made every unmapped allergen contradict itself whenever
+        # the API varied its spelling.
+        _, ent_reg, foo_id = self._register(hass, "foo", latin="Nonexistentia bar")
+
+        migrate_localized_allergen_ids(
+            hass, "hamburg", [("foo", "birch", "Nonexistentia baz")]
+        )
+
+        migrated = ent_reg.async_get("sensor.polleninformation_hamburg_birch")
+        assert migrated is not None
+        assert migrated.id == foo_id
+
+    async def test_two_unmapped_names_sharing_nothing_still_contradict(self, hass):
+        # The limit of the fold: only the FIRST word folds, so names that do
+        # not share one are still two allergens. This held before the fold as
+        # well, and it is here to catch a future widening of the rule rather
+        # than to charge its price.
         _, ent_reg, foo_id = self._register(hass, "foo", latin="Nonexistentia")
 
         migrate_localized_allergen_ids(hass, "hamburg", [("foo", "birch", "Alia")])
