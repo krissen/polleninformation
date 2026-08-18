@@ -45,6 +45,13 @@
   sensor that has always had a reading and then loses it is marked too, where
   before only sensors kept through an outage ever were.
 
+- **A sensor with nothing to show says so** — a response that carried a risk
+  block but nothing usable for today, only a later day or an empty value, left
+  the allergy risk sensors showing no value while reporting their data as
+  current. The stale marker now follows the value each sensor actually shows,
+  so an empty sensor is always marked as such. A risk of zero is a real
+  reading and is not affected.
+
 - **A new outage is timed from when it started** — the `stale_since`
   timestamp was recorded once, when Home Assistant happened to start during an
   outage, and was reused for every later outage of the same sensor. A card or

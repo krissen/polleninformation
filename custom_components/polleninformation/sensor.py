@@ -795,8 +795,10 @@ class PolleninformationSensor(StaleDataMarker, CoordinatorEntity, SensorEntity):
             if self.coordinator.last_updated
             else None,
         }
-        # An empty forecast is what "no data for this allergen" looks like.
-        attrs.update(self._stale_attrs(has_data=bool(forecast)))
+        # Staleness follows the value the sensor reports: a forecast can be
+        # built from a level the level names do not cover, and a sensor
+        # showing unknown is not fresh whatever else the response held.
+        attrs.update(self._stale_attrs(has_data=self.native_value is not None))
         return attrs
 
 
@@ -911,7 +913,10 @@ class AllergyRiskSensor(StaleDataMarker, CoordinatorEntity, SensorEntity):
             if self.coordinator.last_updated
             else None,
         }
-        attrs.update(self._stale_attrs(has_data=True))
+        # The block being present is not a reading: it can carry only a later
+        # day, or a null, and leave the sensor unknown. Staleness therefore
+        # follows the value, so the two can never disagree.
+        attrs.update(self._stale_attrs(has_data=self.native_value is not None))
         return attrs
 
 
@@ -1037,5 +1042,8 @@ class AllergyRiskHourlySensor(StaleDataMarker, CoordinatorEntity, SensorEntity):
             if self.coordinator.last_updated
             else None,
         }
-        attrs.update(self._stale_attrs(has_data=True))
+        # The block being present is not a reading: it can carry only a later
+        # day, or a null, and leave the sensor unknown. Staleness therefore
+        # follows the value, so the two can never disagree.
+        attrs.update(self._stale_attrs(has_data=self.native_value is not None))
         return attrs

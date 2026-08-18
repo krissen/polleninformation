@@ -1945,3 +1945,114 @@ class TestGenusPrefixedNameOnTheSetupPath:
             )
             is None
         )
+
+
+class TestPartialDataIsNotFreshData:
+    """A sensor with no readable value must not report itself fresh.
+
+    A risk block that is present but carries nothing usable for right now,
+    only a later day, a null, or an empty hourly list, left native_value
+    unknown while clearing the stale marker.
+    """
+
+    LEVELS = ["none", "low", "moderate", "high", "very high"]
+
+    def _risk(self, cls, data, is_stale=True):
+        return cls(
+            coordinator=_make_coordinator(data),
+            levels_current=self.LEVELS,
+            location_slug="hamburg",
+            location_title="Hamburg",
+            is_stale=is_stale,
+            stale_since=T1.isoformat(),
+        )
+
+    @pytest.mark.parametrize(
+        ("cls", "data"),
+        [
+            (AllergyRiskSensor, {"allergyrisk": {"allergyrisk_2": 5.0}}),
+            (AllergyRiskSensor, {"allergyrisk": {"allergyrisk_1": None}}),
+            (
+                AllergyRiskHourlySensor,
+                {"allergyrisk_hourly": {"allergyrisk_hourly_2": [5.0] * 24}},
+            ),
+            (AllergyRiskHourlySensor, {"allergyrisk_hourly": {}}),
+            (
+                AllergyRiskHourlySensor,
+                {"allergyrisk_hourly": {"allergyrisk_hourly_1": []}},
+            ),
+        ],
+    )
+    def test_partial_risk_data_stays_stale(self, cls, data):
+        sensor = self._risk(cls, data)
+        with _frozen(T2):
+            attrs = sensor.extra_state_attributes
+        assert sensor.native_value is None
+        assert attrs["data_stale"] is True
+        assert attrs["stale_since"] == T1.isoformat()
+
+    @pytest.mark.parametrize(
+        ("cls", "data"),
+        [
+            (AllergyRiskSensor, {"allergyrisk": {"allergyrisk_1": 0.0}}),
+            (
+                AllergyRiskHourlySensor,
+                {"allergyrisk_hourly": {"allergyrisk_hourly_1": [0.0] * 24}},
+            ),
+        ],
+    )
+    def test_a_zero_reading_is_a_reading(self, cls, data):
+        """No risk at all is a real value, not a missing one."""
+        sensor = self._risk(cls, data)
+        with _frozen(T2):
+            attrs = sensor.extra_state_attributes
+        assert sensor.native_value == "none"
+        assert "data_stale" not in attrs
+        assert "stale_since" not in attrs
+
+    def test_repeated_partial_responses_keep_the_first_timestamp(self):
+        """Flickering between partial shapes is one outage, not several."""
+        sensor = self._risk(
+            AllergyRiskSensor, {"allergyrisk": {"allergyrisk_2": 5.0}}, is_stale=False
+        )
+        with _frozen(T1):
+            first = sensor.extra_state_attributes["stale_since"]
+        sensor.coordinator.data = {"allergyrisk": {"allergyrisk_1": None}}
+        with _frozen(T2):
+            second = sensor.extra_state_attributes["stale_since"]
+        assert first == second == T1.isoformat()
+
+    def test_an_unusable_pollen_level_is_not_fresh(self):
+        """The pollen sensor answers the same question the same way.
+
+        A level outside the level names leaves native_value unknown while the
+        forecast is still built, so a forecast alone cannot stand for a
+        reading.
+        """
+        sensor = PolleninformationSensor(
+            coordinator=_make_coordinator(
+                {
+                    "contamination": [
+                        {"poll_title": "Birke (Betula)", "contamination_1": 9}
+                    ]
+                }
+            ),
+            sensor_type="pollen",
+            allergen_name="Birke",
+            allergen_en="birch",
+            allergen_slug="birch",
+            allergen_latin="Betula",
+            levels_current=self.LEVELS,
+            levels_en=self.LEVELS,
+            location_slug="hamburg",
+            location_title="Hamburg",
+            icon="mdi:tree-outline",
+            is_stale=True,
+            stale_since=T1.isoformat(),
+        )
+        with _frozen(T2):
+            attrs = sensor.extra_state_attributes
+        assert sensor.native_value is None
+        assert attrs["forecast"]
+        assert attrs["data_stale"] is True
+        assert attrs["stale_since"] == T1.isoformat()
