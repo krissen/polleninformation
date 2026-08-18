@@ -2240,6 +2240,55 @@ class TestANonObjectEntryCostsOnlyItself:
         assert len(sensor.extra_state_attributes["forecast"]) == 4
 
 
+class TestTheLanguageMapIsReadDefensively:
+    """The shipped map is an input too, and the only one nothing type checks.
+
+    The API's response is parsed and filtered before anything reads it. The
+    language block is loaded from a file and its latin name goes straight into
+    a lookup that calls .strip(), so a map holding the wrong shape would raise
+    inside setup and take the whole config entry down: every sensor for the
+    location, for a bad row in a file the user can edit.
+    """
+
+    RESPONSE = {
+        "contamination": [
+            {"poll_title": "Birke", "contamination_1": 3},
+        ],
+        "allergyrisk": {"allergyrisk_1": 5.0},
+        "allergyrisk_hourly": {"allergyrisk_hourly_1": [5.0] * 24},
+    }
+
+    @pytest.mark.parametrize(
+        "block",
+        [
+            {"poll_titles": [{"name": "Birke", "latin": ["Betula"]}]},
+            {"poll_titles": [{"name": "Birke", "latin": 5}]},
+            {"poll_titles": ["oops", {"name": "Birke", "latin": "Betula"}]},
+            {"poll_titles": None},
+            {"poll_titles": {}},
+        ],
+    )
+    async def test_setup_survives_a_map_of_the_wrong_shape(self, hass, block):
+        entities = await _setup_entities(
+            hass, "de", response=self.RESPONSE, language_block=block
+        )
+
+        # The entry still becomes a sensor; only its latin name is missing.
+        assert [e for e in entities if isinstance(e, PolleninformationSensor)]
+
+    async def test_a_well_formed_map_still_supplies_the_latin_name(self, hass):
+        entities = await _setup_entities(
+            hass,
+            "de",
+            response=self.RESPONSE,
+            language_block={"poll_titles": [{"name": "Birke", "latin": "Betula"}]},
+        )
+        sensor = _by_type(entities, PolleninformationSensor)
+
+        assert sensor.extra_state_attributes["name_la"] == "Betula"
+        assert sensor.unique_id == "polleninformation_hamburg_birch"
+
+
 class TestFindItemIsSafeWithoutItsCallers:
     """The block is filtered by _find_item itself, not by its callers.
 

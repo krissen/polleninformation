@@ -392,10 +392,15 @@ async def async_get_language_block(hass, lang_code):
 
 
 def get_allergen_info_by_latin(latin, language_block):
+    """Return the language block's entry for a latin name, or None.
+
+    Reads defensively: the block comes from a file rather than from the
+    response, and it is one of the few inputs nothing type checks on the way
+    in. A row of the wrong shape is passed over rather than raising, because
+    raising here happens inside setup and costs the location every sensor it
+    has, not the one bad row.
     """
-    Get allergen info from a language block by latin name.
-    """
-    for allergen in language_block.get("poll_titles", []):
-        if allergen.get("latin") == latin:
+    for allergen in language_block.get("poll_titles") or []:
+        if isinstance(allergen, dict) and allergen.get("latin") == latin:
             return allergen
     return None

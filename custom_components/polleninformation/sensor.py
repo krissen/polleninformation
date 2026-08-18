@@ -550,9 +550,16 @@ async def async_setup_entry(hass, entry, async_add_entities):
             # and the guard above then refuses the entry unless it has a
             # display name. Kept because it costs one comparison and it is
             # what makes that reasoning safe to change.
-            for allergen in language_block_current.get("poll_titles", []):
+            # Read defensively: this is the shipped language map, not the
+            # response, and it is the one input on this path nothing type
+            # checks. A latin name that is not a string would raise on the
+            # lookups below and take the whole config entry down.
+            for allergen in language_block_current.get("poll_titles") or []:
+                if not isinstance(allergen, dict):
+                    continue
                 if allergen.get("name") and allergen["name"] == poll_title_local:
-                    latin = allergen.get("latin")
+                    if isinstance(allergen.get("latin"), str):
+                        latin = allergen["latin"]
                     break
         # Resolution order: the static latin map, then the English language
         # block, then the name the API sent in the configured language. Only
