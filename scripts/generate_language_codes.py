@@ -284,6 +284,13 @@ def poll_titles_from_contamination(contamination):
                 f"skipping a contamination entry that is not an object: {poll!r}"
             )
             continue
+        poll_id = poll.get("poll_id")
+        if poll_id is not None and not isinstance(poll_id, (str, int, float)):
+            warnings.append(
+                f"the API sent a poll_id that is not a scalar: {poll_id!r}; "
+                f"recording it as sent, and identifying this allergen by its "
+                f"latin name instead"
+            )
         name, latin = split_poll_title(poll.get("poll_title"))
         if not name and not latin:
             # The test is what the entry identifies, not whether its title is
@@ -347,13 +354,22 @@ def allergen_key(poll):
     would file the corrected spelling as a second allergen rather than as the
     same one. Then the latin name, then the display name, for an entry the API
     sent without an id.
+
+    Every field is type-checked before it is used, because this key goes into
+    a set: an id that arrives as a list or an object is unhashable and would
+    take down the whole run rather than the one entry, and a latin or a name
+    of the wrong type has no .strip(). A field this cannot use is passed over
+    for the next one, so the entry keeps its place in the merge instead of
+    losing its identity along with its id.
     """
     poll_id = poll.get("poll_id")
-    if poll_id is not None:
+    if isinstance(poll_id, (str, int, float)):
         return ("poll_id", poll_id)
-    if latin := poll.get("latin"):
+    latin = poll.get("latin")
+    if isinstance(latin, str) and latin.strip():
         return ("latin", latin.strip().lower())
-    if name := poll.get("name"):
+    name = poll.get("name")
+    if isinstance(name, str) and name.strip():
         return ("name", name.strip().lower())
     return None
 
@@ -530,6 +546,12 @@ def repair_db(db):
                     f"{lang_code}: name or latin is not a string, skipping: {poll!r}"
                 )
                 continue
+            poll_id = poll.get("poll_id")
+            if poll_id is not None and not isinstance(poll_id, (str, int, float)):
+                warnings.append(
+                    f"{lang_code}: poll_id is not a scalar: {poll_id!r}; the "
+                    f"entry is kept and identified by its latin name"
+                )
             resolved, entry_warnings = resolve_latin(name, latin)
             warnings.extend(f"{lang_code}: {w}" for w in entry_warnings)
             if resolved != latin:

@@ -638,6 +638,81 @@ POORER_RETRY = {
 }
 
 
+class TestTheMergeKeyIsTotal:
+    """The key goes into a set, so every field it reads is type-checked.
+
+    An id that arrives as a list or an object is unhashable. Building the set
+    would raise, and the raise lands in run_fetch: not one bad entry, but the
+    partial result unsaved and every language after it in the loop unfetched.
+    The two fallbacks had the same hole one step down, since a latin or a name
+    of the wrong type has no .strip().
+    """
+
+    @pytest.mark.parametrize("junk", [["x"], {"a": 1}, ("x",), set()])
+    def test_an_unhashable_id_falls_back_rather_than_raising(self, script, junk):
+        key = script.allergen_key(
+            {"name": "Trávy", "latin": "Poaceae", "poll_id": junk}
+        )
+
+        assert key == ("latin", "poaceae")
+        hash(key)
+
+    @pytest.mark.parametrize("junk", [["x"], {"a": 1}, 5, 5.0, True])
+    def test_a_latin_of_the_wrong_type_falls_back_to_the_name(self, script, junk):
+        key = script.allergen_key({"name": "Trávy", "latin": junk, "poll_id": None})
+
+        assert key == ("name", "trávy")
+        hash(key)
+
+    @pytest.mark.parametrize("junk", [["x"], {"a": 1}, 5, 5.0, True])
+    def test_an_entry_with_no_usable_field_has_no_key(self, script, junk):
+        assert script.allergen_key({"name": junk, "latin": "", "poll_id": None}) is None
+
+    @pytest.mark.parametrize("poll_id", ["6", 6, 6.0, True])
+    def test_a_scalar_id_is_still_the_identity(self, script, poll_id):
+        key = script.allergen_key(
+            {"name": "Trávy", "latin": "Poaceae", "poll_id": poll_id}
+        )
+
+        assert key == ("poll_id", poll_id)
+
+    def test_the_merge_survives_an_unhashable_id(self, script):
+        # The failure Codex describes, at the level where it aborts the run.
+        previous = {
+            "lang_code": "sk",
+            "poll_titles": [{"name": "Breza", "latin": "Betula", "poll_id": 2}],
+            "incomplete": True,
+        }
+        fresh = {
+            "lang_code": "sk",
+            "poll_titles": [{"name": "Traviny", "latin": "Poaceae", "poll_id": ["x"]}],
+            "incomplete": True,
+        }
+        got = script.entry_after_retry(previous, fresh)
+
+        assert [poll["name"] for poll in got["poll_titles"]] == ["Traviny", "Breza"]
+
+    def test_a_junk_id_is_reported_when_it_is_recorded(self, script):
+        _, warnings = script.poll_titles_from_contamination(
+            [{"poll_title": "Trávy (Poaceae)", "poll_id": ["x"]}]
+        )
+
+        assert len(warnings) == 1
+        assert "not a scalar" in warnings[0]
+
+    def test_a_junk_id_already_in_the_file_is_reported_by_repair(self, script):
+        db = {
+            "sk": {
+                "poll_titles": [{"name": "Trávy", "latin": "Poaceae", "poll_id": {}}]
+            }
+        }
+        changes, warnings = script.repair_db(db)
+
+        assert changes == []
+        assert any("not a scalar" in w for w in warnings)
+        assert db["sk"]["poll_titles"][0]["poll_id"] == {}
+
+
 class TestAPoorerRetryIsMergedPerAllergen:
     """The success-but-poorer path, which is the same invariant as the failure.
 
