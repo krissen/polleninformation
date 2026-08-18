@@ -767,9 +767,6 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
             if self.coordinator.last_updated
             else None,
         }
-        # Staleness follows the value the sensor reports: a forecast can be
-        # built from a level the level names do not cover, and a sensor
-        # showing unknown is not fresh whatever else the response held.
         attrs.update(stale_attrs(self.coordinator))
         return attrs
 
@@ -882,8 +879,8 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
             else None,
         }
         # The block being present is not a reading: it can carry only a later
-        # day, or a null, and leave the sensor unknown. Staleness therefore
-        # follows the value, so the two can never disagree.
+        # day, or a null, and leave this sensor unknown while the response as
+        # a whole was fine. That is unknown, not stale.
         attrs.update(stale_attrs(self.coordinator))
         return attrs
 
@@ -1007,7 +1004,7 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
             else None,
         }
         # The block being present is not a reading: it can carry only a later
-        # day, or a null, and leave the sensor unknown. Staleness therefore
-        # follows the value, so the two can never disagree.
+        # day, or a null, and leave this sensor unknown while the response as
+        # a whole was fine. That is unknown, not stale.
         attrs.update(stale_attrs(self.coordinator))
         return attrs
