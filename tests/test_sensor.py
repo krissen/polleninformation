@@ -1661,6 +1661,21 @@ ENGLISH_DOCK_SORREL_RESPONSE = {
 }
 
 
+GENUS_PREFIXED_NAME_RESPONSE = {
+    "contamination": [
+        {
+            "poll_title": "Ambrosia hojas",
+            "contamination_1": 2,
+            "contamination_2": 2,
+            "contamination_3": 1,
+            "contamination_4": 0,
+        }
+    ],
+    "allergyrisk": {},
+    "allergyrisk_hourly": {},
+}
+
+
 class TestStaleSensorRecovery:
     """A sensor recreated during an empty response must recover on any language."""
 
@@ -1739,3 +1754,13 @@ class TestStaleSensorRecovery:
         assert attrs["data_stale"] is True
         assert attrs["stale_since"] is not None
 
+    async def test_a_two_word_name_starting_with_a_genus_does_not_match(self, hass):
+        """The display-name lookup holds only for a name that IS the genus.
+
+        "Ambrosia hojas" is prose that happens to start with a latin genus, so
+        matching it to the ragweed sensor would be a guess, not an
+        identification.
+        """
+        sensor = await self._recreate(hass, "es", "polleninformation_hamburg_ragweed")
+        sensor.coordinator.data = GENUS_PREFIXED_NAME_RESPONSE
+        assert sensor.native_value is None

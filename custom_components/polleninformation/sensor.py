@@ -195,8 +195,12 @@ def allergen_slug_for_item(item: dict) -> str | None:
         # No latin at all: the API sometimes sends the latin genus as the
         # display name instead (e.g. "Artemisia"), so the name itself is the
         # last chance to identify the entry. Only tried when no latin was
-        # sent, so an entry that carries one is identified by that alone.
-        latin = poll_title.strip()
+        # sent, so an entry that carries one is identified by that alone, and
+        # only for a single word, since a genus is one word: prose that merely
+        # begins with a genus would otherwise resolve through the genus
+        # fallback in english_name_for_latin.
+        stripped = poll_title.strip()
+        latin = stripped if len(stripped.split()) == 1 else ""
     name_en = english_name_for_latin(latin)
     return slugify(name_en) if name_en else None
 
