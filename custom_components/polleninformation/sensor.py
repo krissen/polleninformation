@@ -382,6 +382,39 @@ def store_allergen_identity(ent_reg, entity_id, latin) -> None:
     ent_reg.async_update_entity_options(entity_id, DOMAIN, options)
 
 
+def record_identified_allergens(hass, location_slug, identified_latins) -> None:
+    """Record the response's allergens on rows this pass will not add.
+
+    An entity disabled in the registry is aborted before it is added -- the
+    platform checks registry_entry.disabled and returns without ever calling
+    add_to_platform_finish -- so async_added_to_hass never runs for it and its
+    row would stay unrecorded for exactly as long as it stayed disabled, which
+    is exactly as long as it stays unprotected. The row is there and the
+    response identifies its allergen; only the entity is absent.
+
+    Called AFTER the migration and never before. A row stamped first would be
+    stamped with the claiming allergen's own latin name, and the guard would
+    then be weighing evidence the rename manufactured for itself. By this
+    point every rename is settled, so the row found under a canonical slug is
+    the row that allergen ended up with.
+
+    Rows created in this pass have no registry entry yet and are not reached
+    here; async_added_to_hass records those. Where the two overlap the second
+    write is a no-op, because a row already recorded as this allergen is left
+    alone.
+    """
+    if not identified_latins:
+        return
+
+    ent_reg = er.async_get(hass)
+    for slug, latin in identified_latins.items():
+        entity_id = ent_reg.async_get_entity_id(
+            "sensor", DOMAIN, f"polleninformation_{location_slug}_{slug}"
+        )
+        if entity_id:
+            store_allergen_identity(ent_reg, entity_id, latin)
+
+
 def migrate_localized_allergen_ids(hass, location_slug, renames) -> None:
     """Rename allergen ids that were derived from a localized allergen name.
 
@@ -621,6 +654,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     entities: list[SensorEntity] = []
     new_unique_ids: set[str] = set()
     allergen_renames: list[tuple[str, str, str]] = []
+    identified_latins: dict[str, str] = {}
 
     for item in contamination:
         # Every entry here identifies an allergen: usable_contamination has
@@ -737,6 +771,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 )
                 continue
             allergen_renames.append((legacy_slug, slug_en, allergen_la))
+        if allergen_la:
+            identified_latins.setdefault(slug_en, allergen_la)
         icon = ALLERGEN_ICON_MAP.get(slug_en, ALLERGEN_ICON_MAP["default"])
 
         sensor = PolleninformationSensor(
@@ -759,6 +795,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
             new_unique_ids.add(sensor.unique_id)
 
     migrate_localized_allergen_ids(hass, location_slug, allergen_renames)
+    record_identified_allergens(hass, location_slug, identified_latins)
 
     # The risk sensors are gated on the API having SENT pollen data, not on our
     # having been able to read it. An empty contamination block means the API

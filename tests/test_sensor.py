@@ -1495,6 +1495,63 @@ class TestTheRegistryRowRecordsWhichAllergenItIs:
             _recorded_latin(ent_reg, "sensor.polleninformation_hamburg_birch") is None
         )
 
+    async def test_a_disabled_row_is_recorded_too(self, hass):
+        # An entity disabled in the registry is aborted before it is added,
+        # so it never hears that it was added and could never record itself.
+        # The row is there and the response identifies its allergen; only the
+        # entity is missing. Left unrecorded it would stay unprotected for as
+        # long as it stayed disabled.
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        disabled = ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            "polleninformation_hamburg_mugwort",
+            suggested_object_id="polleninformation_hamburg_mugwort",
+            config_entry=entry,
+            disabled_by=er.RegistryEntryDisabler.USER,
+        )
+        assert disabled.disabled
+
+        await _setup_through_the_platform(
+            hass, "de", self._response("Beifu\u00df (Artemisia)"), entry=entry
+        )
+
+        row = ent_reg.async_get("sensor.polleninformation_hamburg_mugwort")
+        assert row.disabled
+        assert row.options[DOMAIN]["latin"] == "Artemisia"
+
+    async def test_a_legacy_row_is_not_recorded_before_the_migration_decides(
+        self, hass
+    ):
+        # Order, pinned. Recording first would overwrite what this row says
+        # about itself with the latin name of the allergen that is trying to
+        # claim it, and the guard would then be weighing evidence the rename
+        # made for itself. The row is refused and keeps its own record.
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        legacy = ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            "polleninformation_hamburg_foo",
+            suggested_object_id="polleninformation_hamburg_foo",
+            config_entry=entry,
+        )
+        ent_reg.async_update_entity_options(
+            legacy.entity_id, DOMAIN, {"latin": "Nonexistentia"}
+        )
+
+        await _setup_through_the_platform(
+            hass, "de", self._response("Foo (Betula)"), entry=entry
+        )
+
+        kept = ent_reg.async_get("sensor.polleninformation_hamburg_foo")
+        assert kept is not None
+        assert kept.id == legacy.id
+        assert kept.options[DOMAIN]["latin"] == "Nonexistentia"
+
     async def test_a_sensor_recreated_during_an_outage_records_nothing(self, hass):
         # Such a sensor derived its latin name from its own slug, so
         # recording it would write down the assumption the record exists to
