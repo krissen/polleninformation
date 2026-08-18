@@ -310,7 +310,30 @@ class TestRepairDb:
 
 
 class TestShippedLanguageMap:
-    """The file itself, as shipped."""
+    """The file itself, as shipped.
+
+    The map may not carry an allergen the integration does not know. That is
+    deliberate, and it is why these two fail rather than pass when the API
+    adds one: the generator writes an unknown allergen through on purpose, so
+    that it reaches a human. The fix when they go red is to add the allergen
+    to LATIN_TO_ENGLISH_NAME in sensor.py, or its spelling to
+    LATIN_NAME_ALIASES if that is what it turns out to be. It is never to
+    relax the assertion, and never to delete the entry from the file.
+    """
+
+    def test_no_recorded_latin_name_is_a_known_bad_spelling(self, script):
+        # The narrow half of the tripwire: whatever else the file holds, it
+        # may not hold a spelling we have already established is not a latin
+        # name, nor an entry with no latin name at all. This one stays true
+        # even for an allergen the integration does not know yet.
+        db = json.loads(LANGUAGE_MAP.read_text(encoding="utf-8"))
+        bad = [
+            (lang_code, entry["name"], entry["latin"])
+            for lang_code, block in db.items()
+            for entry in block.get("poll_titles", [])
+            if not entry["latin"] or entry["latin"].lower() in script.LATIN_NAME_ALIASES
+        ]
+        assert bad == []
 
     def test_every_recorded_latin_name_is_recognized(self, script):
         db = json.loads(LANGUAGE_MAP.read_text(encoding="utf-8"))
