@@ -60,7 +60,14 @@ LANG_CODES = [
     "uk",
     "hu",
 ]
-DB_FILE = "custom_components/polleninformation/language_map.json"
+# Anchored to the script rather than to the working directory. Relative, it
+# resolved against wherever the shell happened to be, so a run from any other
+# directory found no file, read no languages, fetched all sixteen and wrote a
+# new map there. A file that is merely absent is indistinguishable from an
+# empty database, so no guard downstream can catch that.
+DB_FILE = str(
+    REPO_ROOT / "custom_components" / "polleninformation" / "language_map.json"
+)
 DELAY_SEC = 2  # Polite delay between requests (adjust if needed)
 HEADERS = {
     "Accept": "application/json, text/plain, */*",

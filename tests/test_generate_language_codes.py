@@ -333,6 +333,28 @@ class TestNeedsFetch:
         assert script.needs_fetch({"sk": "oops"}, "sk")
 
 
+class TestDbFilePath:
+    """The map's path is a property of the repo, not of the shell.
+
+    Relative, it resolved against the working directory, so a run from
+    anywhere else read no file, found no languages, fetched all sixteen and
+    wrote a new map into that directory. Nothing downstream can catch it: a
+    file that is merely absent looks exactly like an empty database.
+    """
+
+    def test_the_path_is_absolute(self, script):
+        assert Path(script.DB_FILE).is_absolute()
+
+    def test_it_points_at_the_map_in_this_repo(self, script):
+        assert Path(script.DB_FILE) == LANGUAGE_MAP
+
+    def test_the_map_is_found_from_another_directory(
+        self, script, tmp_path, monkeypatch
+    ):
+        monkeypatch.chdir(tmp_path)
+        assert len(script.load_db()) == 16
+
+
 class TestLoadDb:
     """The level above the root: the file may not be JSON at all."""
 
