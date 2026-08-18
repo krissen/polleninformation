@@ -110,7 +110,7 @@
   entry, where a restart keeps it, and a rename contradicting what a sensor
   records is refused and logged. The record is written for every allergen the
   API identifies, not only for sensors created from now on, so an existing
-  installation starts recording the sensors it already has on the first update
+  installation starts recording the sensors it already has on the first start
   after upgrading. A sensor that has recorded nothing yet is treated exactly as
   before, so nothing that works today stops working. Only this integration's
   own entry is written and only when the value would change, so the rest of the
