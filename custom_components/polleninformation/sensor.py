@@ -615,7 +615,34 @@ async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities(entities, update_before_add=True)
 
 
-class PolleninformationSensor(CoordinatorEntity, SensorEntity):
+class StaleDataMarker:
+    """Tracks which outage the data_stale attributes describe.
+
+    An entity recreated while the API returned nothing carries the timestamp
+    of the outage that was ongoing at setup, and setup does not run again when
+    the API recovers. The transition therefore has to be observed here: the
+    timestamp is taken on the way into an outage and cleared on the way out,
+    so a later outage is dated by itself rather than by the first one. Only
+    the transition assigns it, so the repeated reads Home Assistant makes of
+    an attributes property report the same value throughout one outage.
+    """
+
+    _is_stale: bool
+    _stale_since: str | None
+
+    def _stale_attrs(self, has_data: bool) -> dict[str, Any]:
+        """Return the data_stale pair to publish, empty while data is present."""
+        if has_data:
+            self._is_stale = False
+            self._stale_since = None
+            return {}
+        if not self._is_stale:
+            self._is_stale = True
+            self._stale_since = dt_util.now().isoformat()
+        return {"data_stale": True, "stale_since": self._stale_since}
+
+
+class PolleninformationSensor(StaleDataMarker, CoordinatorEntity, SensorEntity):
     """Pollen allergen sensor."""
 
     _attr_has_entity_name = True
@@ -712,11 +739,7 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         if not self.coordinator.data:
-            attrs: dict[str, Any] = {}
-            if self._is_stale:
-                attrs["data_stale"] = True
-                attrs["stale_since"] = self._stale_since
-            return attrs
+            return self._stale_attrs(has_data=False)
 
         contamination = self.coordinator.data.get("contamination", [])
         forecast = []
@@ -765,17 +788,12 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
             if self.coordinator.last_updated
             else None,
         }
-        # Staleness is derived, not remembered: the flag is set once when the
-        # entity is recreated during an empty response, and setup does not run
-        # again when the API recovers. An empty forecast is what "no data for
-        # this allergen" looks like here.
-        if self._is_stale and not forecast:
-            attrs["data_stale"] = True
-            attrs["stale_since"] = self._stale_since
+        # An empty forecast is what "no data for this allergen" looks like.
+        attrs.update(self._stale_attrs(has_data=bool(forecast)))
         return attrs
 
 
-class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
+class AllergyRiskSensor(StaleDataMarker, CoordinatorEntity, SensorEntity):
     """Daily allergy risk sensor."""
 
     _attr_has_entity_name = True
@@ -848,9 +866,7 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
                 "location_slug": self._location_slug,
                 "attribution": "Austrian Pollen Information Service",
             }
-            if self._is_stale:
-                attrs["data_stale"] = True
-                attrs["stale_since"] = self._stale_since
+            attrs.update(self._stale_attrs(has_data=False))
             return attrs
 
         forecast = []
@@ -875,7 +891,7 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
             )
         raw_value = allergyrisk.get("allergyrisk_1", None)
         scaled_today = scale_allergy_risk(raw_value) if raw_value is not None else None
-        return {
+        attrs = {
             "named_state": self.native_value,
             "numeric_state": scaled_today,
             "numeric_state_raw": raw_value,
@@ -888,9 +904,11 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
             if self.coordinator.last_updated
             else None,
         }
+        attrs.update(self._stale_attrs(has_data=True))
+        return attrs
 
 
-class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
+class AllergyRiskHourlySensor(StaleDataMarker, CoordinatorEntity, SensorEntity):
     """Hourly allergy risk sensor."""
 
     _attr_has_entity_name = True
@@ -966,9 +984,7 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
                 "location_slug": self._location_slug,
                 "attribution": "Austrian Pollen Information Service",
             }
-            if self._is_stale:
-                attrs["data_stale"] = True
-                attrs["stale_since"] = self._stale_since
+            attrs.update(self._stale_attrs(has_data=False))
             return attrs
 
         base_time = dt_util.now().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -1001,7 +1017,7 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
             if scaled_now is not None and scaled_now < len(self._levels_current)
             else None
         )
-        return {
+        attrs = {
             "named_state": named_now,
             "numeric_state": scaled_now,
             "numeric_state_raw": raw_now,
@@ -1014,3 +1030,5 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
             if self.coordinator.last_updated
             else None,
         }
+        attrs.update(self._stale_attrs(has_data=True))
+        return attrs

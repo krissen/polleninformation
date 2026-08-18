@@ -1764,3 +1764,104 @@ class TestStaleSensorRecovery:
         sensor = await self._recreate(hass, "es", "polleninformation_hamburg_ragweed")
         sensor.coordinator.data = GENUS_PREFIXED_NAME_RESPONSE
         assert sensor.native_value is None
+
+
+T1 = datetime(2026, 8, 18, 6, 0, tzinfo=timezone.utc)
+T2 = datetime(2026, 8, 18, 18, 0, tzinfo=timezone.utc)
+
+
+def _frozen(moment):
+    """Patch the sensor module's clock to a fixed moment."""
+    return patch(
+        "custom_components.polleninformation.sensor.dt_util.now",
+        return_value=moment,
+    )
+
+
+class TestStaleSinceFollowsTheCurrentOutage:
+    """stale_since must date the outage being reported, not the first one.
+
+    The timestamp is a constructor value, and setup does not run again when
+    the API recovers, so a second outage would otherwise republish the first
+    outage's timestamp and appear to have lasted for the whole gap.
+    """
+
+    async def _recreated_at(self, hass, moment):
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            "polleninformation_hamburg_birch",
+            suggested_object_id="polleninformation_hamburg_birch",
+            config_entry=entry,
+        )
+        with _frozen(moment):
+            entities = await _setup_entities(
+                hass,
+                "de",
+                entry=entry,
+                response=EMPTY_RESPONSE,
+                language_block=EMPTY_LANGUAGE_BLOCK,
+            )
+        return _by_type(entities, PolleninformationSensor)
+
+    async def test_second_outage_gets_a_fresh_timestamp(self, hass):
+        sensor = await self._recreated_at(hass, T1)
+        with _frozen(T1):
+            assert sensor.extra_state_attributes["stale_since"] == T1.isoformat()
+
+        sensor.coordinator.data = GERMAN_BIRCH_RESPONSE
+        with _frozen(T1):
+            assert "stale_since" not in sensor.extra_state_attributes
+
+        sensor.coordinator.data = EMPTY_RESPONSE
+        with _frozen(T2):
+            attrs = sensor.extra_state_attributes
+        assert attrs["data_stale"] is True
+        assert attrs["stale_since"] == T2.isoformat()
+
+    async def test_the_timestamp_does_not_drift_across_reads(self, hass):
+        """The property is read more than once per update."""
+        sensor = await self._recreated_at(hass, T1)
+        with _frozen(T1):
+            first = sensor.extra_state_attributes["stale_since"]
+        with _frozen(T2):
+            second = sensor.extra_state_attributes["stale_since"]
+        assert first == second == T1.isoformat()
+
+    @pytest.mark.parametrize(
+        ("cls", "key", "payload"),
+        [
+            (AllergyRiskSensor, "allergyrisk", {"allergyrisk_1": 5.0}),
+            (
+                AllergyRiskHourlySensor,
+                "allergyrisk_hourly",
+                {"allergyrisk_hourly_1": [5.0] * 24},
+            ),
+        ],
+    )
+    async def test_risk_sensors_date_the_current_outage(self, cls, key, payload):
+        """The risk sensors froze the same timestamp for the same reason."""
+        coordinator = _make_coordinator({key: {}})
+        sensor = cls(
+            coordinator=coordinator,
+            levels_current=["none", "low", "moderate", "high", "very high"],
+            location_slug="hamburg",
+            location_title="Hamburg",
+            is_stale=True,
+            stale_since=T1.isoformat(),
+        )
+        with _frozen(T1):
+            assert sensor.extra_state_attributes["stale_since"] == T1.isoformat()
+
+        coordinator.data = {key: payload}
+        with _frozen(T1):
+            assert "stale_since" not in sensor.extra_state_attributes
+
+        coordinator.data = {key: {}}
+        with _frozen(T2):
+            attrs = sensor.extra_state_attributes
+        assert attrs["data_stale"] is True
+        assert attrs["stale_since"] == T2.isoformat()

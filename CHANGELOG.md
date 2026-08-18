@@ -39,7 +39,14 @@
   that found its allergen again kept reporting `data_stale` and a `stale_since`
   timestamp from hours earlier next to a perfectly current pollen level. The
   mark now follows the data and is reported only while the sensor really is
-  without a reading, the way the allergy risk sensors already worked.
+  without a reading.
+
+- **A new outage is timed from when it started** — the `stale_since`
+  timestamp was recorded once, when Home Assistant happened to start during an
+  outage, and was reused for every later outage of the same sensor. A card or
+  automation measuring how long data had been missing could therefore be told
+  it had been missing since a gap that ended hours ago. Each outage now
+  carries its own timestamp. This applies to the allergy risk sensors as well.
 
 ## v0.5.4 — Allergen icons (2026-08-10)
 
