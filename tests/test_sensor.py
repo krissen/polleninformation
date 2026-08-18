@@ -32,6 +32,7 @@ from custom_components.polleninformation.sensor import (
     entity_id_available,
     extract_allergen_slug_from_unique_id,
     localized_risk_object_id_suffixes,
+    migrate_localized_allergen_ids,
     resolve_latin_alias,
     scale_allergy_risk,
 )
@@ -1519,6 +1520,128 @@ class TestTheRegistryRowRecordsWhichAllergenItIs:
         assert (
             _recorded_latin(ent_reg, "sensor.polleninformation_hamburg_mugwort") is None
         )
+
+
+class TestARenameThatContradictsWhatTheRowRecords:
+    """The slug guard covers known allergens; this covers the rest.
+
+    A candidate whose slug is another allergen's canonical slug is refused
+    already, because known is detectable. A slug no map can place is not, and
+    those are the rows the escape hatch keeps making: "Foo" was some allergen
+    when its row was created, and a response titled "Foo (Betula)" claims it
+    for birch now. What the row records about itself is the only thing that
+    can tell the two apart, and it is the only thing that outlives the
+    response.
+    """
+
+    @staticmethod
+    def _response(poll_title):
+        return {
+            "contamination": [{"poll_title": poll_title, "contamination_1": 2}],
+            "allergyrisk": {},
+            "allergyrisk_hourly": {},
+        }
+
+    @staticmethod
+    def _register(hass, slug, latin=None):
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        registered = ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            f"polleninformation_hamburg_{slug}",
+            suggested_object_id=f"polleninformation_hamburg_{slug}",
+            config_entry=entry,
+        )
+        if latin is not None:
+            ent_reg.async_update_entity_options(
+                registered.entity_id, DOMAIN, {"latin": latin}
+            )
+        return entry, ent_reg, registered.id
+
+    async def test_the_recorded_allergen_keeps_its_row(self, hass):
+        # Nonexistentia is in no map, which is the point: this row belongs to
+        # the population the slug guard cannot speak for, and reading the
+        # record through the allergen slugs would call it unknown and migrate
+        # it anyway.
+        entry, ent_reg, foo_id = self._register(hass, "foo", latin="Nonexistentia")
+
+        await _setup_with_shipped_blocks(
+            hass, "de", self._response("Foo (Betula)"), entry=entry
+        )
+
+        kept = ent_reg.async_get("sensor.polleninformation_hamburg_foo")
+        assert kept is not None
+        assert kept.id == foo_id
+        assert kept.unique_id == "polleninformation_hamburg_foo"
+
+    async def test_the_refusal_is_logged(self, hass, caplog):
+        entry, _, _ = self._register(hass, "foo", latin="Nonexistentia")
+
+        with caplog.at_level(logging.WARNING):
+            await _setup_with_shipped_blocks(
+                hass, "de", self._response("Foo (Betula)"), entry=entry
+            )
+
+        assert [
+            r
+            for r in caplog.records
+            if "recorded as" in r.getMessage() and "Nonexistentia" in r.getMessage()
+        ]
+
+    async def test_a_row_that_records_nothing_is_migrated_as_before(self, hass):
+        # Every row on every installation that upgrades into this. Absent has
+        # to mean unknown, or the feature would arrive by breaking the
+        # migration for everyone who has not run it yet.
+        entry, ent_reg, foo_id = self._register(hass, "foo")
+
+        await _setup_with_shipped_blocks(
+            hass, "de", self._response("Foo (Betula)"), entry=entry
+        )
+
+        migrated = ent_reg.async_get("sensor.polleninformation_hamburg_birch")
+        assert migrated is not None
+        assert migrated.id == foo_id
+
+    async def test_a_row_recording_this_same_allergen_is_migrated(self, hass):
+        entry, ent_reg, foo_id = self._register(hass, "foo", latin="Betula")
+
+        await _setup_with_shipped_blocks(
+            hass, "de", self._response("Foo (Betula)"), entry=entry
+        )
+
+        migrated = ent_reg.async_get("sensor.polleninformation_hamburg_birch")
+        assert migrated is not None
+        assert migrated.id == foo_id
+
+    async def test_a_species_does_not_contradict_its_own_genus(self, hass):
+        # The response can name a species where the record holds the genus,
+        # or the reverse. They are the same allergen and must not read as a
+        # contradiction.
+        entry, ent_reg, foo_id = self._register(hass, "foo", latin="Betula pendula")
+
+        await _setup_with_shipped_blocks(
+            hass, "de", self._response("Foo (Betula)"), entry=entry
+        )
+
+        migrated = ent_reg.async_get("sensor.polleninformation_hamburg_birch")
+        assert migrated is not None
+        assert migrated.id == foo_id
+
+    async def test_a_claim_that_names_no_allergen_is_not_a_contradiction(self, hass):
+        # Unknown on the claiming side is unknown too, never mismatch. Setup
+        # cannot currently queue such a rename -- an entry with no latin name
+        # is slugged from its display name, which is then the slug it already
+        # has -- so the migration is called directly rather than through a
+        # response that cannot produce this.
+        _, ent_reg, foo_id = self._register(hass, "foo", latin="Nonexistentia")
+
+        migrate_localized_allergen_ids(hass, "hamburg", [("foo", "birch", "")])
+
+        migrated = ent_reg.async_get("sensor.polleninformation_hamburg_birch")
+        assert migrated is not None
+        assert migrated.id == foo_id
 
 
 class TestALegacyCandidateFromTheLiveResponse:

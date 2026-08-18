@@ -385,9 +385,12 @@ def store_allergen_identity(ent_reg, entity_id, latin) -> None:
 def migrate_localized_allergen_ids(hass, location_slug, renames) -> None:
     """Rename allergen ids that were derived from a localized allergen name.
 
-    The renames are (legacy_slug, canonical_slug) pairs derived from the
-    current API response, so only ids this integration can itself have
-    produced are ever considered. The unique_id is always migrated; the
+    The renames are (legacy_slug, canonical_slug, claim_latin) triples derived
+    from the current API response, so only ids this integration can itself
+    have produced are ever considered. The latin name travels with the pair
+    because it is what the claiming allergen IS, and the slug it wants is not:
+    two allergens can want the same slug across time, which is the whole
+    reason a row records what it is. The unique_id is always migrated; the
     entity_id only when it is exactly what this integration would have
     generated, so an entity_id the user chose is kept even when it happens to
     end in the old slug. Either step is skipped with a warning when its
@@ -397,10 +400,33 @@ def migrate_localized_allergen_ids(hass, location_slug, renames) -> None:
         return
 
     ent_reg = er.async_get(hass)
-    for legacy_slug, canonical_slug in renames:
+    for legacy_slug, canonical_slug, claim_latin in renames:
         legacy_unique_id = f"polleninformation_{location_slug}_{legacy_slug}"
         entity_id = ent_reg.async_get_entity_id("sensor", DOMAIN, legacy_unique_id)
         if entity_id is None:
+            continue
+
+        # A row that records which allergen it is settles what its slug
+        # cannot. The display name it was created under can since have been
+        # given to a different allergen, and renaming then does not recover
+        # this allergen's old entity, it takes another one's row and its
+        # history with nothing to reverse it.
+        #
+        # A row that records nothing keeps exactly the behaviour it had
+        # before there was anywhere to record it, and so does a claim with no
+        # latin name of its own: absent is unknown on either side, never
+        # mismatch. Only two names that both say something, and say different
+        # things, stop a migration.
+        recorded = stored_allergen_latin(ent_reg, entity_id)
+        recorded_key = allergen_identity_key(recorded)
+        claim_key = allergen_identity_key(claim_latin)
+        if recorded_key and claim_key and recorded_key != claim_key:
+            _LOGGER.warning(
+                "Not migrating %s to %s: it is recorded as %s",
+                entity_id,
+                canonical_slug,
+                recorded,
+            )
             continue
 
         canonical_unique_id = f"polleninformation_{location_slug}_{canonical_slug}"
@@ -710,7 +736,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
                     legacy_slug,
                 )
                 continue
-            allergen_renames.append((legacy_slug, slug_en))
+            allergen_renames.append((legacy_slug, slug_en, allergen_la))
         icon = ALLERGEN_ICON_MAP.get(slug_en, ALLERGEN_ICON_MAP["default"])
 
         sensor = PolleninformationSensor(
