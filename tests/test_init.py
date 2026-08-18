@@ -263,7 +263,7 @@ class TestEmptySince:
                 AsyncMock(return_value={"nonsense": True}),
             ),
             _frozen(E1),
+            pytest.raises(UpdateFailed),
         ):
-            with pytest.raises(UpdateFailed):
-                await coordinator._async_update_data()
+            await coordinator._async_update_data()
         assert coordinator.empty_since is None

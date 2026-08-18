@@ -106,12 +106,37 @@ class TestExtractAllergenSlug:
 # --- Sensor class tests ---
 
 
-def _make_coordinator(data, last_updated=None, last_update_success=True):
-    """Create a mock coordinator with the given data."""
+T1 = datetime(2026, 8, 18, 6, 0, tzinfo=timezone.utc)
+T2 = datetime(2026, 8, 18, 18, 0, tzinfo=timezone.utc)
+
+_UNSET = object()
+
+
+def _frozen(moment):
+    """Patch the sensor module's clock to a fixed moment."""
+    return patch(
+        "custom_components.polleninformation.sensor.dt_util.now",
+        return_value=moment,
+    )
+
+
+def _make_coordinator(
+    data, last_updated=None, last_update_success=True, empty_since=_UNSET
+):
+    """Create a mock coordinator with the given data.
+
+    empty_since follows the rule the real coordinator applies in
+    _track_empty_response, so a response with no contamination looks stale
+    here too. A test that swaps .data afterwards sets it explicitly, which is
+    what the coordinator would do on the next refresh.
+    """
     coordinator = MagicMock()
     coordinator.data = data
     coordinator.last_updated = last_updated or datetime.now(timezone.utc)
     coordinator.last_update_success = last_update_success
+    if empty_since is _UNSET:
+        empty_since = None if (data or {}).get("contamination") else T1.isoformat()
+    coordinator.empty_since = empty_since
     return coordinator
 
 
@@ -165,12 +190,10 @@ class TestPolleninformationSensor:
             location_slug="hamburg",
             location_title="Hamburg",
             icon="mdi:tree-outline",
-            is_stale=True,
-            stale_since="2026-03-25T12:00:00",
         )
         attrs = sensor.extra_state_attributes
         assert attrs["data_stale"] is True
-        assert attrs["stale_since"] == "2026-03-25T12:00:00"
+        assert attrs["stale_since"] == T1.isoformat()
 
     def test_available_when_success(self, mock_api_response):
         sensor = self._make_sensor(
@@ -206,7 +229,6 @@ class TestAllergyRiskSensor:
             levels_current=["none", "low", "moderate", "high", "very high"],
             location_slug="hamburg",
             location_title="Hamburg",
-            is_stale=True,
         )
         assert sensor.native_value is None
 
@@ -217,9 +239,8 @@ class TestAllergyRiskSensor:
             levels_current=["none", "low", "moderate", "high", "very high"],
             location_slug="hamburg",
             location_title="Hamburg",
-            is_stale=True,
         )
-        # Even though created as stale, fresh coordinator data is used
+        # A sensor created during an outage still reads fresh data
         assert sensor.native_value == "moderate"
 
     def test_attributes_forecast(self, mock_api_response):
@@ -1723,26 +1744,28 @@ class TestStaleSensorRecovery:
         sensor.coordinator.data = LATIN_GENUS_AS_NAME_RESPONSE
         assert sensor.native_value == "bajo"
 
-    async def test_stale_flag_clears_once_the_allergen_is_found(self, hass):
-        """A recovered sensor must stop claiming its data is stale.
-
-        The flag is set in the constructor and async_setup_entry does not run
-        again when the API recovers, so it has to be derived from whether the
-        allergen was actually found.
-        """
+    async def test_the_marker_clears_when_the_response_carries_data(self, hass):
+        """The marker describes the response, so a response ends it."""
         sensor = await _recreate_stale(hass, "de", "polleninformation_hamburg_birch")
         sensor.coordinator.data = GERMAN_BIRCH_RESPONSE
+        sensor.coordinator.empty_since = None
         attrs = sensor.extra_state_attributes
         assert "data_stale" not in attrs
         assert "stale_since" not in attrs
 
-    async def test_stale_flag_stays_while_the_allergen_is_missing(self, hass):
-        """Data for other allergens only is still no data for this one."""
+    async def test_an_allergen_missing_from_a_healthy_response_is_unknown(self, hass):
+        """One absent allergen is not an outage.
+
+        The response carried data, so nothing about it is stale. This sensor
+        simply has no reading, which Home Assistant expresses as unknown.
+        """
         sensor = await _recreate_stale(hass, "de", "polleninformation_hamburg_birch")
         sensor.coordinator.data = LATIN_GENUS_AS_NAME_RESPONSE
+        sensor.coordinator.empty_since = None
         attrs = sensor.extra_state_attributes
-        assert attrs["data_stale"] is True
-        assert attrs["stale_since"] is not None
+        assert sensor.native_value is None
+        assert "data_stale" not in attrs
+        assert "stale_since" not in attrs
 
     async def test_recovers_when_the_display_name_is_a_binomial_key(self, hass):
         """A binomial key in the latin map: "Ailanthus altissima".
@@ -1768,186 +1791,84 @@ class TestStaleSensorRecovery:
         assert sensor.native_value is None
 
 
-T1 = datetime(2026, 8, 18, 6, 0, tzinfo=timezone.utc)
-T2 = datetime(2026, 8, 18, 18, 0, tzinfo=timezone.utc)
+class TestEveryEntityReportsTheSameOutage:
+    """The timestamp belongs to the response, so siblings must agree on it.
 
-
-def _frozen(moment):
-    """Patch the sensor module's clock to a fixed moment."""
-    return patch(
-        "custom_components.polleninformation.sensor.dt_util.now",
-        return_value=moment,
-    )
-
-
-class TestStaleSinceFollowsTheCurrentOutage:
-    """stale_since must date the outage being reported, not the first one.
-
-    The timestamp is a constructor value, and setup does not run again when
-    the API recovers, so a second outage would otherwise republish the first
-    outage's timestamp and appear to have lasted for the whole gap.
+    The per-outage semantics themselves are the coordinator's, and are tested
+    in test_init.py. What matters here is that an entity reports the
+    coordinator's value rather than one of its own: a card reading
+    stale_since off whichever entity it reaches first must get one answer.
     """
 
-    async def _recreated_at(self, hass, moment):
+    async def _entities_during_an_outage(self, hass):
         entry = _make_entry("de")
         entry.add_to_hass(hass)
         ent_reg = er.async_get(hass)
-        ent_reg.async_get_or_create(
-            "sensor",
-            DOMAIN,
-            "polleninformation_hamburg_birch",
-            suggested_object_id="polleninformation_hamburg_birch",
-            config_entry=entry,
-        )
-        with _frozen(moment):
-            entities = await _setup_entities(
-                hass,
-                "de",
-                entry=entry,
-                response=EMPTY_RESPONSE,
-                language_block=EMPTY_LANGUAGE_BLOCK,
+        for slug in ("birch", "alder", "allergy_risk", "allergy_risk_hourly"):
+            ent_reg.async_get_or_create(
+                "sensor",
+                DOMAIN,
+                f"polleninformation_hamburg_{slug}",
+                suggested_object_id=f"polleninformation_hamburg_{slug}",
+                config_entry=entry,
             )
-        return _by_type(entities, PolleninformationSensor)
-
-    async def test_second_outage_gets_a_fresh_timestamp(self, hass):
-        sensor = await self._recreated_at(hass, T1)
-        with _frozen(T1):
-            assert sensor.extra_state_attributes["stale_since"] == T1.isoformat()
-
-        sensor.coordinator.data = GERMAN_BIRCH_RESPONSE
-        with _frozen(T1):
-            assert "stale_since" not in sensor.extra_state_attributes
-
-        sensor.coordinator.data = EMPTY_RESPONSE
-        with _frozen(T2):
-            attrs = sensor.extra_state_attributes
-        assert attrs["data_stale"] is True
-        assert attrs["stale_since"] == T2.isoformat()
-
-    async def test_the_timestamp_does_not_drift_across_reads(self, hass):
-        """The property is read more than once per update."""
-        sensor = await self._recreated_at(hass, T1)
-        with _frozen(T1):
-            first = sensor.extra_state_attributes["stale_since"]
-        with _frozen(T2):
-            second = sensor.extra_state_attributes["stale_since"]
-        assert first == second == T1.isoformat()
-
-    @pytest.mark.parametrize(
-        ("cls", "key", "payload"),
-        [
-            (AllergyRiskSensor, "allergyrisk", {"allergyrisk_1": 5.0}),
-            (
-                AllergyRiskHourlySensor,
-                "allergyrisk_hourly",
-                {"allergyrisk_hourly_1": [5.0] * 24},
-            ),
-        ],
-    )
-    async def test_risk_sensors_date_the_current_outage(self, cls, key, payload):
-        """The risk sensors froze the same timestamp for the same reason."""
-        coordinator = _make_coordinator({key: {}})
-        sensor = cls(
-            coordinator=coordinator,
-            levels_current=["none", "low", "moderate", "high", "very high"],
-            location_slug="hamburg",
-            location_title="Hamburg",
-            is_stale=True,
-            stale_since=T1.isoformat(),
-        )
-        with _frozen(T1):
-            assert sensor.extra_state_attributes["stale_since"] == T1.isoformat()
-
-        coordinator.data = {key: payload}
-        with _frozen(T1):
-            assert "stale_since" not in sensor.extra_state_attributes
-
-        coordinator.data = {key: {}}
-        with _frozen(T2):
-            attrs = sensor.extra_state_attributes
-        assert attrs["data_stale"] is True
-        assert attrs["stale_since"] == T2.isoformat()
-
-
-class TestGenusPrefixedNameOnTheSetupPath:
-    """Prose that begins with a latin genus must not be taken for that genus.
-
-    The setup path owns the entity_id and queues the rename, so resolving
-    "Ambrosia hojas" to ragweed there does more than mis-match a sensor.
-    """
-
-    async def _setup(self, hass, entry=None):
         return await _setup_entities(
             hass,
-            "es",
+            "de",
             entry=entry,
-            response=GENUS_PREFIXED_NAME_RESPONSE,
+            response=EMPTY_RESPONSE,
             language_block=EMPTY_LANGUAGE_BLOCK,
         )
 
-    async def test_does_not_take_the_ragweed_slug(self, hass):
-        entities = await self._setup(hass)
-        unique_ids = {e.unique_id for e in entities if e.unique_id}
-        assert "polleninformation_hamburg_ragweed" not in unique_ids
-        assert "polleninformation_hamburg_ambrosia_hojas" in unique_ids
+    async def test_all_sensor_kinds_report_one_timestamp(self, hass):
+        entities = await self._entities_during_an_outage(hass)
+        assert len(entities) == 4
+        stamps = {e.extra_state_attributes["stale_since"] for e in entities}
+        assert stamps == {T1.isoformat()}
+        assert all(e.extra_state_attributes["data_stale"] is True for e in entities)
 
-    async def test_does_not_report_the_prose_as_a_latin_name(self, hass):
-        entities = await self._setup(hass)
-        sensor = _by_type(entities, PolleninformationSensor)
-        assert sensor.extra_state_attributes["name_la"] == ""
-
-    async def test_queues_no_rename_onto_ragweed(self, hass):
-        entry = _make_entry("es")
-        entry.add_to_hass(hass)
-        ent_reg = er.async_get(hass)
-        ent_reg.async_get_or_create(
-            "sensor",
-            DOMAIN,
-            "polleninformation_hamburg_ambrosia_hojas",
-            suggested_object_id="polleninformation_hamburg_ambrosia_hojas",
-            config_entry=entry,
-        )
-        await self._setup(hass, entry=entry)
-        assert (
-            ent_reg.async_get_entity_id(
-                "sensor", DOMAIN, "polleninformation_hamburg_ambrosia_hojas"
-            )
-            == "sensor.polleninformation_hamburg_ambrosia_hojas"
-        )
-        assert (
-            ent_reg.async_get_entity_id(
-                "sensor", DOMAIN, "polleninformation_hamburg_ragweed"
-            )
-            is None
-        )
+    async def test_the_marker_is_absent_once_the_coordinator_clears_it(self, hass):
+        entities = await self._entities_during_an_outage(hass)
+        for entity in entities:
+            entity.coordinator.data = RAGWEED_RESPONSE
+            entity.coordinator.empty_since = None
+        for entity in entities:
+            assert "data_stale" not in entity.extra_state_attributes
 
 
 EN_LEVELS = ["none", "low", "moderate", "high", "very high"]
 
+HEALTHY_CONTAMINATION = [{"poll_title": "Birch (Betula)", "contamination_1": 1}]
 
-class TestPartialDataIsNotFreshData:
-    """A sensor with no readable value must not report itself fresh.
 
-    A risk block that is present but carries nothing usable for right now,
-    only a later day, a null, or an empty hourly list, left native_value
-    unknown while clearing the stale marker.
+class TestAMissingReadingIsUnknownNotStale:
+    """A response that carried data is never stale, however thin it is.
+
+    A risk block with nothing usable for right now, only a later day, a null,
+    or an empty hourly list, leaves the sensor without a value. That is state
+    unknown, not an outage: the fetch succeeded and the response had data.
     """
 
-    def _risk(self, cls, data, is_stale=True):
+    def _risk(self, cls, block, contamination=None):
+        data = {
+            "contamination": HEALTHY_CONTAMINATION
+            if contamination is None
+            else contamination
+        }
+        data.update(block)
         return cls(
             coordinator=_make_coordinator(data),
             levels_current=EN_LEVELS,
             location_slug="hamburg",
             location_title="Hamburg",
-            is_stale=is_stale,
-            stale_since=T1.isoformat(),
         )
 
     @pytest.mark.parametrize(
-        ("cls", "data"),
+        ("cls", "block"),
         [
             (AllergyRiskSensor, {"allergyrisk": {"allergyrisk_2": 5.0}}),
             (AllergyRiskSensor, {"allergyrisk": {"allergyrisk_1": None}}),
+            (AllergyRiskSensor, {"allergyrisk": {}}),
             (
                 AllergyRiskHourlySensor,
                 {"allergyrisk_hourly": {"allergyrisk_hourly_2": [5.0] * 24}},
@@ -1959,16 +1880,15 @@ class TestPartialDataIsNotFreshData:
             ),
         ],
     )
-    def test_partial_risk_data_stays_stale(self, cls, data):
-        sensor = self._risk(cls, data)
-        with _frozen(T2):
-            attrs = sensor.extra_state_attributes
+    def test_a_thin_risk_block_is_unknown_without_a_marker(self, cls, block):
+        sensor = self._risk(cls, block)
+        attrs = sensor.extra_state_attributes
         assert sensor.native_value is None
-        assert attrs["data_stale"] is True
-        assert attrs["stale_since"] == T1.isoformat()
+        assert "data_stale" not in attrs
+        assert "stale_since" not in attrs
 
     @pytest.mark.parametrize(
-        ("cls", "data"),
+        ("cls", "block"),
         [
             (AllergyRiskSensor, {"allergyrisk": {"allergyrisk_1": 0.0}}),
             (
@@ -1977,34 +1897,29 @@ class TestPartialDataIsNotFreshData:
             ),
         ],
     )
-    def test_a_zero_reading_is_a_reading(self, cls, data):
+    def test_a_zero_reading_is_a_reading(self, cls, block):
         """No risk at all is a real value, not a missing one."""
-        sensor = self._risk(cls, data)
-        with _frozen(T2):
-            attrs = sensor.extra_state_attributes
+        sensor = self._risk(cls, block)
         assert sensor.native_value == "none"
-        assert "data_stale" not in attrs
-        assert "stale_since" not in attrs
+        assert "data_stale" not in sensor.extra_state_attributes
 
-    def test_repeated_partial_responses_keep_the_first_timestamp(self):
-        """Flickering between partial shapes is one outage, not several."""
-        sensor = self._risk(
-            AllergyRiskSensor, {"allergyrisk": {"allergyrisk_2": 5.0}}, is_stale=False
-        )
-        with _frozen(T1):
-            first = sensor.extra_state_attributes["stale_since"]
-        sensor.coordinator.data = {"allergyrisk": {"allergyrisk_1": None}}
-        with _frozen(T2):
-            second = sensor.extra_state_attributes["stale_since"]
-        assert first == second == T1.isoformat()
+    @pytest.mark.parametrize(
+        ("cls", "block"),
+        [
+            (AllergyRiskSensor, {"allergyrisk": {}}),
+            (AllergyRiskHourlySensor, {"allergyrisk_hourly": {}}),
+        ],
+    )
+    def test_an_empty_response_still_marks_the_risk_sensors(self, cls, block):
+        """The outage itself is response level, and does reach them."""
+        sensor = self._risk(cls, block, contamination=[])
+        attrs = sensor.extra_state_attributes
+        assert sensor.native_value is None
+        assert attrs["data_stale"] is True
+        assert attrs["stale_since"] == T1.isoformat()
 
-    def test_an_unusable_pollen_level_is_not_fresh(self):
-        """The pollen sensor answers the same question the same way.
-
-        A level outside the level names leaves native_value unknown while the
-        forecast is still built, so a forecast alone cannot stand for a
-        reading.
-        """
+    def test_an_unusable_pollen_level_is_unknown_without_a_marker(self):
+        """A level the level names do not cover leaves no value either."""
         sensor = PolleninformationSensor(
             coordinator=_make_coordinator(
                 {
@@ -2023,15 +1938,11 @@ class TestPartialDataIsNotFreshData:
             location_slug="hamburg",
             location_title="Hamburg",
             icon="mdi:tree-outline",
-            is_stale=True,
-            stale_since=T1.isoformat(),
         )
-        with _frozen(T2):
-            attrs = sensor.extra_state_attributes
+        attrs = sensor.extra_state_attributes
         assert sensor.native_value is None
         assert attrs["forecast"]
-        assert attrs["data_stale"] is True
-        assert attrs["stale_since"] == T1.isoformat()
+        assert "data_stale" not in attrs
 
 
 GERMAN_LANGUAGE_BLOCK = {"poll_titles": [{"name": "Birke", "latin": "Betula"}]}

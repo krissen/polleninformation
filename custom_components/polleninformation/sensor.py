@@ -536,7 +536,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
             new_unique_ids.add(sensor.unique_id)
 
     # Recreate stale entities from registry when API returns empty data
-    stale_since = dt_util.now().isoformat() if is_data_empty else None
     if is_data_empty and existing_unique_ids:
         _LOGGER.warning(
             "API returned empty data for %s, recreating %d entities as stale",
@@ -556,8 +555,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
                     location_slug=location_slug,
                     location_title=location_title,
                     name=risk_name,
-                    is_stale=True,
-                    stale_since=stale_since,
                 )
             elif allergen_slug == "allergy_risk_hourly":
                 sensor = AllergyRiskHourlySensor(
@@ -566,8 +563,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
                     location_slug=location_slug,
                     location_title=location_title,
                     name=risk_name_hourly,
-                    is_stale=True,
-                    stale_since=stale_since,
                 )
             else:
                 # The slug is all the registry keeps, so the names are
@@ -605,8 +600,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
                     location_title=location_title,
                     icon=icon,
                     display_name=display_overrides.get(allergen_slug, allergen_name),
-                    is_stale=True,
-                    stale_since=stale_since,
                 )
             entities.append(sensor)
             if sensor.unique_id:
@@ -615,34 +608,21 @@ async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities(entities, update_before_add=True)
 
 
-class StaleDataMarker:
-    """Tracks which outage the data_stale attributes describe.
+def stale_attrs(coordinator) -> dict[str, Any]:
+    """Return the staleness attributes for a response that carried no data.
 
-    An entity recreated while the API returned nothing carries the timestamp
-    of the outage that was ongoing at setup, and setup does not run again when
-    the API recovers. The transition therefore has to be observed here: the
-    timestamp is taken on the way into an outage and cleared on the way out,
-    so a later outage is dated by itself rather than by the first one. Only
-    the transition assigns it, so the repeated reads Home Assistant makes of
-    an attributes property report the same value throughout one outage.
+    data_stale is response level BY DEFINITION: it says this location's fetch
+    succeeded and returned nothing usable, not that one sensor is missing a
+    reading. A sensor with no reading of its own is unknown and carries no
+    marker. The coordinator owns the timestamp, so every entity of a location
+    reports the same one for the same outage.
     """
-
-    _is_stale: bool
-    _stale_since: str | None
-
-    def _stale_attrs(self, has_data: bool) -> dict[str, Any]:
-        """Return the data_stale pair to publish, empty while data is present."""
-        if has_data:
-            self._is_stale = False
-            self._stale_since = None
-            return {}
-        if not self._is_stale:
-            self._is_stale = True
-            self._stale_since = dt_util.now().isoformat()
-        return {"data_stale": True, "stale_since": self._stale_since}
+    if not coordinator.empty_since:
+        return {}
+    return {"data_stale": True, "stale_since": coordinator.empty_since}
 
 
-class PolleninformationSensor(StaleDataMarker, CoordinatorEntity, SensorEntity):
+class PolleninformationSensor(CoordinatorEntity, SensorEntity):
     """Pollen allergen sensor."""
 
     _attr_has_entity_name = True
@@ -661,8 +641,6 @@ class PolleninformationSensor(StaleDataMarker, CoordinatorEntity, SensorEntity):
         location_title: str,
         icon: str,
         display_name: str | None = None,
-        is_stale: bool = False,
-        stale_since: str | None = None,
     ) -> None:
         super().__init__(coordinator)
         self.sensor_type = sensor_type
@@ -676,8 +654,6 @@ class PolleninformationSensor(StaleDataMarker, CoordinatorEntity, SensorEntity):
         self._levels_en = levels_en
         self._location_slug = location_slug
         self._location_title = location_title
-        self._is_stale = is_stale
-        self._stale_since = stale_since
 
         self._attr_name = self._display_name
         self._attr_unique_id = f"polleninformation_{location_slug}_{allergen_slug}"
@@ -742,7 +718,7 @@ class PolleninformationSensor(StaleDataMarker, CoordinatorEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         if not self.coordinator.data:
-            return self._stale_attrs(has_data=False)
+            return stale_attrs(self.coordinator)
 
         contamination = self.coordinator.data.get("contamination", [])
         forecast = []
@@ -794,11 +770,11 @@ class PolleninformationSensor(StaleDataMarker, CoordinatorEntity, SensorEntity):
         # Staleness follows the value the sensor reports: a forecast can be
         # built from a level the level names do not cover, and a sensor
         # showing unknown is not fresh whatever else the response held.
-        attrs.update(self._stale_attrs(has_data=self.native_value is not None))
+        attrs.update(stale_attrs(self.coordinator))
         return attrs
 
 
-class AllergyRiskSensor(StaleDataMarker, CoordinatorEntity, SensorEntity):
+class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
     """Daily allergy risk sensor."""
 
     _attr_has_entity_name = True
@@ -811,15 +787,11 @@ class AllergyRiskSensor(StaleDataMarker, CoordinatorEntity, SensorEntity):
         location_slug: str,
         location_title: str,
         name: str | None = None,
-        is_stale: bool = False,
-        stale_since: str | None = None,
     ) -> None:
         super().__init__(coordinator)
         self._levels_current = levels_current
         self._location_slug = location_slug
         self._location_title = location_title
-        self._is_stale = is_stale
-        self._stale_since = stale_since
 
         # An explicit name wins over the translation key; leaving it unset
         # lets the name follow the Home Assistant UI language.
@@ -871,7 +843,7 @@ class AllergyRiskSensor(StaleDataMarker, CoordinatorEntity, SensorEntity):
                 "location_slug": self._location_slug,
                 "attribution": "Austrian Pollen Information Service",
             }
-            attrs.update(self._stale_attrs(has_data=False))
+            attrs.update(stale_attrs(self.coordinator))
             return attrs
 
         forecast = []
@@ -912,11 +884,11 @@ class AllergyRiskSensor(StaleDataMarker, CoordinatorEntity, SensorEntity):
         # The block being present is not a reading: it can carry only a later
         # day, or a null, and leave the sensor unknown. Staleness therefore
         # follows the value, so the two can never disagree.
-        attrs.update(self._stale_attrs(has_data=self.native_value is not None))
+        attrs.update(stale_attrs(self.coordinator))
         return attrs
 
 
-class AllergyRiskHourlySensor(StaleDataMarker, CoordinatorEntity, SensorEntity):
+class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
     """Hourly allergy risk sensor."""
 
     _attr_has_entity_name = True
@@ -929,15 +901,11 @@ class AllergyRiskHourlySensor(StaleDataMarker, CoordinatorEntity, SensorEntity):
         location_slug: str,
         location_title: str,
         name: str | None = None,
-        is_stale: bool = False,
-        stale_since: str | None = None,
     ) -> None:
         super().__init__(coordinator)
         self._levels_current = levels_current
         self._location_slug = location_slug
         self._location_title = location_title
-        self._is_stale = is_stale
-        self._stale_since = stale_since
 
         # An explicit name wins over the translation key; leaving it unset
         # lets the name follow the Home Assistant UI language.
@@ -992,7 +960,7 @@ class AllergyRiskHourlySensor(StaleDataMarker, CoordinatorEntity, SensorEntity):
                 "location_slug": self._location_slug,
                 "attribution": "Austrian Pollen Information Service",
             }
-            attrs.update(self._stale_attrs(has_data=False))
+            attrs.update(stale_attrs(self.coordinator))
             return attrs
 
         base_time = dt_util.now().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -1041,5 +1009,5 @@ class AllergyRiskHourlySensor(StaleDataMarker, CoordinatorEntity, SensorEntity):
         # The block being present is not a reading: it can carry only a later
         # day, or a null, and leave the sensor unknown. Staleness therefore
         # follows the value, so the two can never disagree.
-        attrs.update(self._stale_attrs(has_data=self.native_value is not None))
+        attrs.update(stale_attrs(self.coordinator))
         return attrs
