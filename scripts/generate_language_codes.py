@@ -78,9 +78,16 @@ HEADERS = {
 def load_db():
     """Load the existing language_map.json, or return empty dict.
 
-    A file that is not JSON at all stops the run. Treating it as an empty db
-    would be the destructive reading: the fetch would refetch every language
-    and write over whatever was in there.
+    A file that is not JSON at all stops the run. The rule this follows is
+    not "unreadable stops, readable continues", it is narrower: a run that
+    would REWRITE the file stops, a run that cannot damage it continues. The
+    fetch writes, so it exits on JSON it cannot parse and on a root that is
+    not an object. The repair only ever writes what it has read, so it
+    reports those same roots and leaves the file byte for byte as it was.
+
+    Treating an unreadable file as an empty db would be the destructive
+    reading: the fetch would refetch every language and write over whatever
+    was in there.
     """
     if not os.path.exists(DB_FILE):
         return {}
