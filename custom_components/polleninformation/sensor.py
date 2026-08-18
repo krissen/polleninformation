@@ -678,6 +678,14 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
         sensor recreated from the registry while the API returned no data
         knows only the English name behind its slug, so it also matches on
         the slug, which holds in every language.
+
+        Both criteria are tested per entry, which is safe because at most one
+        entry can match either way: two entries resolving to one allergen
+        already collide on unique_id at setup, and no localized name in the
+        language map equals another allergen's canonical English name. Were
+        this ever split into two passes, the slug pass belongs first, since
+        the slug comes from the language-invariant latin name while the name
+        compare is the fuzzy one.
         """
         for item in contamination:
             poll_title = item.get("poll_title", "").split("(", 1)[0].strip()
