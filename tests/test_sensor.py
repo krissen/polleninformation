@@ -1691,49 +1691,51 @@ BINOMIAL_NAME_RESPONSE = {
 }
 
 
+async def _recreate_stale(hass, lang, unique_id, language_block=None):
+    """Run setup against an empty response so a registry entity is recreated."""
+    entry = _make_entry(lang)
+    entry.add_to_hass(hass)
+    ent_reg = er.async_get(hass)
+    ent_reg.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        unique_id,
+        suggested_object_id=unique_id,
+        config_entry=entry,
+    )
+    entities = await _setup_entities(
+        hass,
+        lang,
+        entry=entry,
+        response=EMPTY_RESPONSE,
+        language_block=language_block or EMPTY_LANGUAGE_BLOCK,
+    )
+    return _by_type(entities, PolleninformationSensor)
+
+
 class TestStaleSensorRecovery:
     """A sensor recreated during an empty response must recover on any language."""
 
-    async def _recreate(self, hass, lang, unique_id):
-        entry = _make_entry(lang)
-        entry.add_to_hass(hass)
-        ent_reg = er.async_get(hass)
-        ent_reg.async_get_or_create(
-            "sensor",
-            DOMAIN,
-            unique_id,
-            suggested_object_id=unique_id,
-            config_entry=entry,
-        )
-        entities = await _setup_entities(
-            hass,
-            lang,
-            entry=entry,
-            response=EMPTY_RESPONSE,
-            language_block=EMPTY_LANGUAGE_BLOCK,
-        )
-        return _by_type(entities, PolleninformationSensor)
-
     async def test_german_sensor_recovers_on_localized_poll_title(self, hass):
-        sensor = await self._recreate(hass, "de", "polleninformation_hamburg_birch")
+        sensor = await _recreate_stale(hass, "de", "polleninformation_hamburg_birch")
         sensor.coordinator.data = GERMAN_BIRCH_RESPONSE
         assert sensor.native_value == "hoch"
 
     async def test_german_forecast_recovers(self, hass):
-        sensor = await self._recreate(hass, "de", "polleninformation_hamburg_birch")
+        sensor = await _recreate_stale(hass, "de", "polleninformation_hamburg_birch")
         sensor.coordinator.data = GERMAN_BIRCH_RESPONSE
         forecast = sensor.extra_state_attributes["forecast"]
         assert [day["level"] for day in forecast] == [3, 2, 1, 0]
 
     async def test_english_dock_sorrel_recovers(self, hass):
-        sensor = await self._recreate(
+        sensor = await _recreate_stale(
             hass, "en", "polleninformation_hamburg_dock_sorrel"
         )
         sensor.coordinator.data = ENGLISH_DOCK_SORREL_RESPONSE
         assert sensor.native_value == "moderate"
 
     async def test_latin_name_is_derived_from_the_slug(self, hass):
-        sensor = await self._recreate(hass, "de", "polleninformation_hamburg_birch")
+        sensor = await _recreate_stale(hass, "de", "polleninformation_hamburg_birch")
         sensor.coordinator.data = GERMAN_BIRCH_RESPONSE
         assert sensor.extra_state_attributes["name_la"] == "Betula"
 
@@ -1744,7 +1746,7 @@ class TestStaleSensorRecovery:
         whole poll_title; its own name is "Mugwort", so only the map lookup on
         the display name itself can identify the entry.
         """
-        sensor = await self._recreate(hass, "es", "polleninformation_hamburg_mugwort")
+        sensor = await _recreate_stale(hass, "es", "polleninformation_hamburg_mugwort")
         sensor.coordinator.data = LATIN_GENUS_AS_NAME_RESPONSE
         assert sensor.native_value == "bajo"
 
@@ -1755,7 +1757,7 @@ class TestStaleSensorRecovery:
         again when the API recovers, so it has to be derived from whether the
         allergen was actually found.
         """
-        sensor = await self._recreate(hass, "de", "polleninformation_hamburg_birch")
+        sensor = await _recreate_stale(hass, "de", "polleninformation_hamburg_birch")
         sensor.coordinator.data = GERMAN_BIRCH_RESPONSE
         attrs = sensor.extra_state_attributes
         assert "data_stale" not in attrs
@@ -1763,7 +1765,7 @@ class TestStaleSensorRecovery:
 
     async def test_stale_flag_stays_while_the_allergen_is_missing(self, hass):
         """Data for other allergens only is still no data for this one."""
-        sensor = await self._recreate(hass, "de", "polleninformation_hamburg_birch")
+        sensor = await _recreate_stale(hass, "de", "polleninformation_hamburg_birch")
         sensor.coordinator.data = LATIN_GENUS_AS_NAME_RESPONSE
         attrs = sensor.extra_state_attributes
         assert attrs["data_stale"] is True
@@ -1775,7 +1777,7 @@ class TestStaleSensorRecovery:
         Counting words would reject it, but it is a latin name the map knows,
         so a stale tree of heaven sensor must pick it up like any other.
         """
-        sensor = await self._recreate(
+        sensor = await _recreate_stale(
             hass, "de", "polleninformation_hamburg_tree_of_heaven"
         )
         sensor.coordinator.data = BINOMIAL_NAME_RESPONSE
@@ -1788,7 +1790,7 @@ class TestStaleSensorRecovery:
         matching it to the ragweed sensor would be a guess, not an
         identification.
         """
-        sensor = await self._recreate(hass, "es", "polleninformation_hamburg_ragweed")
+        sensor = await _recreate_stale(hass, "es", "polleninformation_hamburg_ragweed")
         sensor.coordinator.data = GENUS_PREFIXED_NAME_RESPONSE
         assert sensor.native_value is None
 
@@ -2056,3 +2058,4 @@ class TestPartialDataIsNotFreshData:
         assert attrs["forecast"]
         assert attrs["data_stale"] is True
         assert attrs["stale_since"] == T1.isoformat()
+
