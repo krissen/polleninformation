@@ -228,6 +228,13 @@ class TestLanguageEntryFromResponse:
         entry, _ = script.language_entry_from_response("sk", {"contamination": []})
         assert "error" in entry
 
+    def test_a_contamination_block_that_is_not_a_list_is_an_error_entry(self, script):
+        entry, warnings = script.language_entry_from_response(
+            "sk", {"contamination": "oops"}
+        )
+        assert "error" in entry
+        assert len(warnings) == 1
+
     def test_a_block_of_unreadable_entries_is_an_error_entry(self, script):
         entry, warnings = script.language_entry_from_response(
             "sk", {"contamination": ["oops", "also oops"]}
