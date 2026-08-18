@@ -24,7 +24,6 @@ from custom_components.polleninformation.sensor import (
     entity_id_available,
     extract_allergen_slug_from_unique_id,
     localized_risk_object_id_suffixes,
-    pollen_forecast_for_allergen,
     scale_allergy_risk,
 )
 from custom_components.polleninformation.utils import slugify
@@ -102,32 +101,6 @@ class TestExtractAllergenSlug:
 
     def test_none(self):
         assert extract_allergen_slug_from_unique_id(None) is None
-
-
-class TestPollenForecast:
-    def test_match(self):
-        contamination = [
-            {
-                "poll_title": "Birke (Betula)",
-                "contamination_1": 0,
-                "contamination_2": 1,
-                "contamination_3": 2,
-                "contamination_4": 3,
-            }
-        ]
-        levels = ["none", "low", "moderate", "high", "very high"]
-        result = pollen_forecast_for_allergen(contamination, "Birke", levels)
-        assert len(result) == 4
-        assert result[0]["level"] == 0
-        assert result[0]["level_name"] == "none"
-        assert result[2]["level"] == 2
-        assert result[2]["level_name"] == "moderate"
-
-    def test_no_match(self):
-        contamination = [{"poll_title": "Birke (Betula)", "contamination_1": 1}]
-        levels = ["none", "low"]
-        result = pollen_forecast_for_allergen(contamination, "Unknown", levels)
-        assert result == []
 
 
 # --- Sensor class tests ---

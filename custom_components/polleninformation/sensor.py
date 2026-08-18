@@ -359,26 +359,6 @@ async def async_migrate_localized_risk_entity_ids(hass, entry, location_slug) ->
         ent_reg.async_update_entity(reg_entry.entity_id, new_entity_id=new_entity_id)
 
 
-def pollen_forecast_for_allergen(
-    contamination: list, allergen_name: str, levels: list
-) -> list:
-    out = []
-    allergen_name_lower = allergen_name.lower()
-    for item in contamination:
-        poll_title = item.get("poll_title", "").split("(", 1)[0].strip().lower()
-        if poll_title == allergen_name_lower:
-            for day in range(1, 5):
-                val = item.get(f"contamination_{day}", 0)
-                level_name = (
-                    levels[val]
-                    if isinstance(val, int) and val < len(levels)
-                    else str(val)
-                )
-                out.append({"day": day, "level_name": level_name, "level": val})
-            break
-    return out
-
-
 def scale_allergy_risk(value: Any) -> int | None:
     try:
         return int(round(value / 2.5))
