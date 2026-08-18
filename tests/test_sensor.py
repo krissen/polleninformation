@@ -1692,7 +1692,8 @@ class TestStaleSensorRecovery:
     async def test_german_forecast_recovers(self, hass):
         sensor = await self._recreate(hass, "de", "polleninformation_hamburg_birch")
         sensor.coordinator.data = GERMAN_BIRCH_RESPONSE
-        assert len(sensor.extra_state_attributes["forecast"]) == 4
+        forecast = sensor.extra_state_attributes["forecast"]
+        assert [day["level"] for day in forecast] == [3, 2, 1, 0]
 
     async def test_english_dock_sorrel_recovers(self, hass):
         sensor = await self._recreate(
@@ -1715,4 +1716,5 @@ class TestStaleSensorRecovery:
         """
         sensor = await self._recreate(hass, "es", "polleninformation_hamburg_mugwort")
         sensor.coordinator.data = LATIN_GENUS_AS_NAME_RESPONSE
-        assert sensor.native_value is not None
+        assert sensor.native_value == "bajo"
+
