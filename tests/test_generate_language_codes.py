@@ -290,6 +290,27 @@ class TestRepairDb:
         assert script.repair_db(db) == ([], [])
 
     @pytest.mark.parametrize(
+        "poll",
+        [
+            {"name": "Trávy", "latin": 5},
+            {"name": 5, "latin": ""},
+            {"name": ["Trávy"], "latin": "Poaceae"},
+        ],
+    )
+    def test_a_scalar_that_is_not_a_string_does_not_abort_the_run(self, script, poll):
+        # canonical_latin strips, so a truthy non-string used to raise and
+        # take every remaining language with it.
+        db = {"x": {"poll_titles": [poll, {"name": "Breza", "latin": "Betula"}]}}
+        changes, warnings = script.repair_db(db)
+
+        assert changes == []
+        assert len(warnings) == 1
+        assert warnings[0].startswith("x: ")
+        # The entry is left exactly as it was: a defect is reported, never
+        # quietly rewritten into a well-formed record.
+        assert db["x"]["poll_titles"][0] == poll
+
+    @pytest.mark.parametrize(
         "db",
         [
             {"x": {"poll_titles": [{"name": None, "latin": "Nonexistentia"}]}},

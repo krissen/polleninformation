@@ -265,6 +265,11 @@ def repair_db(db):
                 continue
             name = poll.get("name") or ""
             latin = poll.get("latin") or ""
+            if not isinstance(name, str) or not isinstance(latin, str):
+                warnings.append(
+                    f"{lang_code}: name or latin is not a string, skipping: {poll!r}"
+                )
+                continue
             resolved, entry_warnings = resolve_latin(name, latin)
             warnings.extend(f"{lang_code}: {w}" for w in entry_warnings)
             if resolved != latin:
