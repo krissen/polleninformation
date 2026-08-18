@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from zoneinfo import ZoneInfo
 
 import pytest
+from homeassistant.core import callback
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -1299,6 +1300,225 @@ ITALIAN_RAGWEED_RESPONSE = {
     "allergyrisk": {"allergyrisk_1": 5.0},
     "allergyrisk_hourly": {"allergyrisk_hourly_1": [5.0] * 24},
 }
+
+
+async def _setup_through_the_platform(hass, lang, response, entry=None):
+    """Run setup the way Home Assistant does, so the entities are really added.
+
+    The helper above hands async_add_entities a list collector, which is
+    enough for anything decided during setup but never registers an entity or
+    runs its lifecycle. Anything an entity does on being added -- writing to
+    its own registry row, here -- is invisible to that helper and has to be
+    exercised through the platform.
+    """
+    if entry is None:
+        entry = _make_entry(lang)
+        entry.add_to_hass(hass)
+
+    async def _block(_hass, lang_code):
+        return shipped_block(lang_code)
+
+    with (
+        patch(
+            "custom_components.polleninformation.async_get_pollenat_data",
+            AsyncMock(return_value=response),
+        ),
+        patch(
+            "custom_components.polleninformation.sensor.async_get_language_block",
+            AsyncMock(side_effect=_block),
+        ),
+    ):
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+    return entry
+
+
+def _recorded_latin(ent_reg, entity_id):
+    """The latin name a registry row records for itself, or None."""
+    entry = ent_reg.async_get(entity_id)
+    assert entry is not None, entity_id
+    return (entry.options.get(DOMAIN) or {}).get("latin")
+
+
+class TestTheRegistryRowRecordsWhichAllergenItIs:
+    """The registry keeps nothing that says which allergen a row is.
+
+    A slug no map can place is checkable against nothing, so a rename
+    candidate has had to be trusted on its name alone. Per-entity options
+    under this integration's domain are where something of ours survives a
+    restart, so that is where the latin name goes.
+    """
+
+    @staticmethod
+    def _response(*poll_titles):
+        return {
+            "contamination": [
+                {"poll_title": title, "contamination_1": 2} for title in poll_titles
+            ],
+            "allergyrisk": {},
+            "allergyrisk_hourly": {},
+        }
+
+    async def test_a_newly_created_sensor_records_its_allergen(self, hass):
+        await _setup_through_the_platform(
+            hass, "de", self._response("Beifu\u00df (Artemisia)")
+        )
+
+        ent_reg = er.async_get(hass)
+        assert (
+            _recorded_latin(ent_reg, "sensor.polleninformation_hamburg_mugwort")
+            == "Artemisia"
+        )
+
+    async def test_a_row_that_already_existed_is_recorded_too(self, hass):
+        # The backfill. An installation upgrading into this has a row for
+        # every allergen it has ever seen and an option on none of them, so
+        # recording only what is created afterwards would leave the whole
+        # existing population unaccounted for.
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        existing = ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            "polleninformation_hamburg_mugwort",
+            suggested_object_id="polleninformation_hamburg_mugwort",
+            config_entry=entry,
+        )
+        assert existing.options.get(DOMAIN) is None
+
+        await _setup_through_the_platform(
+            hass, "de", self._response("Beifu\u00df (Artemisia)"), entry=entry
+        )
+
+        assert (
+            _recorded_latin(ent_reg, "sensor.polleninformation_hamburg_mugwort")
+            == "Artemisia"
+        )
+
+    async def test_recording_the_same_allergen_again_writes_nothing(self, hass):
+        entry = await _setup_through_the_platform(
+            hass, "de", self._response("Beifu\u00df (Artemisia)")
+        )
+        ent_reg = er.async_get(hass)
+        entity_id = "sensor.polleninformation_hamburg_mugwort"
+        before = ent_reg.async_get(entity_id).modified_at
+
+        writes = []
+
+        @callback
+        def _seen(event):
+            if "options" in event.data.get("changes", {}):
+                writes.append(event.data["entity_id"])
+
+        hass.bus.async_listen(er.EVENT_ENTITY_REGISTRY_UPDATED, _seen)
+
+        await hass.config_entries.async_unload(entry.entry_id)
+        await _setup_through_the_platform(
+            hass, "de", self._response("Beifu\u00df (Artemisia)"), entry=entry
+        )
+
+        assert writes == []
+        assert ent_reg.async_get(entity_id).modified_at == before
+
+    async def test_the_genus_a_recreated_sensor_knows_does_not_overwrite_a_species(
+        self, hass
+    ):
+        # The two paths that can name this allergen disagree in detail: the
+        # response can send a species, while a sensor rebuilt from its slug
+        # can only name the genus. They mean the same allergen, so neither
+        # may keep rewriting the other.
+        entry = await _setup_through_the_platform(
+            hass, "de", self._response("Beifu\u00df (Artemisia vulgaris)")
+        )
+        ent_reg = er.async_get(hass)
+        entity_id = "sensor.polleninformation_hamburg_mugwort"
+        assert _recorded_latin(ent_reg, entity_id) == "Artemisia vulgaris"
+
+        await hass.config_entries.async_unload(entry.entry_id)
+        await _setup_through_the_platform(
+            hass, "de", self._response("Beifu\u00df (Artemisia)"), entry=entry
+        )
+
+        assert _recorded_latin(ent_reg, entity_id) == "Artemisia vulgaris"
+
+    async def test_nothing_else_on_the_row_is_disturbed(self, hass):
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            "polleninformation_hamburg_mugwort",
+            suggested_object_id="polleninformation_hamburg_mugwort",
+            config_entry=entry,
+        )
+        entity_id = "sensor.polleninformation_hamburg_mugwort"
+        ent_reg.async_update_entity(entity_id, name="My mugwort", icon="mdi:custom")
+        # Another integration's options, which this must carry across
+        # untouched: async_update_entity_options replaces one domain's key
+        # and leaves the rest of the mapping alone.
+        ent_reg.async_update_entity_options(
+            entity_id, "conversation", {"should_expose": False}
+        )
+
+        await _setup_through_the_platform(
+            hass, "de", self._response("Beifu\u00df (Artemisia)"), entry=entry
+        )
+
+        row = ent_reg.async_get(entity_id)
+        assert row.name == "My mugwort"
+        assert row.icon == "mdi:custom"
+        assert row.options["conversation"] == {"should_expose": False}
+        assert row.options[DOMAIN]["latin"] == "Artemisia"
+
+    async def test_an_allergen_this_response_does_not_carry_records_nothing(self, hass):
+        # Nothing identified this row's allergen in this response, so nothing
+        # is known about it that was not known before.
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            "polleninformation_hamburg_birch",
+            suggested_object_id="polleninformation_hamburg_birch",
+            config_entry=entry,
+        )
+
+        await _setup_through_the_platform(
+            hass, "de", self._response("Beifu\u00df (Artemisia)"), entry=entry
+        )
+
+        assert (
+            _recorded_latin(ent_reg, "sensor.polleninformation_hamburg_birch") is None
+        )
+
+    async def test_a_sensor_recreated_during_an_outage_records_nothing(self, hass):
+        # Such a sensor derived its latin name from its own slug, so
+        # recording it would write down the assumption the record exists to
+        # check rather than anything the API said.
+        entry = _make_entry("de")
+        entry.add_to_hass(hass)
+        ent_reg = er.async_get(hass)
+        ent_reg.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            "polleninformation_hamburg_mugwort",
+            suggested_object_id="polleninformation_hamburg_mugwort",
+            config_entry=entry,
+        )
+
+        await _setup_through_the_platform(
+            hass,
+            "de",
+            {"contamination": [], "allergyrisk": {}, "allergyrisk_hourly": {}},
+            entry=entry,
+        )
+
+        assert (
+            _recorded_latin(ent_reg, "sensor.polleninformation_hamburg_mugwort") is None
+        )
 
 
 class TestALegacyCandidateFromTheLiveResponse:
