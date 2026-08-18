@@ -1,9 +1,11 @@
 """Tests for integration setup and coordinator."""
 
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.update_coordinator import UpdateFailed
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.polleninformation import (
@@ -182,3 +184,118 @@ class TestOptionsReloadConsistency:
         assert coordinator.lon == 18.0
         assert coordinator.apikey == "new-key"
         assert coordinator.update_interval == timedelta(hours=4)
+
+
+EMPTY_PAYLOAD = {"contamination": []}
+FULL_PAYLOAD = {"contamination": [{"poll_title": "Birch (Betula)"}]}
+RISK_ONLY_PAYLOAD = {
+    "contamination": [],
+    "allergyrisk": {"allergyrisk_1": 7.5},
+    "allergyrisk_hourly": {"allergyrisk_hourly_1": [7.5] * 24},
+}
+
+E1 = datetime(2026, 8, 18, 6, 0, tzinfo=timezone.utc)
+E2 = datetime(2026, 8, 18, 18, 0, tzinfo=timezone.utc)
+
+
+def _frozen(moment):
+    return patch("custom_components.polleninformation.dt_util.now", return_value=moment)
+
+
+class TestEmptySince:
+    """The coordinator owns response-level staleness.
+
+    data_stale describes the response, not a sensor: it means the fetch
+    succeeded and carried nothing usable. Tracking it here gives every entity
+    of a location the same timestamp for the same outage.
+    """
+
+    def _make_coordinator(self, hass):
+        entry = MockConfigEntry(domain=DOMAIN, title="Test", data={})
+        entry.add_to_hass(hass)
+        return PollenInformationDataUpdateCoordinator(
+            hass, entry, 53.5, 10.0, "DE", "en", "key", timedelta(hours=8)
+        )
+
+    async def _fetch(self, coordinator, payload, moment):
+        with (
+            patch(
+                "custom_components.polleninformation.async_get_pollenat_data",
+                AsyncMock(return_value=payload),
+            ),
+            _frozen(moment),
+        ):
+            await coordinator._async_update_data()
+
+    async def test_unset_before_any_fetch(self, hass):
+        assert self._make_coordinator(hass).empty_since is None
+
+    async def test_data_leaves_it_unset(self, hass):
+        coordinator = self._make_coordinator(hass)
+        await self._fetch(coordinator, FULL_PAYLOAD, E1)
+        assert coordinator.empty_since is None
+
+    async def test_an_empty_response_stamps_it(self, hass):
+        coordinator = self._make_coordinator(hass)
+        await self._fetch(coordinator, EMPTY_PAYLOAD, E1)
+        assert coordinator.empty_since == E1.isoformat()
+
+    async def test_it_holds_for_the_duration_of_one_outage(self, hass):
+        coordinator = self._make_coordinator(hass)
+        await self._fetch(coordinator, EMPTY_PAYLOAD, E1)
+        await self._fetch(coordinator, EMPTY_PAYLOAD, E2)
+        assert coordinator.empty_since == E1.isoformat()
+
+    async def test_recovery_clears_it(self, hass):
+        coordinator = self._make_coordinator(hass)
+        await self._fetch(coordinator, EMPTY_PAYLOAD, E1)
+        await self._fetch(coordinator, FULL_PAYLOAD, E2)
+        assert coordinator.empty_since is None
+
+    async def test_a_later_outage_is_stamped_afresh(self, hass):
+        coordinator = self._make_coordinator(hass)
+        await self._fetch(coordinator, EMPTY_PAYLOAD, E1)
+        await self._fetch(coordinator, FULL_PAYLOAD, E1)
+        await self._fetch(coordinator, EMPTY_PAYLOAD, E2)
+        assert coordinator.empty_since == E2.isoformat()
+
+    async def test_a_risk_only_response_is_not_empty(self, hass):
+        """A response with risk data carried data, whatever contamination says.
+
+        The risk sensors would otherwise report a current value while the
+        whole location advertised itself stale.
+        """
+        coordinator = self._make_coordinator(hass)
+        await self._fetch(coordinator, RISK_ONLY_PAYLOAD, E1)
+        assert coordinator.empty_since is None
+
+    async def test_a_risk_only_response_ends_an_outage(self, hass):
+        """The other side of it: such a response clears an existing mark."""
+        coordinator = self._make_coordinator(hass)
+        await self._fetch(coordinator, EMPTY_PAYLOAD, E1)
+        await self._fetch(coordinator, RISK_ONLY_PAYLOAD, E2)
+        assert coordinator.empty_since is None
+
+    async def test_every_block_empty_is_an_outage(self, hass):
+        """Only a response with nothing in any block is stale."""
+        coordinator = self._make_coordinator(hass)
+        await self._fetch(
+            coordinator,
+            {"contamination": [], "allergyrisk": {}, "allergyrisk_hourly": {}},
+            E1,
+        )
+        assert coordinator.empty_since == E1.isoformat()
+
+    async def test_a_failed_fetch_does_not_stamp_it(self, hass):
+        """A fetch that never returned says nothing about the response."""
+        coordinator = self._make_coordinator(hass)
+        with (
+            patch(
+                "custom_components.polleninformation.async_get_pollenat_data",
+                AsyncMock(return_value={"nonsense": True}),
+            ),
+            _frozen(E1),
+            pytest.raises(UpdateFailed),
+        ):
+            await coordinator._async_update_data()
+        assert coordinator.empty_since is None

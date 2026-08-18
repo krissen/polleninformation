@@ -156,6 +156,8 @@ class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):
         self.lang = lang
         self.apikey = apikey
         self.last_updated = None
+        # Response-level staleness: see _track_empty_response.
+        self.empty_since: str | None = None
 
     def _is_valid_api_response(self, result: dict | None) -> bool:
         if result is None:
@@ -167,6 +169,31 @@ class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):
         if not isinstance(result.get("contamination"), list):
             return False
         return True
+
+    def _track_empty_response(self, result: dict) -> None:
+        """Record when the API started answering with nothing usable.
+
+        data_stale is response level BY DEFINITION: it means the fetch
+        succeeded and the response carried no data at all, not that one
+        sensor is missing a reading. A sensor with no reading of its own is
+        unknown and carries no marker, which is what Home Assistant expects.
+
+        The timestamp is taken on the way into an outage and cleared on the
+        way out, so it dates the outage being reported and every entity of
+        the location reports the same value for it.
+
+        Every block counts, not just contamination: a response carrying only
+        risk data still carried data, and marking it stale would tell the
+        risk sensors they are stale while they report a current reading.
+        """
+        if (
+            result.get("contamination")
+            or result.get("allergyrisk")
+            or result.get("allergyrisk_hourly")
+        ):
+            self.empty_since = None
+        elif self.empty_since is None:
+            self.empty_since = dt_util.now().isoformat()
 
     async def _async_update_data(self) -> dict:
         """Fetch latest pollen data from API."""
@@ -191,6 +218,7 @@ class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):
                 )
 
             self.last_updated = dt_util.now()
+            self._track_empty_response(result)  # type: ignore[arg-type]
             return result  # type: ignore[return-value]
         except UpdateFailed:
             raise
