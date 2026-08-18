@@ -1746,6 +1746,20 @@ class TestStateMachineCollision:
 
 EMPTY_RESPONSE = {"contamination": [], "allergyrisk": {}, "allergyrisk_hourly": {}}
 
+GERMAN_BIRCH_RESPONSE_WITHOUT_LATIN = {
+    "contamination": [
+        {
+            "poll_title": "Birke",
+            "contamination_1": 3,
+            "contamination_2": 2,
+            "contamination_3": 1,
+            "contamination_4": 0,
+        }
+    ],
+    "allergyrisk": {},
+    "allergyrisk_hourly": {},
+}
+
 GERMAN_BIRCH_RESPONSE = {
     "contamination": [
         {
@@ -1912,6 +1926,65 @@ class TestStaleSensorRecovery:
         sensor = await _recreate_stale(hass, "es", "polleninformation_hamburg_ragweed")
         sensor.coordinator.data = GENUS_PREFIXED_NAME_RESPONSE
         assert sensor.native_value is None
+
+
+# A title with no name part and no brackets, beside a language map entry whose
+# name is blank. The map can hold one for an allergen the API named by its
+# latin name alone, which is the "(Poaceae)" shape the generator records.
+NAMELESS_TITLE_RESPONSE = {
+    "contamination": [
+        {
+            "poll_title": "",
+            "contamination_1": 1,
+            "contamination_2": 0,
+            "contamination_3": 0,
+            "contamination_4": 0,
+        }
+    ],
+    "allergyrisk": {"allergyrisk_1": 5.0},
+    "allergyrisk_hourly": {"allergyrisk_hourly_1": [5.0] * 24},
+}
+
+BLANK_NAMED_LANGUAGE_BLOCK = {"poll_titles": [{"name": "", "latin": "Poaceae"}]}
+
+
+class TestABlankNameNeverMatchesABlankName:
+    """The backfill matches an API title against the language map by name.
+
+    Both sides can be blank: the API sends a title with no name part and no
+    brackets, and the map can hold an entry whose name is blank. Letting those
+    match would hand the nameless entry the other one's latin name and make it
+    that allergen, with nothing in the response saying so.
+    """
+
+    async def _setup(self, hass):
+        return await _setup_entities(
+            hass,
+            "de",
+            response=NAMELESS_TITLE_RESPONSE,
+            language_block=BLANK_NAMED_LANGUAGE_BLOCK,
+        )
+
+    async def test_the_nameless_entry_does_not_become_that_allergen(self, hass):
+        entities = await self._setup(hass)
+        unique_ids = {e.unique_id for e in entities if e.unique_id}
+        assert "polleninformation_hamburg_grasses" not in unique_ids
+
+    async def test_it_claims_no_latin_name_of_its_own(self, hass):
+        entities = await self._setup(hass)
+        sensor = _by_type(entities, PolleninformationSensor)
+        assert sensor.extra_state_attributes["name_la"] == ""
+
+    async def test_a_named_entry_still_matches_the_map(self, hass):
+        # The guard may not cost the backfill its actual job.
+        entities = await _setup_entities(
+            hass,
+            "de",
+            response=GERMAN_BIRCH_RESPONSE_WITHOUT_LATIN,
+            language_block={"poll_titles": [{"name": "Birke", "latin": "Betula"}]},
+        )
+        sensor = _by_type(entities, PolleninformationSensor)
+        assert sensor.extra_state_attributes["name_la"] == "Betula"
 
 
 class TestReportedLatinNameAcrossAnOutage:

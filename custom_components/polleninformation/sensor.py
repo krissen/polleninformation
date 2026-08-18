@@ -498,9 +498,15 @@ async def async_setup_entry(hass, entry, async_add_entities):
         latin = None
         if "(" in poll_title_full and ")" in poll_title_full:
             latin = poll_title_full.split("(", 1)[1].split(")", 1)[0].strip()
-        if not latin:
+        if not latin and poll_title_local:
+            # A blank never matches a blank, in either direction. The API can
+            # send a title with no name part and no brackets, and the language
+            # map can hold an entry whose name is blank, for an allergen the
+            # API named by its latin name alone. Matching those two would hand
+            # the nameless entry the other one's latin name and make it that
+            # allergen.
             for allergen in language_block_current.get("poll_titles", []):
-                if allergen.get("name") == poll_title_local:
+                if allergen.get("name") and allergen["name"] == poll_title_local:
                     latin = allergen.get("latin")
                     break
         # Resolution order: the static latin map, then the English language
