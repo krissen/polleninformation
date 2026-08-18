@@ -37,15 +37,16 @@
   language you configured, where it used to fall back to English until Home
   Assistant was restarted.
 
-- **A recovered sensor no longer reports its data as stale** — when the API
-  returns nothing, the integration keeps its sensors and marks them stale so
-  automations can tell. That mark was set once and never cleared, so a sensor
-  that found its allergen again kept reporting `data_stale` and a `stale_since`
-  timestamp from hours earlier next to a perfectly current pollen level. The
-  mark now follows the data and is reported only while the sensor really is
-  without a reading. It also follows the data for every sensor now, so a
-  sensor that has always had a reading and then loses it is marked too, where
-  before only sensors kept through an outage ever were.
+- **The stale marker follows the API, and clears when data returns** — when a
+  refresh succeeds but the API returns no pollen data at all, every sensor for
+  that location reports `data_stale` together with a `stale_since` timestamp,
+  and all of them report the same timestamp for the same outage. The marker
+  used to be set once, when Home Assistant happened to start during such an
+  outage, and was never cleared afterwards, so a sensor whose data had long
+  since come back still reported itself stale next to a perfectly current
+  pollen level. A sensor that is merely missing a value of its own, while the
+  API is answering normally, now shows `unknown` and carries no marker, which
+  is what Home Assistant expects of an entity in that state.
 
 - **Two allergens that share a name no longer read each other's values** —
   the API can send one allergen's name for two entries, one with a latin name
@@ -55,19 +56,12 @@
   latin name first, and a name is only used for an entry no other sensor
   claims.
 
-- **A sensor with nothing to show says so** — a response that carried a risk
-  block but nothing usable for today, only a later day or an empty value, left
-  the allergy risk sensors showing no value while reporting their data as
-  current. The stale marker now follows the value each sensor actually shows,
-  so an empty sensor is always marked as such. A risk of zero is a real
-  reading and is not affected.
-
 - **A new outage is timed from when it started** — the `stale_since`
   timestamp was recorded once, when Home Assistant happened to start during an
-  outage, and was reused for every later outage of the same sensor. A card or
-  automation measuring how long data had been missing could therefore be told
-  it had been missing since a gap that ended hours ago. Each outage now
-  carries its own timestamp. This applies to the allergy risk sensors as well.
+  outage, and was reused for every later outage. A card or automation
+  measuring how long data had been missing could therefore be told it had been
+  missing since a gap that ended hours ago. Each outage now carries its own
+  timestamp.
 
 ## v0.5.4 — Allergen icons (2026-08-10)
 
