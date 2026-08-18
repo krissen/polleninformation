@@ -307,6 +307,21 @@ class TestNeedsFetch:
         assert script.needs_fetch({"sk": "oops"}, "sk")
 
 
+class TestRepairDbRoot:
+    """The level above the per-language checks: the file's own root."""
+
+    @pytest.mark.parametrize("db", [["sk"], "oops", 42, True])
+    def test_a_root_that_is_not_an_object_is_reported(self, script, db):
+        changes, warnings = script.repair_db(db)
+
+        assert changes == []
+        assert len(warnings) == 1
+        assert "root" in warnings[0]
+
+    def test_an_empty_root_is_not_a_complaint(self, script):
+        assert script.repair_db({}) == ([], [])
+
+
 class TestRepairDb:
     """The offline pass that lets an already recorded entry correct itself."""
 

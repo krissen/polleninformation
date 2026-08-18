@@ -304,12 +304,20 @@ def repair_db(db):
     Entries are only ever rewritten, never removed: an allergen no map knows
     keeps what the API sent and is warned about again.
 
-    Total over whatever the file holds. This is the tool you reach for when
-    the file is wrong, so a shape it did not expect is reported with the
-    language it sits in rather than raised as a traceback that names neither.
+    Total over whatever the file holds, from the root down. This is the tool
+    you reach for when the file is wrong, so a shape it did not expect is
+    reported, with the language it sits in where there is one, rather than
+    raised as a traceback that names neither. Nothing is rewritten on the way:
+    a file this cannot read is left exactly as it is.
     """
     changes = []
     warnings = []
+    if not isinstance(db, dict):
+        warning = (
+            f"the file does not hold an object at its root, but a "
+            f"{type(db).__name__}; nothing to repair"
+        )
+        return changes, [warning]
     for lang_code, entry in db.items():
         if not isinstance(entry, dict):
             warnings.append(f"{lang_code}: not an object, skipping: {entry!r}")
