@@ -252,13 +252,16 @@ def poll_titles_from_contamination(contamination):
     allergen, and dropping it would hide a new one.
 
     Two shapes are the exception, and they are the opposite case. An entry
-    that is not an object, and an entry with no readable title, name nothing
-    at all. Recording those would not preserve information, it would
-    manufacture a well-formed record out of nothing, and a block of them would
-    then look like a language that has allergens. Both are warned about rather
-    than passed over, and a block left empty by them is a response with no
-    allergens, which language_entry_from_response records as an error so the
-    language is fetched again.
+    that is not an object, and an entry that identifies no allergen, name
+    nothing at all. The second is the parsed test rather than a test on the
+    raw title: a title is kept when it has a display name or a latin name,
+    so "(Poaceae)" is kept for its latin name and "()" is not, any more than
+    a missing title is. Recording those would not preserve information, it
+    would manufacture a well-formed record out of nothing, and a block of
+    them would then look like a language that has allergens. Both are warned
+    about rather than passed over, and a block left empty by them is a
+    response with no allergens, which language_entry_from_response records as
+    an error so the language is fetched again.
     """
     poll_titles = []
     warnings = []
@@ -272,13 +275,16 @@ def poll_titles_from_contamination(contamination):
                 f"skipping a contamination entry that is not an object: {poll!r}"
             )
             continue
-        poll_title = poll.get("poll_title")
-        if not isinstance(poll_title, str) or not poll_title.strip():
+        name, latin = split_poll_title(poll.get("poll_title"))
+        if not name and not latin:
+            # The test is what the entry identifies, not whether its title is
+            # readable. "()" and "( )" are non-blank titles with nothing in
+            # either half, and they name an allergen exactly as little as a
+            # missing title does.
             warnings.append(
-                f"skipping a contamination entry with no readable title: {poll!r}"
+                f"skipping a contamination entry that identifies no allergen: {poll!r}"
             )
             continue
-        name, latin = split_poll_title(poll_title)
         latin, entry_warnings = resolve_latin(name, latin)
         warnings.extend(entry_warnings)
         poll_titles.append(

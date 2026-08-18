@@ -184,18 +184,49 @@ class TestPollTitlesFromContamination:
 
     @pytest.mark.parametrize(
         "poll",
-        [{"poll_id": 6}, {"poll_title": 123}, {"poll_title": ""}, {"poll_title": "  "}],
+        [
+            # Nothing to read at all.
+            {"poll_id": 6},
+            {"poll_title": 123},
+            {"poll_title": ""},
+            {"poll_title": "  "},
+            # A non-blank title with nothing in either half of it, which
+            # identifies an allergen exactly as little as the four above.
+            {"poll_title": "()"},
+            {"poll_title": "( )"},
+            {"poll_title": "  (  )  "},
+            {"poll_title": "()extra"},
+        ],
     )
-    def test_an_entry_with_no_readable_title_is_skipped(self, script, poll):
-        # An unknown latin name still names a real allergen and is kept. A
-        # title that cannot be read names nothing, so recording it would
-        # manufacture a blank allergen and make an unreadable block look like
-        # a language that has some.
+    def test_an_entry_that_identifies_nothing_is_skipped(self, script, poll):
+        # An unknown latin name still names a real allergen and is kept. An
+        # entry with neither a display name nor a latin name names nothing, so
+        # recording it would manufacture a blank allergen and make a block of
+        # them look like a language that has some.
         poll_titles, warnings = script.poll_titles_from_contamination([poll])
 
         assert poll_titles == []
         assert len(warnings) == 1
-        assert "no readable title" in warnings[0]
+        assert "identifies no allergen" in warnings[0]
+
+    @pytest.mark.parametrize(
+        ("poll_title", "expected"),
+        [
+            ("(Poaceae)", {"name": "", "latin": "Poaceae"}),
+            ("Trávy", {"name": "Trávy", "latin": ""}),
+            ("Trávy (Poaceae)", {"name": "Trávy", "latin": "Poaceae"}),
+        ],
+    )
+    def test_either_half_alone_is_enough_to_be_kept(self, script, poll_title, expected):
+        # The rule is what the entry identifies, so one half is enough: a
+        # latin name with no display name is an allergen this language has no
+        # word for, and a display name with no latin name is one we may not be
+        # able to classify. Both are kept.
+        poll_titles, _ = script.poll_titles_from_contamination(
+            [{"poll_title": poll_title, "poll_id": 5}]
+        )
+
+        assert poll_titles == [{**expected, "poll_id": 5}]
 
     @pytest.mark.parametrize("contamination", ["oops", None, {"poll_title": "x"}])
     def test_a_block_that_is_not_a_list_is_reported(self, script, contamination):
@@ -308,7 +339,7 @@ class TestLanguageEntryFromResponse:
         assert len(warnings) == 2
 
     def test_a_block_of_title_less_entries_is_an_error_entry(self, script):
-        # The chain end to end: every entry is skipped for want of a title,
+        # The chain end to end: every entry is skipped for naming nothing,
         # which leaves no allergens, which is an error entry, which
         # needs_fetch comes back for.
         entry, warnings = script.language_entry_from_response(

@@ -494,26 +494,38 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     for item in contamination:
         poll_title_full = item.get("poll_title", "")
-        if not isinstance(poll_title_full, str) or not poll_title_full.strip():
-            # An entry with no readable title names nothing. Building a sensor
-            # from one gives an entity with no name, no latin name and an
-            # entity_id ending in nothing at all, which no later response and
-            # no restore can ever match back to an allergen. The same rule the
-            # language map generator applies: an allergen we can identify but
-            # not classify is kept, one that identifies nothing is not.
-            _LOGGER.warning("Skipping a pollen entry with no readable title: %r", item)
-            continue
+        if not isinstance(poll_title_full, str):
+            poll_title_full = ""
         poll_title_local = capitalize_first(poll_title_full.split("(", 1)[0].strip())
         latin = None
         if "(" in poll_title_full and ")" in poll_title_full:
             latin = poll_title_full.split("(", 1)[1].split(")", 1)[0].strip()
+        if not poll_title_local and not latin:
+            # The test is what the entry identifies, not whether its title is
+            # readable: "()" is a non-blank title with nothing in either half
+            # of it, and it names an allergen exactly as little as a missing
+            # title does. Building a sensor from one gives an entity with no
+            # name, no latin name and an entity_id ending in nothing at all,
+            # which no later response and no restore can match back to an
+            # allergen. The same rule the language map generator applies: an
+            # allergen we can identify but not classify is kept, one that
+            # identifies nothing is not.
+            _LOGGER.warning(
+                "Skipping a pollen entry that identifies no allergen: %r", item
+            )
+            continue
         if not latin and poll_title_local:
-            # A blank never matches a blank, in either direction. The API can
-            # send a title with no name part and no brackets, and the language
+            # A blank never matches a blank, in either direction: the language
             # map can hold an entry whose name is blank, for an allergen the
-            # API named by its latin name alone. Matching those two would hand
-            # the nameless entry the other one's latin name and make it that
-            # allergen.
+            # API named by its latin name alone, and matching that against a
+            # blank display name would hand the nameless entry the other one's
+            # latin name and make it that allergen.
+            #
+            # No accepted entry can reach here with a blank display name any
+            # more: reaching this line at all means no latin name was sent,
+            # and the guard above then refuses the entry unless it has a
+            # display name. Kept because it costs one comparison and it is
+            # what makes that reasoning safe to change.
             for allergen in language_block_current.get("poll_titles", []):
                 if allergen.get("name") and allergen["name"] == poll_title_local:
                     latin = allergen.get("latin")
