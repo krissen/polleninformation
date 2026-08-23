@@ -304,6 +304,98 @@ def split_location(locationtitle):
     return "", locationtitle
 
 
+def parse_poll_title(poll_title):
+    """Return (display name, latin name) for a poll_title, or None.
+
+    None means the title identifies no allergen: it has neither a display name
+    nor a latin name in it. "(Poaceae)" has one, "Trávy" has the other, "()"
+    has neither and names an allergen exactly as little as a missing title
+    does. The latin name is None when the API sent no brackets, or only an
+    opening one, and a string otherwise.
+
+    THE one parse. The language map generator and the sensors both call it,
+    through this or through allergen_names_from_item, because two
+    implementations of "what does this title say" drift: they did, on the
+    unmatched bracket, where one read "Artemisia (" as mugwort and the other
+    as nothing.
+    """
+    if not isinstance(poll_title, str):
+        poll_title = ""
+    name = poll_title.split("(", 1)[0].strip()
+    latin = None
+    if "(" in poll_title and ")" in poll_title:
+        latin = poll_title.split("(", 1)[1].split(")", 1)[0].strip()
+    if not name and not latin:
+        return None
+    return name, latin
+
+
+def allergen_names_from_item(item):
+    """Return (display name, latin name) for a contamination entry, or None.
+
+    None means the entry identifies no allergen: it is not an object, or its
+    title does not name one.
+
+    Shared so that the sensors and the coordinator agree on what counts as an
+    allergen. They ask it for different reasons, one to build a sensor and one
+    to decide whether the response carried anything, and those two answers may
+    not drift apart: a block of entries that build no sensors has to read as
+    empty, or the sensors a location already has go absent instead of being
+    kept and marked stale.
+    """
+    if not isinstance(item, dict):
+        return None
+    return parse_poll_title(item.get("poll_title", ""))
+
+
+def block_of(data, key):
+    """Return data[key] when it is an object, and an empty one otherwise.
+
+    The API's blocks are read with .get, so a block that arrives as a list or
+    a string raises on the first read and takes the whole entity down with it.
+    A block that is not an object carries nothing this can use, which is what
+    an absent one means too.
+    """
+    if not isinstance(data, dict):
+        return {}
+    value = data.get(key)
+    return value if isinstance(value, dict) else {}
+
+
+def usable_risk_block(data, key):
+    """Return a risk block that holds a readable forecast, or an empty one.
+
+    block_of answers whether there IS a block; this answers whether there is
+    anything in it to read, which is the question every caller actually has.
+    A non-empty object with no forecast fields carries no more data than an
+    absent one: {"error": "upstream failure"} is what an API sends to say
+    something is wrong, and reading it as fresh data is the worst of the
+    available readings.
+
+    A field counts when it is one of this block's own numbered fields and
+    holds something. A risk of 0 is a real reading and counts; a null, an
+    empty list or an empty string does not.
+    """
+    block = block_of(data, key)
+    prefix = f"{key}_"
+    for field, value in block.items():
+        if not isinstance(field, str) or not field.startswith(prefix):
+            continue
+        if value is None:
+            continue
+        if isinstance(value, (list, dict, str, tuple, set)) and not value:
+            continue
+        return block
+    return {}
+
+
+def usable_contamination(contamination):
+    """Return the contamination entries that identify an allergen."""
+    if not isinstance(contamination, list):
+        return []
+    return [item for item in contamination if allergen_names_from_item(item)]
+
+
 def get_language_block_sync(lang_code):
     """
     Get language block for a given ISO code from language_map.json.
@@ -327,10 +419,15 @@ async def async_get_language_block(hass, lang_code):
 
 
 def get_allergen_info_by_latin(latin, language_block):
+    """Return the language block's entry for a latin name, or None.
+
+    Reads defensively: the block comes from a file rather than from the
+    response, and it is one of the few inputs nothing type checks on the way
+    in. A row of the wrong shape is passed over rather than raising, because
+    raising here happens inside setup and costs the location every sensor it
+    has, not the one bad row.
     """
-    Get allergen info from a language block by latin name.
-    """
-    for allergen in language_block.get("poll_titles", []):
-        if allergen.get("latin") == latin:
+    for allergen in language_block.get("poll_titles") or []:
+        if isinstance(allergen, dict) and allergen.get("latin") == latin:
             return allergen
     return None

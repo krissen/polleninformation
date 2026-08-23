@@ -1,5 +1,121 @@
 # Changelog
 
+## v0.5.5 — Allergen identification (2026-08-23)
+
+### Bug fixes
+
+- **Mugwort is recognized again** (issue #71) — the API sometimes sends an
+  allergen's latin genus as its display name ("Artemisia") and leaves the latin
+  field empty. The integration looks allergens up by their latin name, so this
+  one was not found: the sensor was slugged `artemisia` instead of the
+  canonical `mugwort`, it got the generic pollen icon rather than the flower
+  icon, and an "Unknown allergen" warning was logged for it at every restart.
+  The display name is now tried against the same map when the API sends no
+  latin name of its own, and an entity already created as `..._artemisia` is
+  renamed to `..._mugwort`, so its history is kept. The lookup only runs when
+  the API sent no latin name at all, so a latin name it did send is never
+  overridden by the display name, and it only accepts a display name that is
+  itself a latin name, so an ordinary allergen name that happens to begin with
+  one is left alone.
+  (PR #72 by @ethanhawkes-gif, thanks @robercrack)
+
+- **The latin name is reported even when the API omits it** — an allergen
+  identified from its display name was left with an empty `name_la` attribute,
+  because the API had sent no latin name of its own. It now reports the genus
+  the lookup found.
+
+- **Sensors recover on their own after an empty API response** (issue #73) —
+  when the API returns no data the integration keeps the existing sensors and
+  marks them stale. It matched such a sensor back to the API's allergens by
+  English name, but the API sends allergen names in the language configured for
+  the integration, so on a non-English installation the sensor never found its
+  allergen again and stayed empty even after the API recovered, until Home
+  Assistant was restarted or the entry reloaded. English installations were
+  unaffected apart from dock/sorrel. A recreated sensor is now also matched on
+  its allergen slug, which is the same in every language, and it reports its
+  real latin name instead of a blank one. It also keeps its name in the
+  language you configured, where it used to fall back to English until Home
+  Assistant was restarted.
+
+- **The stale marker follows the API, and clears when data returns** — when a
+  refresh succeeds but the API returns no pollen data at all, every sensor for
+  that location reports `data_stale` together with a `stale_since` timestamp,
+  and all of them report the same timestamp for the same outage. The marker
+  used to be set once, when Home Assistant happened to start during such an
+  outage, and was never cleared afterwards, so a sensor whose data had long
+  since come back still reported itself stale next to a perfectly current
+  pollen level. A sensor that is merely missing a value of its own, while the
+  API is answering normally, now shows `unknown` and carries no marker, which
+  is what Home Assistant expects of an entity in that state.
+
+- **Two allergens that share a name no longer read each other's values** —
+  the API can send one allergen's name for two entries, one with a latin name
+  in brackets and one without. Both sensors then looked for their allergen by
+  that shared name and both found whichever entry came first, so one of them
+  showed the other's level and forecast. Sensors are now matched on their
+  latin name first, and a name is only used for an entry no other sensor
+  claims.
+
+- **Ragweed is recognized on a Slovak installation** (issue #75) — the API
+  answers a Slovak request with the Slovak word for ragweed where the latin
+  name belongs, and the integration looks allergens up by their latin name, so
+  it did not recognize this one: an "Unknown allergen" warning asking for a
+  bug report was logged at every restart, and the sensor reported that word as
+  its latin name. The spelling is now known to be ragweed's, so the warning is
+  gone and the sensor reports `Ambrosia`. Only spellings the API has actually
+  been seen to send are treated this way, so a latin name the integration does
+  not know is still left exactly as the API sent it and still asks to be
+  reported.
+
+- **Two allergens keep their localized name during an outage** — the
+  integration ships a map of the allergen names the API answers with in each
+  language, and falls back to it when the API is unreachable. Two entries in
+  that map had been recorded with the wrong latin name: the Slovak word above,
+  and no latin name at all for mugwort in Spanish, where the API sends the
+  latin name as the display name instead. A sensor kept through an API outage
+  on a Slovak or Spanish installation now keeps its own name instead of
+  falling back to English. The script that builds the map now checks every
+  latin name it records against the allergens the integration knows, and
+  reports the ones it cannot place instead of transcribing them silently.
+
+- **A new outage is timed from when it started** — the `stale_since`
+  timestamp was recorded once, when Home Assistant happened to start during an
+  outage, and was reused for every later outage. An automation or template
+  measuring how long data had been missing could therefore be told it had been
+  missing since a gap that ended hours ago. Each outage now carries its own
+  timestamp.
+
+- **A rename can no longer take a different allergen's sensor** — an
+  installation whose sensor IDs were built from a localized allergen name has
+  them renamed to the English form, and the old name is worked out from the
+  API's own answer. The API sends a display name and a latin name, and they do
+  not always describe the same allergen: a response whose display name is one
+  allergen's English name while its latin name identifies another one made the
+  integration look for a sensor under the first allergen's name and rename it
+  to the second. That took an existing sensor, its ID and its whole history,
+  and nothing undid it afterwards. A candidate that is another allergen's own
+  name is now refused, and the refusal is logged. In v0.5.4 this could happen
+  for the ten allergens the integration's English allergen list does not carry
+  (Ailanthus altissima, Castanea, Fagus, Fraxinus, Plantago, Quercus, Rumex,
+  Salix, Tilia, Ulmus), where the old name always falls back to the name the
+  API sent.
+
+- **Sensors record which allergen they are** — an allergen the integration's
+  maps do not know keeps a sensor under the localized name the API sent, and
+  Home Assistant's registry stores nothing that says which allergen such a
+  sensor is: the name it was created under is all there is to go on. If the
+  API later sends that same name for a different allergen, the rename above
+  has nothing to check against and would take the sensor and its history for
+  the newcomer. Each sensor now records its latin name on its own registry
+  entry, where a restart keeps it, and a rename contradicting what a sensor
+  records is refused and logged. The record is written for every allergen the
+  API identifies, not only for sensors created from now on, so an existing
+  installation starts recording the sensors it already has on the first start
+  after upgrading. A sensor that has recorded nothing yet is treated exactly as
+  before, so nothing that works today stops working. Only this integration's
+  own entry is written and only when the value would change, so the rest of the
+  registry entry, including anything you have customized, is left alone.
+
 ## v0.5.4 — Allergen icons (2026-08-10)
 
 ### Bug fixes

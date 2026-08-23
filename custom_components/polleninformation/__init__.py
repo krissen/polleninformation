@@ -37,7 +37,7 @@ from .const import (
     DOMAIN,
     PLATFORMS,
 )
-from .utils import get_country_code_map
+from .utils import get_country_code_map, usable_contamination, usable_risk_block
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -156,6 +156,8 @@ class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):
         self.lang = lang
         self.apikey = apikey
         self.last_updated = None
+        # Response-level staleness: see _track_empty_response.
+        self.empty_since: str | None = None
 
     def _is_valid_api_response(self, result: dict | None) -> bool:
         if result is None:
@@ -167,6 +169,43 @@ class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):
         if not isinstance(result.get("contamination"), list):
             return False
         return True
+
+    def _track_empty_response(self, result: dict) -> None:
+        """Record when the API started answering with nothing usable.
+
+        data_stale is response level BY DEFINITION: it means the fetch
+        succeeded and the response carried no data at all, not that one
+        sensor is missing a reading. A sensor with no reading of its own is
+        unknown and carries no marker, which is what Home Assistant expects.
+
+        The timestamp is taken on the way into an outage and cleared on the
+        way out, so it dates the outage being reported and every entity of
+        the location reports the same value for it.
+
+        Every block counts, not just contamination: a response carrying only
+        risk data still carried data, and marking it stale would tell the
+        risk sensors they are stale while they report a current reading.
+
+        Every block counts by what is usable in it rather than by its length,
+        for the same reason the sensors do. Entries that identify no allergen
+        build nothing and read nothing; a risk block that is not an object is
+        read as absent and reports unknown. A response of nothing but those
+        carried no more data than an empty one, and saying otherwise would
+        leave the sensors recreated for want of any data while no outage was
+        ever stamped for them to point at. The two tests are not the same
+        question and still do not always agree, which is intended: a response
+        whose pollen entries are all unusable but whose risk blocks are full
+        did carry data, so nothing is stale, while the pollen sensors are
+        recreated with no readings of their own and report unknown.
+        """
+        if (
+            usable_contamination(result.get("contamination"))
+            or usable_risk_block(result, "allergyrisk")
+            or usable_risk_block(result, "allergyrisk_hourly")
+        ):
+            self.empty_since = None
+        elif self.empty_since is None:
+            self.empty_since = dt_util.now().isoformat()
 
     async def _async_update_data(self) -> dict:
         """Fetch latest pollen data from API."""
@@ -191,6 +230,7 @@ class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):
                 )
 
             self.last_updated = dt_util.now()
+            self._track_empty_response(result)  # type: ignore[arg-type]
             return result  # type: ignore[return-value]
         except UpdateFailed:
             raise
