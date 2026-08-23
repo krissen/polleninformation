@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.5.5 — Allergen identification (2026-08-18)
+## v0.5.5 — Allergen identification (2026-08-23)
 
 ### Bug fixes
 
