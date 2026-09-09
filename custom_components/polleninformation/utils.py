@@ -146,7 +146,7 @@ def get_lang_info_by_code_sync(lang_code):
     Return info dict for language code from language_map.json, or None if not found.
     """
     data = _sync_load_language_map()
-    for k, v in data.items():
+    for _k, v in data.items():
         if isinstance(v, dict) and v.get("lang_code") == lang_code:
             return v
     return None
@@ -157,7 +157,7 @@ async def async_get_lang_info_by_code(hass, lang_code):
     Return info dict for language code from language_map.json, async.
     """
     data = await async_load_language_map(hass)
-    for k, v in data.items():
+    for _k, v in data.items():
         if isinstance(v, dict) and v.get("lang_code") == lang_code:
             return v
     return None
@@ -387,7 +387,7 @@ def get_language_block_sync(lang_code):
     Get language block for a given ISO code from language_map.json.
     """
     data = _sync_load_language_map()
-    for k, v in data.items():
+    for _k, v in data.items():
         if isinstance(v, dict) and v.get("lang_code") == lang_code:
             return v
     return {}
@@ -398,7 +398,7 @@ async def async_get_language_block(hass, lang_code):
     Async version to get language block for ISO code.
     """
     data = await async_load_language_map(hass)
-    for k, v in data.items():
+    for _k, v in data.items():
         if isinstance(v, dict) and v.get("lang_code") == lang_code:
             return v
     return {}

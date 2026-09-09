@@ -218,7 +218,7 @@ def resolve_latin(name, latin):
                 f"{name!r}: the API spells the latin name {latin!r}; recording "
                 f"it as {canonical!r}, the spelling every lookup matches on"
             )
-        return canonical, blank_name + [warning]
+        return canonical, [*blank_name, warning]
 
     sent = f"latin name {latin!r}" if latin else "no latin name"
 

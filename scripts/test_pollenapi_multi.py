@@ -203,9 +203,7 @@ def is_tested(db, country, country_id):
     """
     if country_id in get_all_matched_ids(db):
         return True
-    if country_id in get_tested_ids(db, country):
-        return True
-    return False
+    return country_id in get_tested_ids(db, country)
 
 
 def mark_tested(db, country, country_id):
@@ -234,19 +232,22 @@ async def fetch_pollen(lat: float, lon: float, country: str, country_id: int, la
         lat=lat, lon=lon, country=country, country_id=country_id, lang=lang
     )
     try:
-        async with async_timeout.timeout(10), aiohttp.ClientSession() as session:
-            async with session.get(url) as resp:
-                resp.raise_for_status()
-                text = await resp.text()
-                if not text.strip():
-                    print(f"    [DEBUG] fetch_pollen: tomt svar för country_id {country_id}")
-                    return None
-                try:
-                    payload = json.loads(text)
-                    return payload.get("result", {})
-                except JSONDecodeError:
-                    print(f"    [DEBUG] fetch_pollen: ogiltigt JSON för country_id {country_id}")
-                    return None
+        async with (
+            async_timeout.timeout(10),
+            aiohttp.ClientSession() as session,
+            session.get(url) as resp,
+        ):
+            resp.raise_for_status()
+            text = await resp.text()
+            if not text.strip():
+                print(f"    [DEBUG] fetch_pollen: tomt svar för country_id {country_id}")
+                return None
+            try:
+                payload = json.loads(text)
+                return payload.get("result", {})
+            except JSONDecodeError:
+                print(f"    [DEBUG] fetch_pollen: ogiltigt JSON för country_id {country_id}")
+                return None
     except asyncio.CancelledError:
         raise
     except Exception as e:

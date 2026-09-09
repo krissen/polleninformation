@@ -130,11 +130,14 @@ async def fetch_pollen(
     )
     print(f"\nAnropar URL:\n  {url}\n")
     try:
-        async with async_timeout.timeout(10), aiohttp.ClientSession() as session:
-            async with session.get(url) as resp:
-                resp.raise_for_status()
-                payload = await resp.json()
-                return payload.get("result", {})
+        async with (
+            async_timeout.timeout(10),
+            aiohttp.ClientSession() as session,
+            session.get(url) as resp,
+        ):
+            resp.raise_for_status()
+            payload = await resp.json()
+            return payload.get("result", {})
     except Exception as e:
         print("Fel vid anrop:", e)
         return None

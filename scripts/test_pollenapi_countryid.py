@@ -103,10 +103,7 @@ def extract_place_slug(full_location: str) -> str:
     """
     full_location = full_location.strip()
     parts = full_location.split()
-    if parts and parts[0].isdigit():
-        place_name = " ".join(parts[1:])
-    else:
-        place_name = full_location
+    place_name = " ".join(parts[1:]) if parts and parts[0].isdigit() else full_location
     return slugify(place_name)
 
 
@@ -210,11 +207,14 @@ async def fetch_pollen(lat: float, lon: float, country: str, country_id: int, la
         lat=lat, lon=lon, country=country, country_id=country_id, lang=lang
     )
     try:
-        async with async_timeout.timeout(10), aiohttp.ClientSession() as session:
-            async with session.get(url) as resp:
-                resp.raise_for_status()
-                payload = await resp.json()
-                return payload.get("result", {})
+        async with (
+            async_timeout.timeout(10),
+            aiohttp.ClientSession() as session,
+            session.get(url) as resp,
+        ):
+            resp.raise_for_status()
+            payload = await resp.json()
+            return payload.get("result", {})
     except Exception:
         return None
 

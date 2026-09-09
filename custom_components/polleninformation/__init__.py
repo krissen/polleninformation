@@ -164,9 +164,7 @@ class PollenInformationDataUpdateCoordinator(DataUpdateCoordinator):
             return False
         if "contamination" not in result:
             return False
-        if not isinstance(result.get("contamination"), list):
-            return False
-        return True
+        return isinstance(result.get("contamination"), list)
 
     def _track_empty_response(self, result: dict) -> None:
         """Record when the API started answering with nothing usable.

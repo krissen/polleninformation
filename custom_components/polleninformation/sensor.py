@@ -291,7 +291,7 @@ def allergen_slug_for_item(item: dict) -> str | None:
     if parsed is None:
         return None
     name, latin = parsed
-    if latin:
+    if latin:  # noqa: SIM108 -- ternary would orphan the comment on the else branch
         name_en = english_name_for_latin(latin)
     else:
         # No latin at all: the API sometimes sends the latin name as the
@@ -584,7 +584,7 @@ async def async_migrate_localized_risk_entity_ids(hass, entry, location_slug) ->
 
 def scale_allergy_risk(value: Any) -> int | None:
     try:
-        return int(round(value / 2.5))
+        return round(value / 2.5)
     except Exception:
         return None
 

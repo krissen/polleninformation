@@ -77,13 +77,16 @@ POLLENAT_API_URL = (
 
 async def fetch_raw(country, lat, lon, country_id):
     url = POLLENAT_API_URL.format(lat=lat, lon=lon, country=country, country_id=country_id)
-    async with async_timeout.timeout(15), aiohttp.ClientSession() as session:
-        async with session.get(url) as resp:
-            text = await resp.text()
-            try:
-                return json.loads(text)
-            except Exception:
-                return text
+    async with (
+        async_timeout.timeout(15),
+        aiohttp.ClientSession() as session,
+        session.get(url) as resp,
+    ):
+        text = await resp.text()
+        try:
+            return json.loads(text)
+        except Exception:
+            return text
 
 
 async def main():
