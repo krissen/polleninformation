@@ -34,13 +34,17 @@ COUNTRY_CENTER = {
     "CH": {"latitude": 47.0, "longitude": 8.0, "radius": 120000},  # Switzerland
     "DE": {"latitude": 51.0, "longitude": 10.0, "radius": 300000},  # Germany
     "ES": {"latitude": 40.0, "longitude": -4.0, "radius": 350000},  # Spain
+    "FI": {"latitude": 64.5, "longitude": 26.0, "radius": 400000},  # Finland
     "FR": {"latitude": 46.6, "longitude": 2.2, "radius": 350000},  # France
     "GB": {"latitude": 54.0, "longitude": -2.0, "radius": 300000},  # Great Britain
+    "HU": {"latitude": 47.2, "longitude": 19.4, "radius": 120000},  # Hungary
     "IT": {"latitude": 42.8, "longitude": 12.8, "radius": 250000},  # Italy
     "LT": {"latitude": 55.2, "longitude": 23.8, "radius": 100000},  # Lithuania
     "LV": {"latitude": 56.9, "longitude": 24.6, "radius": 100000},  # Latvia
     "PL": {"latitude": 52.0, "longitude": 19.0, "radius": 200000},  # Poland
+    "PT": {"latitude": 39.5, "longitude": -8.0, "radius": 200000},  # Portugal
     "SE": {"latitude": 62.0, "longitude": 16.0, "radius": 400000},  # Sweden
+    "SK": {"latitude": 48.7, "longitude": 19.5, "radius": 100000},  # Slovakia
     "TR": {"latitude": 39.0, "longitude": 35.0, "radius": 400000},  # Turkey
     "UA": {"latitude": 49.0, "longitude": 32.0, "radius": 400000},  # Ukraine
 }
