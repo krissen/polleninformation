@@ -27,6 +27,17 @@ python3 -m venv .venv
 .venv/bin/pytest tests/
 ```
 
+## Before Opening a PR
+
+```bash
+.venv/bin/pip install -r requirements_dev.txt  # ruff, pinned
+make check
+```
+
+`make check` runs the same lint/format/secret checks as the commit hook and
+CI (see CLAUDE.md's "Quality Gates" section) plus the test suite, and prints
+one line on success.
+
 ---
 
 ## Architecture notes
