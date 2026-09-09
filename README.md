@@ -164,7 +164,7 @@ When the API is unavailable for your location, sensors will remain available but
 
 ## Data Source & Attribution
 
-All data is provided by the [Austrian Pollen Information Service](https://www.polleninformation.at/), via their [official public API](https://www.polleninformation.at/en/data-interface).  
+All data is provided by the [Austrian Pollen Information Service](https://www.polleninformation.at/), via their [official public API](https://www.polleninformation.at/en/data-interface).
 
 ---
 

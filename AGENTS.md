@@ -14,4 +14,3 @@
 
 - All code should be commented for clarity.
 - All documentation, including comments, must be written in English.
-
