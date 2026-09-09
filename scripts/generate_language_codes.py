@@ -30,12 +30,15 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from custom_components.polleninformation.sensor import (
+# These imports must come after the sys.path.insert() above, which makes the
+# repo root importable as `custom_components...` for a script run standalone
+# from outside a package context.
+from custom_components.polleninformation.sensor import (  # noqa: E402
     LATIN_NAME_ALIASES,
     canonical_latin,
     canonical_latin_for_display_name,
 )
-from custom_components.polleninformation.utils import parse_poll_title
+from custom_components.polleninformation.utils import parse_poll_title  # noqa: E402
 
 # ================================
 # CONFIGURATION

@@ -427,7 +427,7 @@ async def discover_country_ids():
 # ===============================================
 
 
-def handle_sigint(signum, frame):
+def handle_sigint(signum, frame):  # noqa: ARG001 -- required by signal.signal()'s handler contract
     global should_exit
     should_exit = True
 

@@ -67,7 +67,7 @@ def _sync_load_language_map():
         return json.load(f)
 
 
-def get_country_code_map(hass=None):
+def get_country_code_map(hass=None):  # noqa: ARG001 -- kept for parity with its async sibling and future HA-backed lookups
     """
     Return a mapping from country display names to ISO country codes.
 
@@ -133,7 +133,7 @@ def get_language_options_sync():
     return {code: LANGUAGE_DISPLAY_NAMES.get(code, code) for code in SUPPORTED_LANGUAGES}
 
 
-async def async_get_language_options(hass):
+async def async_get_language_options(hass):  # noqa: ARG001 -- signature symmetry with its sync counterpart
     """
     Return dict of ISO 639-1 language code -> display name, async.
     Always uses SUPPORTED_LANGUAGES and LANGUAGE_DISPLAY_NAMES from const.py.
@@ -177,7 +177,7 @@ def find_best_lang_code_for_locale_sync(locale_tag):
     return "en"
 
 
-async def async_find_best_lang_code_for_locale(hass, locale_tag):
+async def async_find_best_lang_code_for_locale(hass, locale_tag):  # noqa: ARG001 -- signature symmetry with its sync counterpart
     """
     Async version of find_best_lang_code_for_locale_sync.
     """
@@ -195,7 +195,7 @@ def get_country_options_sync():
     return {code: COUNTRY_DISPLAY_NAMES.get(code, code) for code in SUPPORTED_COUNTRIES}
 
 
-async def async_get_country_options(hass):
+async def async_get_country_options(hass):  # noqa: ARG001 -- signature symmetry with its sync counterpart
     """
     Return dict of ISO 3166-1 alpha-2 country code -> display name, async.
     Uses SUPPORTED_COUNTRIES and COUNTRY_DISPLAY_NAMES from const.py.

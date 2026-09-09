@@ -133,10 +133,7 @@ async def check_country(
             contamination = data.get("contamination", [])
             allergen_count = len(contamination)
 
-            if allergen_count == 0:
-                status = "empty"
-            else:
-                status = "ok"
+            status = "empty" if allergen_count == 0 else "ok"
 
             return CountryStatus(
                 code=code,
