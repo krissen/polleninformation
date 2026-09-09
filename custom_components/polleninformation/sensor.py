@@ -270,9 +270,7 @@ def english_name_for_display_name(name: str | None) -> str | None:
 @lru_cache(maxsize=1)
 def _slug_index() -> dict[str, tuple[str, str]]:
     """Canonical English name and latin name per allergen slug."""
-    return {
-        slugify(name): (name, latin) for latin, name in LATIN_TO_ENGLISH_NAME.items()
-    }
+    return {slugify(name): (name, latin) for latin, name in LATIN_TO_ENGLISH_NAME.items()}
 
 
 def allergen_slug_for_item(item: dict) -> str | None:
@@ -312,9 +310,7 @@ def entity_id_available(hass, ent_reg, entity_id: str) -> bool:
     entity holds an entity_id without a registry entry, so checking the
     registry alone lets that call raise and abort setup.
     """
-    return not ent_reg.async_is_registered(entity_id) and hass.states.async_available(
-        entity_id
-    )
+    return not ent_reg.async_is_registered(entity_id) and hass.states.async_available(entity_id)
 
 
 ALLERGEN_IDENTITY_OPTION = "latin"
@@ -570,9 +566,7 @@ async def async_migrate_localized_risk_entity_ids(hass, entry, location_slug) ->
 
     for reg_entry, slug in candidates:
         object_id = reg_entry.entity_id.split(".", 1)[1]
-        localized = next(
-            (s for s in suffixes[slug] if object_id == f"{prefix}{s}"), None
-        )
+        localized = next((s for s in suffixes[slug] if object_id == f"{prefix}{s}"), None)
         if localized is None:
             continue
 
@@ -584,9 +578,7 @@ async def async_migrate_localized_risk_entity_ids(hass, entry, location_slug) ->
                 new_entity_id,
             )
             continue
-        _LOGGER.info(
-            "Renaming localized entity_id %s to %s", reg_entry.entity_id, new_entity_id
-        )
+        _LOGGER.info("Renaming localized entity_id %s to %s", reg_entry.entity_id, new_entity_id)
         ent_reg.async_update_entity(reg_entry.entity_id, new_entity_id=new_entity_id)
 
 
@@ -604,9 +596,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     ent_reg = er.async_get(hass)
     existing_entities = er.async_entries_for_config_entry(ent_reg, entry.entry_id)
     existing_unique_ids = {
-        e.unique_id
-        for e in existing_entities
-        if e.domain == "sensor" and not e.disabled
+        e.unique_id for e in existing_entities if e.domain == "sensor" and not e.disabled
     }
 
     has_data = coordinator.data is not None
@@ -620,9 +610,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     is_data_empty = len(contamination) == 0
     for item in raw_contamination:
         if allergen_names_from_item(item) is None:
-            _LOGGER.warning(
-                "Skipping a pollen entry that identifies no allergen: %r", item
-            )
+            _LOGGER.warning("Skipping a pollen entry that identifies no allergen: %r", item)
 
     # Options override data (options flow writes to entry.options)
     def _opt(key, default=None):
@@ -704,9 +692,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         # block, then the name the API sent in the configured language. Only
         # the last of these varies with the language, so it stays a last
         # resort for an allergen no released map knows about.
-        allergen_en_obj = (
-            get_allergen_info_by_latin(latin, language_block_en) if latin else None
-        )
+        allergen_en_obj = get_allergen_info_by_latin(latin, language_block_en) if latin else None
         legacy_en = allergen_en_obj["name"] if allergen_en_obj else poll_title_local
         mapped_en = english_name_for_latin(latin)
         if not latin:
@@ -819,13 +805,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
     # the opposite case: the forecast was there, we failed at it, and the risk
     # reading beside it is real and readable. Throwing it away would lose a
     # number the API did send.
-    api_sent_pollen = (
-        bool(raw_contamination) if isinstance(raw_contamination, list) else False
-    )
+    api_sent_pollen = bool(raw_contamination) if isinstance(raw_contamination, list) else False
     allergyrisk = (
-        usable_risk_block(coordinator.data, "allergyrisk")
-        if has_data and api_sent_pollen
-        else {}
+        usable_risk_block(coordinator.data, "allergyrisk") if has_data and api_sent_pollen else {}
     )
     if allergyrisk:
         sensor = AllergyRiskSensor(
@@ -915,12 +897,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
                     if allergen_la
                     else None
                 )
-                allergen_name = capitalize_first(
-                    (localized or {}).get("name") or allergen_en
-                )
-                icon = ALLERGEN_ICON_MAP.get(
-                    allergen_slug, ALLERGEN_ICON_MAP["default"]
-                )
+                allergen_name = capitalize_first((localized or {}).get("name") or allergen_en)
+                icon = ALLERGEN_ICON_MAP.get(allergen_slug, ALLERGEN_ICON_MAP["default"])
                 sensor = PolleninformationSensor(
                     coordinator=coordinator,
                     sensor_type="pollen",
@@ -1026,9 +1004,7 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
         """
         await super().async_added_to_hass()
         if self._identity_from_response:
-            store_allergen_identity(
-                er.async_get(self.hass), self.entity_id, self._allergen_latin
-            )
+            store_allergen_identity(er.async_get(self.hass), self.entity_id, self._allergen_latin)
 
     @property
     def suggested_object_id(self) -> str:
@@ -1115,9 +1091,7 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
                 )
                 forecast.append(
                     {
-                        "time": (base_date + timedelta(days=day - 1)).strftime(
-                            "%Y-%m-%dT%H:%M:%S"
-                        ),
+                        "time": (base_date + timedelta(days=day - 1)).strftime("%Y-%m-%dT%H:%M:%S"),
                         "level": val,
                         "level_name": level_name,
                     }
@@ -1130,9 +1104,7 @@ class PolleninformationSensor(CoordinatorEntity, SensorEntity):
             "numeric_state": today_raw["level"] if today_raw else None,
             "named_state": today_raw["level_name"] if today_raw else None,
             "tomorrow_numeric_state": tomorrow_raw["level"] if tomorrow_raw else None,
-            "tomorrow_named_state": tomorrow_raw["level_name"]
-            if tomorrow_raw
-            else None,
+            "tomorrow_named_state": tomorrow_raw["level_name"] if tomorrow_raw else None,
             "friendly_name": self._display_name,
             "name_en": self._allergen_en,
             "name_la": self._allergen_latin,
@@ -1229,9 +1201,7 @@ class AllergyRiskSensor(CoordinatorEntity, SensorEntity):
             )
             forecast.append(
                 {
-                    "time": (base_date + timedelta(days=day - 1)).strftime(
-                        "%Y-%m-%dT%H:%M:%S"
-                    ),
+                    "time": (base_date + timedelta(days=day - 1)).strftime("%Y-%m-%dT%H:%M:%S"),
                     "level": scaled,
                     "level_name": level_name,
                     "level_raw": value_raw,
@@ -1316,9 +1286,7 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self) -> str | None:
-        allergyrisk_hourly = usable_risk_block(
-            self.coordinator.data, "allergyrisk_hourly"
-        )
+        allergyrisk_hourly = usable_risk_block(self.coordinator.data, "allergyrisk_hourly")
         if not allergyrisk_hourly:
             return None
         now_hour = dt_util.now().hour
@@ -1332,9 +1300,7 @@ class AllergyRiskHourlySensor(CoordinatorEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        allergyrisk_hourly = usable_risk_block(
-            self.coordinator.data, "allergyrisk_hourly"
-        )
+        allergyrisk_hourly = usable_risk_block(self.coordinator.data, "allergyrisk_hourly")
         if not allergyrisk_hourly:
             attrs: dict[str, Any] = {
                 "location_title": self._location_title,

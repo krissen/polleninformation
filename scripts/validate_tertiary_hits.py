@@ -1,23 +1,21 @@
 #!/usr/bin/env python3
-# coding: utf-8
 
+import asyncio
 import json
+import math
 import os
 import re
 import signal
-import unicodedata
-from datetime import datetime, timezone
-import math
 import sys
-import asyncio
-from geopy.geocoders import Nominatim
-from geopy.extra.rate_limiter import RateLimiter
-from geopy.exc import GeocoderUnavailable, GeocoderTimedOut
-
+import unicodedata
+from datetime import UTC, datetime
 
 # Tredjepartsbibliotek:
 #   pip install geopy reverse_geocoder
 import reverse_geocoder as rg
+from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
+from geopy.extra.rate_limiter import RateLimiter
+from geopy.geocoders import Nominatim
 
 DB_FILE = "country_ids.json"
 
@@ -137,7 +135,7 @@ def load_db():
     if not os.path.exists(DB_FILE):
         print(f"Fel: Kunde inte hitta {DB_FILE}.", file=sys.stderr)
         sys.exit(1)
-    with open(DB_FILE, "r", encoding="utf-8") as f:
+    with open(DB_FILE, encoding="utf-8") as f:
         data = json.load(f)
     # Se till att “invalid” finns
     if "invalid" not in data:
@@ -221,10 +219,7 @@ def haversine(lat1, lon1, lat2, lon2) -> float:
     phi2 = math.radians(lat2)
     dphi = math.radians(lat2 - lat1)
     dlambda = math.radians(lon2 - lon1)
-    a = (
-        math.sin(dphi / 2.0) ** 2
-        + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2.0) ** 2
-    )
+    a = math.sin(dphi / 2.0) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2.0) ** 2
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return R * c
 
@@ -273,7 +268,7 @@ async def validate_and_write():
             reason = "ingen geokodning kunde göras"
             print(f"    ❌ {reason}, markerar VALIDATION.valid = false.")
             db["countries"][country_code]["validation"] = {
-                "validated_at": datetime.now(timezone.utc).isoformat(),
+                "validated_at": datetime.now(UTC).isoformat(),
                 "valid": False,
                 "reason": reason,
                 "found_country": None,
@@ -285,13 +280,9 @@ async def validate_and_write():
         # --------- 3) Reverse‐geocode landkod från (lat_geo, lon_geo) ----------
         rc_geo = reverse_geocode_country(lat_geo, lon_geo)
         if rc_geo:
-            print(
-                f"  [REV_GEO] Landkod från geokodat ({lat_geo:.5f},{lon_geo:.5f}) = '{rc_geo}'"
-            )
+            print(f"  [REV_GEO] Landkod från geokodat ({lat_geo:.5f},{lon_geo:.5f}) = '{rc_geo}'")
         else:
-            print(
-                f"  [REV_GEO] Kunde inte avgöra land från geokodat ({lat_geo:.5f},{lon_geo:.5f})"
-            )
+            print(f"  [REV_GEO] Kunde inte avgöra land från geokodat ({lat_geo:.5f},{lon_geo:.5f})")
 
         # --------- 4) Avståndskalkyl (om vi har sparade lat/lon) ----------
         if lat_search is not None and lon_search is not None:
@@ -309,7 +300,7 @@ async def validate_and_write():
             reason = "ingen reverse_geocode‐landkod"
             print("    ❌ Ingen giltig geokodat‐landkod → markerar valid=false.")
             db["countries"][country_code]["validation"] = {
-                "validated_at": datetime.now(timezone.utc).isoformat(),
+                "validated_at": datetime.now(UTC).isoformat(),
                 "valid": False,
                 "reason": reason,
                 "found_country": None,
@@ -320,12 +311,10 @@ async def validate_and_write():
 
         # a) Om landkoder skiljer sig → invalid
         if rc_geo.upper() != country_code.upper():
-            reason = (
-                f"felaktig landmatchning (förväntat={country_code}, geokodat={rc_geo})"
-            )
+            reason = f"felaktig landmatchning (förväntat={country_code}, geokodat={rc_geo})"
             print(f"    ⚠️  {reason} → markerar valid=false.")
             db["countries"][country_code]["validation"] = {
-                "validated_at": datetime.now(timezone.utc).isoformat(),
+                "validated_at": datetime.now(UTC).isoformat(),
                 "valid": False,
                 "reason": reason,
                 "found_country": rc_geo,
@@ -339,7 +328,7 @@ async def validate_and_write():
             reason = f"avstånd ({dist_km:.2f} km) > tröskel ({DISTANCE_THRESHOLD} km)"
             print(f"    ⚠️  {reason} → markerar valid=false.")
             db["countries"][country_code]["validation"] = {
-                "validated_at": datetime.now(timezone.utc).isoformat(),
+                "validated_at": datetime.now(UTC).isoformat(),
                 "valid": False,
                 "reason": reason,
                 "found_country": rc_geo,
@@ -355,7 +344,7 @@ async def validate_and_write():
             f"och avstånd ({dist_km:.2f} km) är ≤ tröskel."
         )
         db["countries"][country_code]["validation"] = {
-            "validated_at": datetime.now(timezone.utc).isoformat(),
+            "validated_at": datetime.now(UTC).isoformat(),
             "valid": True,
             "reason": reason,
             "found_country": rc_geo,
@@ -368,6 +357,7 @@ async def validate_and_write():
 
 if __name__ == "__main__":
     import math
+
     from geopy.extra.rate_limiter import RateLimiter
 
     try:

@@ -1,10 +1,11 @@
 import asyncio
-import aiohttp
-import async_timeout
-import re
 import json
 import os
+import re
 from datetime import datetime
+
+import aiohttp
+import async_timeout
 
 # ===============================================
 # KONFIGURATION
@@ -132,7 +133,7 @@ def load_db():
     """
     if not os.path.exists(DB_FILE):
         return {"countries": {}, "tested": {}}
-    with open(DB_FILE, "r", encoding="utf-8") as f:
+    with open(DB_FILE, encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -198,9 +199,7 @@ def mark_tested(db, country, country_id):
 # ===============================================
 
 
-async def fetch_pollen(
-    lat: float, lon: float, country: str, country_id: int, lang: str = "de"
-):
+async def fetch_pollen(lat: float, lon: float, country: str, country_id: int, lang: str = "de"):
     """
     Hämtar pollen-data (result) för en given lat/lon, country‐kod och country_id.
     Returnerar None vid fel, annars en dict som innehåller:
@@ -211,12 +210,11 @@ async def fetch_pollen(
         lat=lat, lon=lon, country=country, country_id=country_id, lang=lang
     )
     try:
-        async with async_timeout.timeout(10):
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url) as resp:
-                    resp.raise_for_status()
-                    payload = await resp.json()
-                    return payload.get("result", {})
+        async with async_timeout.timeout(10), aiohttp.ClientSession() as session:
+            async with session.get(url) as resp:
+                resp.raise_for_status()
+                payload = await resp.json()
+                return payload.get("result", {})
     except Exception:
         return None
 
@@ -260,9 +258,7 @@ async def discover_country_ids():
                 continue
 
             result = await fetch_pollen(lat, lon, country, country_id, lang="de")
-            mark_tested(
-                db, country, country_id
-            )  # Spara som testad, oavsett om giltig eller ej
+            mark_tested(db, country, country_id)  # Spara som testad, oavsett om giltig eller ej
             await asyncio.sleep(REQUEST_DELAY)
 
             if result and result.get("contamination"):
@@ -291,14 +287,10 @@ async def discover_country_ids():
 
                 allergen_slug = slugify(german_part)
                 level_text_de = (
-                    levels_de[raw_val]
-                    if 0 <= raw_val < len(levels_de)
-                    else "unavailable"
+                    levels_de[raw_val] if 0 <= raw_val < len(levels_de) else "unavailable"
                 )
                 level_text_en = (
-                    levels_en[raw_val]
-                    if 0 <= raw_val < len(levels_en)
-                    else "unavailable"
+                    levels_en[raw_val] if 0 <= raw_val < len(levels_en) else "unavailable"
                 )
 
                 print("    – Exempel‐allergen:")

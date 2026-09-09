@@ -6,9 +6,7 @@ import aiohttp
 import async_timeout
 
 # 1. Läs in available_countries.json
-with open(
-    "custom_components/polleninformation/available_countries.json", encoding="utf-8"
-) as f:
+with open("custom_components/polleninformation/available_countries.json", encoding="utf-8") as f:
     countries = json.load(f)["countries"]
 
 # 2. Lista över huvudstäder och default lat/lon (du kan lägga in fler om du vill)
@@ -78,17 +76,14 @@ POLLENAT_API_URL = (
 
 
 async def fetch_raw(country, lat, lon, country_id):
-    url = POLLENAT_API_URL.format(
-        lat=lat, lon=lon, country=country, country_id=country_id
-    )
-    async with async_timeout.timeout(15):
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as resp:
-                text = await resp.text()
-                try:
-                    return json.loads(text)
-                except Exception:
-                    return text
+    url = POLLENAT_API_URL.format(lat=lat, lon=lon, country=country, country_id=country_id)
+    async with async_timeout.timeout(15), aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            text = await resp.text()
+            try:
+                return json.loads(text)
+            except Exception:
+                return text
 
 
 async def main():
@@ -99,9 +94,7 @@ async def main():
             if isinstance(country["country_id"], list)
             else country["country_id"]
         )
-        lat, lon = CAPITALS.get(
-            code, (59.3293, 18.0686)
-        )  # default to Stockholm if missing
+        lat, lon = CAPITALS.get(code, (59.3293, 18.0686))  # default to Stockholm if missing
         print(f"\n==== {code} ({country['name']}) ====")
         raw = await fetch_raw(code, lat, lon, country_id)
         print(json.dumps(raw, indent=2, ensure_ascii=False))

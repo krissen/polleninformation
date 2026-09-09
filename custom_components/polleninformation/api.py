@@ -3,7 +3,6 @@
 See official API documentation: https://www.polleninformation.at/en/data-interface
 """
 
-import asyncio
 import logging
 
 import aiohttp
@@ -92,9 +91,7 @@ async def async_get_pollenat_data(
                         content_type,
                         body_preview,
                     )
-                    raise PollenApiError(
-                        f"API returned non-JSON response ({content_type})"
-                    )
+                    raise PollenApiError(f"API returned non-JSON response ({content_type})")
 
                 try:
                     data = await resp.json()
@@ -113,7 +110,7 @@ async def async_get_pollenat_data(
 
     except PollenApiError:
         raise
-    except asyncio.TimeoutError as e:
+    except TimeoutError as e:
         raise PollenApiConnectionError(f"Timeout connecting to API: {e}") from e
     except aiohttp.ClientResponseError as e:
         raise PollenApiError(f"API returned HTTP {e.status}: {e.message}") from e

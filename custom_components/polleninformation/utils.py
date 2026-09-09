@@ -58,11 +58,7 @@ async def async_load_available_languages(hass):
     """
     data = await async_load_language_map(hass)
     # Return only dicts with 'lang_code' and 'lang'
-    return [
-        v
-        for v in data.values()
-        if isinstance(v, dict) and "lang_code" in v and "lang" in v
-    ]
+    return [v for v in data.values() if isinstance(v, dict) and "lang_code" in v and "lang" in v]
 
 
 def _sync_load_language_map():
@@ -134,9 +130,7 @@ def get_language_options_sync():
     Return dict of ISO 639-1 language code -> display name.
     Always uses SUPPORTED_LANGUAGES and LANGUAGE_DISPLAY_NAMES from const.py.
     """
-    return {
-        code: LANGUAGE_DISPLAY_NAMES.get(code, code) for code in SUPPORTED_LANGUAGES
-    }
+    return {code: LANGUAGE_DISPLAY_NAMES.get(code, code) for code in SUPPORTED_LANGUAGES}
 
 
 async def async_get_language_options(hass):
@@ -224,11 +218,7 @@ def normalize(text: str) -> str:
 
         text = unidecode(text)
     except ImportError:
-        text = (
-            unicodedata.normalize("NFKD", text)
-            .encode("ascii", "ignore")
-            .decode("ascii")
-        )
+        text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
     # Replace Swedish and German special characters
     text = (
         text.replace("ö", "o")
@@ -257,11 +247,7 @@ def slugify(text: str) -> str:
 
         text = unidecode(text)
     except ImportError:
-        text = (
-            unicodedata.normalize("NFKD", text)
-            .encode("ascii", "ignore")
-            .decode("ascii")
-        )
+        text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
 
     text = text.split("(", 1)[0] if "(" in text else text
     text = text.strip().lower()

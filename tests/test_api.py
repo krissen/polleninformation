@@ -1,7 +1,5 @@
 """Tests for the polleninformation.at API client."""
 
-import asyncio
-
 import aiohttp
 import pytest
 from homeassistant.core import HomeAssistant
@@ -55,30 +53,24 @@ async def test_500_raises_api_error(hass: HomeAssistant, aioclient_mock):
 
 
 async def test_timeout_raises_connection_error(hass: HomeAssistant, aioclient_mock):
-    aioclient_mock.get(API_URL_PREFIX, exc=asyncio.TimeoutError())
+    aioclient_mock.get(API_URL_PREFIX, exc=TimeoutError())
     with pytest.raises(PollenApiConnectionError):
         await async_get_pollenat_data(hass, **CALL_KWARGS)
 
 
-async def test_client_error_raises_connection_error(
-    hass: HomeAssistant, aioclient_mock
-):
+async def test_client_error_raises_connection_error(hass: HomeAssistant, aioclient_mock):
     aioclient_mock.get(API_URL_PREFIX, exc=aiohttp.ClientError())
     with pytest.raises(PollenApiConnectionError):
         await async_get_pollenat_data(hass, **CALL_KWARGS)
 
 
 async def test_json_error_apikey_raises_auth_error(hass: HomeAssistant, aioclient_mock):
-    aioclient_mock.get(
-        API_URL_PREFIX, json={"error": "invalid api key"}, headers=JSON_HEADERS
-    )
+    aioclient_mock.get(API_URL_PREFIX, json={"error": "invalid api key"}, headers=JSON_HEADERS)
     with pytest.raises(PollenApiAuthError):
         await async_get_pollenat_data(hass, **CALL_KWARGS)
 
 
 async def test_json_error_other_raises_api_error(hass: HomeAssistant, aioclient_mock):
-    aioclient_mock.get(
-        API_URL_PREFIX, json={"error": "rate limit exceeded"}, headers=JSON_HEADERS
-    )
+    aioclient_mock.get(API_URL_PREFIX, json={"error": "rate limit exceeded"}, headers=JSON_HEADERS)
     with pytest.raises(PollenApiError):
         await async_get_pollenat_data(hass, **CALL_KWARGS)

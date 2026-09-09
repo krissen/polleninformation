@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pycountry
 
@@ -33,7 +33,7 @@ def main():
         print(f"Fel: Kunde inte hitta {DB_FILE}.")
         return
 
-    with open(DB_FILE, "r", encoding="utf-8") as f:
+    with open(DB_FILE, encoding="utf-8") as f:
         db = json.load(f)
 
     available_countries = []
@@ -43,9 +43,7 @@ def main():
         name = get_country_name(code)
         if not name:
             # Om pycountry inte har just denna kod, varna och hoppa över
-            print(
-                f"🔶 Varning: Kunde inte slå upp landnamn för landskod '{code}'. Skippas."
-            )
+            print(f"🔶 Varning: Kunde inte slå upp landnamn för landskod '{code}'. Skippas.")
             continue
 
         # Lägg till i listan över tillgängliga länder
@@ -55,7 +53,7 @@ def main():
 
     # För att ge en indikation på när denna lista skapades:
     result = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "countries": available_countries,
     }
 

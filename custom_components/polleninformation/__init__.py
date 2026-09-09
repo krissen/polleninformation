@@ -32,9 +32,9 @@ from .const import (
     DEFAULT_LATITUDE,
     DEFAULT_LONGITUDE,
     DEFAULT_UPDATE_INTERVAL,
+    DOMAIN,
     MAX_UPDATE_INTERVAL,
     MIN_UPDATE_INTERVAL,
-    DOMAIN,
     PLATFORMS,
 )
 from .utils import get_country_code_map, usable_contamination, usable_risk_block
@@ -74,9 +74,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Clamp update_interval to valid range
     try:
-        update_interval_hours = int(
-            float(_opt(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL))
-        )
+        update_interval_hours = int(float(_opt(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)))
     except (TypeError, ValueError):
         update_interval_hours = DEFAULT_UPDATE_INTERVAL
     update_interval_hours = max(

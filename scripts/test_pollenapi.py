@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 import argparse
 import asyncio
-import aiohttp
-import async_timeout
 import re
 import sys
+
+import aiohttp
+import async_timeout
 
 # ===============================================
 # DEFAULT‐VÄRDEN FÖR URL‐PARAMETRAR
@@ -129,12 +130,11 @@ async def fetch_pollen(
     )
     print(f"\nAnropar URL:\n  {url}\n")
     try:
-        async with async_timeout.timeout(10):
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url) as resp:
-                    resp.raise_for_status()
-                    payload = await resp.json()
-                    return payload.get("result", {})
+        async with async_timeout.timeout(10), aiohttp.ClientSession() as session:
+            async with session.get(url) as resp:
+                resp.raise_for_status()
+                payload = await resp.json()
+                return payload.get("result", {})
     except Exception as e:
         print("Fel vid anrop:", e)
         return None
@@ -200,9 +200,7 @@ async def main(args):
             level_text_de = "unavailable"
 
         # Hämta engelsk etikett
-        level_text_en = (
-            levels_en[raw_val] if 0 <= raw_val < len(levels_en) else "unavailable"
-        )
+        level_text_en = levels_en[raw_val] if 0 <= raw_val < len(levels_en) else "unavailable"
 
         print(f"  – Allergen: {raw_title}")
         print(f"    Tyskt namn: {german_part}")

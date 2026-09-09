@@ -7,17 +7,14 @@ from collections import defaultdict
 from pathlib import Path
 
 # Anpassa vägen hit till rätt path i ditt repo!
-TRANSLATIONS_DIR = (
-    Path(__file__).parent.parent / "custom_components/polleninformation/translations"
-)
+TRANSLATIONS_DIR = Path(__file__).parent.parent / "custom_components/polleninformation/translations"
 
 MASTER = "en.json"
 
 PY_FILES_TO_SCAN = [
     Path(__file__).parent.parent / "custom_components/polleninformation/config_flow.py",
     Path(__file__).parent.parent / "custom_components/polleninformation/sensor.py",
-    Path(__file__).parent.parent
-    / "custom_components/polleninformation/options_flow.py",
+    Path(__file__).parent.parent / "custom_components/polleninformation/options_flow.py",
     Path(__file__).parent.parent / "custom_components/polleninformation/api.py",
 ]
 
@@ -100,9 +97,7 @@ def find_used_keys_in_py():
 
 
 def scan_missing():
-    master, master_flat, missing_per_lang, redundant_per_lang = (
-        find_missing_and_redundant()
-    )
+    master, master_flat, missing_per_lang, redundant_per_lang = find_missing_and_redundant()
 
     # Kontroll mot keys i py-filer (om du skulle använda dem)
     used_keys = find_used_keys_in_py()

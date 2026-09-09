@@ -23,15 +23,11 @@ from custom_components.polleninformation.utils import slugify
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPT_PATH = REPO_ROOT / "scripts" / "generate_language_codes.py"
-LANGUAGE_MAP = (
-    REPO_ROOT / "custom_components" / "polleninformation" / "language_map.json"
-)
+LANGUAGE_MAP = REPO_ROOT / "custom_components" / "polleninformation" / "language_map.json"
 
 
 def _load_script():
-    spec = importlib.util.spec_from_file_location(
-        "generate_language_codes", SCRIPT_PATH
-    )
+    spec = importlib.util.spec_from_file_location("generate_language_codes", SCRIPT_PATH)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -306,9 +302,7 @@ class TestLanguageEntryFromResponse:
 
         assert entry["lang_code"] == "sk"
         assert entry["lang"] == "Slovak"
-        assert entry["poll_titles"] == [
-            {"name": "Trávy", "latin": "Poaceae", "poll_id": 5}
-        ]
+        assert entry["poll_titles"] == [{"name": "Trávy", "latin": "Poaceae", "poll_id": 5}]
         assert warnings == []
 
     def test_a_top_level_that_is_not_an_object_is_an_error_entry(self, script):
@@ -333,9 +327,7 @@ class TestLanguageEntryFromResponse:
         assert "error" in entry
 
     def test_a_contamination_block_that_is_not_a_list_is_an_error_entry(self, script):
-        entry, warnings = script.language_entry_from_response(
-            "sk", {"contamination": "oops"}
-        )
+        entry, warnings = script.language_entry_from_response("sk", {"contamination": "oops"})
         assert "error" in entry
         assert len(warnings) == 1
 
@@ -527,9 +519,7 @@ class TestRunFetchWritesThroughTheRetryRule:
         monkeypatch.setattr(script, "LANG_CODES", ["sk"])
         monkeypatch.setattr(script, "DELAY_SEC", 0)
         monkeypatch.setenv("API_KEY", "test-key")
-        monkeypatch.setitem(
-            sys.modules, "requests", types.SimpleNamespace(get=responder)
-        )
+        monkeypatch.setitem(sys.modules, "requests", types.SimpleNamespace(get=responder))
         monkeypatch.setitem(
             sys.modules, "dotenv", types.SimpleNamespace(load_dotenv=lambda **kw: None)
         )
@@ -539,15 +529,11 @@ class TestRunFetchWritesThroughTheRetryRule:
     @staticmethod
     def _answer(payload):
         def responder(*args, **kwargs):
-            return types.SimpleNamespace(
-                raise_for_status=lambda: None, json=lambda: payload
-            )
+            return types.SimpleNamespace(raise_for_status=lambda: None, json=lambda: payload)
 
         return responder
 
-    def test_a_request_failure_keeps_the_names_on_disk(
-        self, script, monkeypatch, tmp_path
-    ):
+    def test_a_request_failure_keeps_the_names_on_disk(self, script, monkeypatch, tmp_path):
         def boom(*args, **kwargs):
             raise RuntimeError("timeout")
 
@@ -557,12 +543,8 @@ class TestRunFetchWritesThroughTheRetryRule:
         assert "earlier fetch" in db["sk"]["retry_error"]
         assert script.needs_fetch(db, "sk")
 
-    def test_a_malformed_response_keeps_the_names_on_disk(
-        self, script, monkeypatch, tmp_path
-    ):
-        db = self._run(
-            script, monkeypatch, tmp_path, PARTIAL_DB, self._answer({"nope": 1})
-        )
+    def test_a_malformed_response_keeps_the_names_on_disk(self, script, monkeypatch, tmp_path):
+        db = self._run(script, monkeypatch, tmp_path, PARTIAL_DB, self._answer({"nope": 1}))
 
         assert db["sk"]["poll_titles"] == PARTIAL_ENTRY["poll_titles"]
         assert "earlier fetch" in db["sk"]["retry_error"]
@@ -581,9 +563,7 @@ class TestRunFetchWritesThroughTheRetryRule:
         assert "retry_error" not in db["sk"]
         assert not script.needs_fetch(db, "sk")
 
-    def test_a_poorer_retry_keeps_the_names_it_did_not_read(
-        self, script, monkeypatch, tmp_path
-    ):
+    def test_a_poorer_retry_keeps_the_names_it_did_not_read(self, script, monkeypatch, tmp_path):
         # Codex's case, driven through the write: three allergens on disk, a
         # retry that reads one and loses another to a malformed entry.
         payload = {
@@ -605,9 +585,7 @@ class TestRunFetchWritesThroughTheRetryRule:
         assert db["sk"]["incomplete"] is True
         assert script.needs_fetch(db, "sk")
 
-    def test_a_language_with_nothing_to_lose_records_the_error(
-        self, script, monkeypatch, tmp_path
-    ):
+    def test_a_language_with_nothing_to_lose_records_the_error(self, script, monkeypatch, tmp_path):
         def boom(*args, **kwargs):
             raise RuntimeError("timeout")
 
@@ -650,9 +628,7 @@ class TestTheMergeKeyIsTotal:
 
     @pytest.mark.parametrize("junk", [["x"], {"a": 1}, ("x",), set()])
     def test_an_unhashable_id_falls_back_rather_than_raising(self, script, junk):
-        key = script.allergen_key(
-            {"name": "Trávy", "latin": "Poaceae", "poll_id": junk}
-        )
+        key = script.allergen_key({"name": "Trávy", "latin": "Poaceae", "poll_id": junk})
 
         assert key == ("latin", "poaceae")
         hash(key)
@@ -670,9 +646,7 @@ class TestTheMergeKeyIsTotal:
 
     @pytest.mark.parametrize("poll_id", ["6", 6, 6.0, True])
     def test_a_scalar_id_is_still_the_identity(self, script, poll_id):
-        key = script.allergen_key(
-            {"name": "Trávy", "latin": "Poaceae", "poll_id": poll_id}
-        )
+        key = script.allergen_key({"name": "Trávy", "latin": "Poaceae", "poll_id": poll_id})
 
         assert key == ("poll_id", poll_id)
 
@@ -701,11 +675,7 @@ class TestTheMergeKeyIsTotal:
         assert "not a scalar" in warnings[0]
 
     def test_a_junk_id_already_in_the_file_is_reported_by_repair(self, script):
-        db = {
-            "sk": {
-                "poll_titles": [{"name": "Trávy", "latin": "Poaceae", "poll_id": {}}]
-            }
-        }
+        db = {"sk": {"poll_titles": [{"name": "Trávy", "latin": "Poaceae", "poll_id": {}}]}}
         changes, warnings = script.repair_db(db)
 
         assert changes == []
@@ -840,9 +810,7 @@ class TestDbFilePath:
     def test_it_points_at_the_map_in_this_repo(self, script):
         assert Path(script.DB_FILE) == LANGUAGE_MAP
 
-    def test_the_map_is_found_from_another_directory(
-        self, script, tmp_path, monkeypatch
-    ):
+    def test_the_map_is_found_from_another_directory(self, script, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
         assert len(script.load_db()) == 16
 
@@ -883,17 +851,13 @@ class TestRunRepairReachesTheValidator:
         return capsys.readouterr().out
 
     @pytest.mark.parametrize("db", [[], "", 0, False, None, ["sk"], "oops", 42])
-    def test_a_non_dict_root_reaches_the_validator(
-        self, script, monkeypatch, capsys, db
-    ):
+    def test_a_non_dict_root_reaches_the_validator(self, script, monkeypatch, capsys, db):
         out = self._run(script, monkeypatch, capsys, db)
 
         assert "root" in out
         assert "No languages" not in out
 
-    def test_an_empty_database_is_not_a_malformed_one(
-        self, script, monkeypatch, capsys
-    ):
+    def test_an_empty_database_is_not_a_malformed_one(self, script, monkeypatch, capsys):
         # A missing file reads as {} too, and that is the ordinary first run.
         out = self._run(script, monkeypatch, capsys, {})
 
@@ -1004,9 +968,7 @@ class TestRepairDb:
         db = {
             "de": {
                 "lang_code": "de",
-                "poll_titles": [
-                    {"name": "Artemisia", "latin": "Asteraceae", "poll_id": 300}
-                ],
+                "poll_titles": [{"name": "Artemisia", "latin": "Asteraceae", "poll_id": 300}],
             }
         }
         changes, warnings = script.repair_db(db)
@@ -1033,9 +995,7 @@ class TestRepairDb:
         assert json.dumps(db, sort_keys=True) == before
 
     @pytest.mark.parametrize("poll_titles", [0, False, "", {}])
-    def test_a_falsy_poll_titles_of_the_wrong_type_is_reported(
-        self, script, poll_titles
-    ):
+    def test_a_falsy_poll_titles_of_the_wrong_type_is_reported(self, script, poll_titles):
         # The third `or` default, found in the same sweep: these read as an
         # empty list and were skipped in silence.
         db = {"x": {"lang_code": "x", "poll_titles": poll_titles}}
@@ -1173,9 +1133,7 @@ class TestTheFileAndTheRuntimeAgree:
         ],
     )
     def test_both_sides_resolve_the_same_input_the_same_way(self, script, poll_title):
-        assert self._recorded_allergen(script, poll_title) == self._runtime_allergen(
-            poll_title
-        )
+        assert self._recorded_allergen(script, poll_title) == self._runtime_allergen(poll_title)
 
     def test_the_prose_case_resolves_to_nothing_on_both_sides(self, script):
         # Stated separately from the parametrize above, because "they agree"
@@ -1199,9 +1157,7 @@ class TestTheFileAndTheRuntimeAgree:
         assert self._runtime_allergen("Artemisia ()") == "mugwort"
         assert self._recorded_allergen(script, "Artemisia ()") == "mugwort"
 
-    def test_an_unmatched_bracket_resolves_to_the_display_name_on_both_sides(
-        self, script
-    ):
+    def test_an_unmatched_bracket_resolves_to_the_display_name_on_both_sides(self, script):
         assert self._runtime_allergen("Artemisia (") == "mugwort"
         assert self._recorded_allergen(script, "Artemisia (") == "mugwort"
 
@@ -1224,9 +1180,7 @@ class TestTheFileAndTheRuntimeAgree:
         than the instances.
         """
         poll_title = name + brackets
-        assert self._recorded_allergen(script, poll_title) == self._runtime_allergen(
-            poll_title
-        )
+        assert self._recorded_allergen(script, poll_title) == self._runtime_allergen(poll_title)
 
 
 class TestShippedLanguageMap:

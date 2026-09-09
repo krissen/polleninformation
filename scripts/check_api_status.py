@@ -10,7 +10,7 @@ import json
 import os
 import sys
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import aiohttp
@@ -67,87 +67,89 @@ async def check_country(
     loop = asyncio.get_running_loop()
     start = loop.time()
     try:
-        async with async_timeout.timeout(15):
-            async with session.get(
+        async with (
+            async_timeout.timeout(15),
+            session.get(
                 url,
                 headers={
                     "Accept": "application/json",
                     "User-Agent": "PollenStatusChecker/1.0",
                 },
-            ) as resp:
-                latency = int((loop.time() - start) * 1000)
-                http_code = resp.status
+            ) as resp,
+        ):
+            latency = int((loop.time() - start) * 1000)
+            http_code = resp.status
 
-                if http_code == 401:
-                    return CountryStatus(
-                        code=code,
-                        name=info["name"],
-                        status="auth_error",
-                        http_code=http_code,
-                        allergen_count=0,
-                        latency_ms=latency,
-                        error="Invalid API key",
-                        test_city=info["city"],
-                    )
-
-                if http_code != 200:
-                    return CountryStatus(
-                        code=code,
-                        name=info["name"],
-                        status="http_error",
-                        http_code=http_code,
-                        allergen_count=0,
-                        latency_ms=latency,
-                        error=f"HTTP {http_code}",
-                        test_city=info["city"],
-                    )
-
-                try:
-                    data = await resp.json()
-                except Exception:
-                    return CountryStatus(
-                        code=code,
-                        name=info["name"],
-                        status="parse_error",
-                        http_code=http_code,
-                        allergen_count=0,
-                        latency_ms=latency,
-                        error="Invalid JSON response",
-                        test_city=info["city"],
-                    )
-
-                if "error" in data:
-                    return CountryStatus(
-                        code=code,
-                        name=info["name"],
-                        status="api_error",
-                        http_code=http_code,
-                        allergen_count=0,
-                        latency_ms=latency,
-                        error=data.get("error"),
-                        test_city=info["city"],
-                    )
-
-                contamination = data.get("contamination", [])
-                allergen_count = len(contamination)
-
-                if allergen_count == 0:
-                    status = "empty"
-                else:
-                    status = "ok"
-
+            if http_code == 401:
                 return CountryStatus(
                     code=code,
                     name=info["name"],
-                    status=status,
+                    status="auth_error",
                     http_code=http_code,
-                    allergen_count=allergen_count,
+                    allergen_count=0,
                     latency_ms=latency,
-                    error=None,
+                    error="Invalid API key",
                     test_city=info["city"],
                 )
 
-    except asyncio.TimeoutError:
+            if http_code != 200:
+                return CountryStatus(
+                    code=code,
+                    name=info["name"],
+                    status="http_error",
+                    http_code=http_code,
+                    allergen_count=0,
+                    latency_ms=latency,
+                    error=f"HTTP {http_code}",
+                    test_city=info["city"],
+                )
+
+            try:
+                data = await resp.json()
+            except Exception:
+                return CountryStatus(
+                    code=code,
+                    name=info["name"],
+                    status="parse_error",
+                    http_code=http_code,
+                    allergen_count=0,
+                    latency_ms=latency,
+                    error="Invalid JSON response",
+                    test_city=info["city"],
+                )
+
+            if "error" in data:
+                return CountryStatus(
+                    code=code,
+                    name=info["name"],
+                    status="api_error",
+                    http_code=http_code,
+                    allergen_count=0,
+                    latency_ms=latency,
+                    error=data.get("error"),
+                    test_city=info["city"],
+                )
+
+            contamination = data.get("contamination", [])
+            allergen_count = len(contamination)
+
+            if allergen_count == 0:
+                status = "empty"
+            else:
+                status = "ok"
+
+            return CountryStatus(
+                code=code,
+                name=info["name"],
+                status=status,
+                http_code=http_code,
+                allergen_count=allergen_count,
+                latency_ms=latency,
+                error=None,
+                test_city=info["city"],
+            )
+
+    except TimeoutError:
         return CountryStatus(
             code=code,
             name=info["name"],
@@ -283,13 +285,10 @@ async def main():
     output_dir = Path(__file__).parent.parent / "docs"
     output_dir.mkdir(exist_ok=True)
 
-    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    timestamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
 
     async with aiohttp.ClientSession() as session:
-        tasks = [
-            check_country(session, code, info, apikey)
-            for code, info in COUNTRIES.items()
-        ]
+        tasks = [check_country(session, code, info, apikey) for code, info in COUNTRIES.items()]
         results = await asyncio.gather(*tasks)
 
     json_data = {

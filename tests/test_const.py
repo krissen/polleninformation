@@ -26,6 +26,4 @@ def test_all_languages_have_levels():
 
 def test_levels_have_five_entries():
     for code, level_list in LEVELS.items():
-        assert len(level_list) == 5, (
-            f"Language {code} has {len(level_list)} levels, expected 5"
-        )
+        assert len(level_list) == 5, f"Language {code} has {len(level_list)} levels, expected 5"
