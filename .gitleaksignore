@@ -1,0 +1,7 @@
+# Verified false positives (gitleaks dir . -- 2026-09-09). One line per
+# finding, with a comment explaining why.
+
+# Literal placeholder string "test-api-key-12345" used as a fixture default,
+# not a real credential.
+tests/conftest.py:generic-api-key:32
+tests/test_sensor.py:generic-api-key:432
