@@ -12,13 +12,18 @@
 #   nothing staged -- exactly the state this target runs in. Without
 #   the explicit `gitleaks dir .` step, a secret already committed
 #   earlier would pass this target silently.
-# - A prek --fix hook run against an untracked file silently fixes it
-#   and reports "Passed" (there is no index entry to diff against), so
-#   a brand-new, not-yet-`git add`-ed module could pass this target
-#   with real lint errors. The no-fix ruff check has no such blind spot.
+# - `prek run --all-files` only sees git-TRACKED files (it lists them via
+#   git, same as pre-commit) -- an untracked, not-yet-`git add`-ed file is
+#   invisible to it entirely, not merely silently autofixed. Confirmed by
+#   testing: a new file with a real lint error (F841) is NOT caught by the
+#   prek step alone. `ruff check .`/`ruff format --check .` walk the
+#   filesystem directly (respecting .gitignore, not git's index), so they
+#   see it regardless of tracked state. Both run without --fix so a file
+#   this target merely inspects is never mutated by it.
 check:
 	@prek run --all-files > .check.log 2>&1 || { tail -30 .check.log; exit 1; }
 	@gitleaks dir . --no-banner >> .check.log 2>&1 || { tail -30 .check.log; exit 1; }
 	@.venv/bin/ruff check . >> .check.log 2>&1 || { tail -30 .check.log; exit 1; }
+	@.venv/bin/ruff format --check . >> .check.log 2>&1 || { tail -30 .check.log; exit 1; }
 	@.venv/bin/python -m pytest --tb=line >> .check.log 2>&1 || { tail -30 .check.log; exit 1; }
 	@tail -1 .check.log
