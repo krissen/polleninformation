@@ -1,6 +1,13 @@
 [tool.ruff]
 line-length = 100
-target-version = "py313"
+# scripts/check_api_status.py runs under Python 3.12 in CI
+# (.github/workflows/api-status.yaml), the lowest Python version any code
+# in this repo is known to execute under -- not the test venv's 3.14
+# (pytest-homeassistant-custom-component's requirement) or hacs.json's
+# minimum Home Assistant version. Targeting a newer version here could let
+# ruff apply an upgrade rewrite (UP*) using syntax check_api_status.py
+# can't run.
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I", "UP", "B", "SIM", "ARG", "RUF"]
