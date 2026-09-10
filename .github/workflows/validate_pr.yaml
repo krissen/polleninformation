@@ -4,10 +4,18 @@ on:
   pull_request_target:
     types: [opened, labeled, unlabeled, synchronize]
 
+concurrency:
+  # pull_request_target's github.ref is the base branch, not the PR branch --
+  # grouping by that would cancel unrelated PRs' runs against each other.
+  # Group by PR number instead.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   validate-labels:
     name: With PR label action
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: PR Label Validation
         uses: jesusvasquez333/verify-pr-label-action@657d111bbbe13e22bbd55870f1813c699bde1401  # v1.4.0
