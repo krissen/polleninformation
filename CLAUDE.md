@@ -27,21 +27,46 @@ Note: No build process - this is a pure Python Home Assistant integration.
 ## Quality Gates
 
 Lint, format and secret-scanning run via [prek](https://github.com/j178/prek)
-(`.pre-commit-config.yaml`), driven by a machine-global git hook dispatcher
-rather than a per-repo `prek install`. Two things are required for it to run
-at commit/push time, and both are repo-local (a fresh clone needs step 2
-again):
+against `.pre-commit-config.yaml`. Two ways to wire it in, depending on the
+machine:
+
+**(a) Ordinary clone.**
 
 ```bash
-# 1. the config already exists: .pre-commit-config.yaml
-# 2. opt in for this clone
+pipx install prek==0.5.2   # or: uv tool install prek==0.5.2
+brew install gitleaks       # or: https://github.com/gitleaks/gitleaks/releases
+prek install
+```
+
+`make setup` does this for you and is idempotent -- safe to re-run any time
+(e.g. after `.github/workflows/test.yaml` bumps the pinned prek version).
+`prek install` wires the hooks into this clone's own `.git/hooks`, which
+`.pre-commit-config.yaml` is the only source of truth for.
+
+**(b) Maintainer machine with a global git-hook dispatcher.** If
+`core.hooksPath` already points somewhere other than this clone's own
+`.git/hooks` (a machine-wide convention that routes every repo through one
+dispatcher), `prek install` refuses -- opt this clone in instead:
+
+```bash
 git config prek.enabled true
 ```
 
-`SKIP_PREK=1 git commit ...` skips the lint pass for one commit without
-disabling anything else. CI runs the same `.pre-commit-config.yaml` via
-`prek run --all-files` (see `.github/workflows/test.yaml`), so there is one
-rule list instead of two to keep in sync.
+`make setup` detects this case automatically and prints the right command
+instead of trying to install hooks that would never run.
+
+**Escape hatch**, per path: on a machine using (a)'s per-clone hooks,
+prek's own `SKIP=<hook-id>,<hook-id>` (or `PREK_SKIP`) skips named hooks for
+one commit. On a machine using (b)'s global dispatcher, `SKIP_PREK=1 git
+commit ...` skips the whole lint pass for one commit without disabling
+anything else -- it has no effect under (a).
+
+`make check` runs the same gate CI does (`prek run --all-files`, a no-fix
+`ruff check .` / `ruff format --check .` pass, a full-tree `gitleaks dir .`
+scan, and the test suite) and prints one line on success, the failing
+output on error. CI runs the identical `.pre-commit-config.yaml` via `prek
+run --all-files` (see `.github/workflows/test.yaml`), so there is one rule
+list instead of two to keep in sync.
 
 ## Architecture
 
