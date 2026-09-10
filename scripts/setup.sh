@@ -21,4 +21,3 @@ export PYTHONPATH="$PWD/custom_components:$PYTHONPATH"
 
 echo "✅  venv is ready and requirements installed. PYTHONPATH set."
 echo "Now start HA with: ./scripts/run_ha.sh"
-

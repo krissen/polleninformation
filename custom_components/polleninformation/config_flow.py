@@ -69,9 +69,7 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self.hass, default_latitude, default_longitude
             )
         default_country = (
-            ha_country
-            if ha_country in country_options
-            else next(iter(country_options.keys()))
+            ha_country if ha_country in country_options else next(iter(country_options.keys()))
         )
         ha_lang = getattr(self.hass.config, "language", DEFAULT_LANG)
         default_lang_code = ha_lang if ha_lang in lang_options else "en"
@@ -111,16 +109,12 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Build config flow schema with map selector for coordinates
         data_schema = vol.Schema(
             {
-                vol.Required("country", default=selected_country): vol.In(
-                    country_options
-                ),
+                vol.Required("country", default=selected_country): vol.In(country_options),
                 vol.Optional("location_name", default=""): str,
                 vol.Required("location", default=location_default): LocationSelector(
                     LocationSelectorConfig(radius=True)
                 ),
-                vol.Required("language", default=default_lang_code): vol.In(
-                    lang_options
-                ),
+                vol.Required("language", default=default_lang_code): vol.In(lang_options),
                 vol.Required("apikey", default=default_apikey): str,
             }
         )
@@ -162,11 +156,7 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 langs = await async_load_available_languages(self.hass)
                 _LOGGER.debug("Available langs: %r", langs)
                 selected_lang = next(
-                    (
-                        lang_item
-                        for lang_item in langs
-                        if lang_item["lang_code"] == lang_code
-                    ),
+                    (lang_item for lang_item in langs if lang_item["lang_code"] == lang_code),
                     None,
                 )
                 if not selected_lang:
@@ -213,9 +203,7 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     _LOGGER.error("No pollen data returned for input.")
                 elif pollen_data and not pollen_data.get("contamination"):
                     errors["base"] = "no_sensors_for_country"
-                    _LOGGER.error(
-                        "No contamination sensors for country: %r", country_code
-                    )
+                    _LOGGER.error("No contamination sensors for country: %r", country_code)
                 else:
                     # Compose a user-facing integration title:
                     # If location_name is set, use it.
@@ -258,13 +246,9 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     existing_entries = self._async_current_entries()
                     already_exists = any(
                         e.options.get("country", e.data.get("country")) == country_code
-                        and round(
-                            e.options.get("latitude", e.data.get("latitude", 0)), 3
-                        )
+                        and round(e.options.get("latitude", e.data.get("latitude", 0)), 3)
                         == round(latitude, 3)
-                        and round(
-                            e.options.get("longitude", e.data.get("longitude", 0)), 3
-                        )
+                        and round(e.options.get("longitude", e.data.get("longitude", 0)), 3)
                         == round(longitude, 3)
                         for e in existing_entries
                     )
@@ -295,6 +279,6 @@ class PolleninformationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry):
+    def async_get_options_flow(config_entry):  # noqa: ARG004 -- required by HA's ConfigFlow contract
         """Return the options flow handler."""
         return OptionsFlowHandler()

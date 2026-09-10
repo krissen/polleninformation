@@ -7,17 +7,14 @@ from collections import defaultdict
 from pathlib import Path
 
 # Anpassa vägen hit till rätt path i ditt repo!
-TRANSLATIONS_DIR = (
-    Path(__file__).parent.parent / "custom_components/polleninformation/translations"
-)
+TRANSLATIONS_DIR = Path(__file__).parent.parent / "custom_components/polleninformation/translations"
 
 MASTER = "en.json"
 
 PY_FILES_TO_SCAN = [
     Path(__file__).parent.parent / "custom_components/polleninformation/config_flow.py",
     Path(__file__).parent.parent / "custom_components/polleninformation/sensor.py",
-    Path(__file__).parent.parent
-    / "custom_components/polleninformation/options_flow.py",
+    Path(__file__).parent.parent / "custom_components/polleninformation/options_flow.py",
     Path(__file__).parent.parent / "custom_components/polleninformation/api.py",
 ]
 
@@ -100,9 +97,7 @@ def find_used_keys_in_py():
 
 
 def scan_missing():
-    master, master_flat, missing_per_lang, redundant_per_lang = (
-        find_missing_and_redundant()
-    )
+    _master, master_flat, missing_per_lang, redundant_per_lang = find_missing_and_redundant()
 
     # Kontroll mot keys i py-filer (om du skulle använda dem)
     used_keys = find_used_keys_in_py()
@@ -135,7 +130,7 @@ def scan_missing():
 
 
 def gen_translation_json():
-    master, master_flat, missing_per_lang, _ = find_missing_and_redundant()
+    _master, master_flat, missing_per_lang, _ = find_missing_and_redundant()
     output = defaultdict(dict)
     for lang, keys in missing_per_lang.items():
         for key in keys:
@@ -193,7 +188,7 @@ def update_with_translation(json_path, force=False):
 
 
 def delete_redundant():
-    _, master_flat, _, redundant_per_lang = find_missing_and_redundant()
+    _, master_flat, _, _redundant_per_lang = find_missing_and_redundant()
     files = sorted([f for f in TRANSLATIONS_DIR.glob("*.json")])
     total_removed = 0
     for file in files:
@@ -224,7 +219,7 @@ if __name__ == "__main__":
     force = False
     args = sys.argv[1:]
 
-    for i, arg in enumerate(args):
+    for _i, arg in enumerate(args):
         arg_l = arg.lower()
         if arg_l in ("scan", "gen", "update", "clean"):
             cmds.append(arg_l)

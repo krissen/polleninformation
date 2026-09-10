@@ -27,7 +27,7 @@ scripts/
 
 ### 1. test_pollenapi.py
 
-**Syfte:**  
+**Syfte:**
 Testa ett enstaka API-anrop mot polleninformation.at för valfri plats och landskod.
 
 **När?**

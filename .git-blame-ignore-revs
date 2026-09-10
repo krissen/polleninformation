@@ -1,0 +1,6 @@
+# Commits that only reformat code, listed so `git blame` (with
+# blame.ignoreRevsFile configured, see CONTRIBUTING.md) skips past them to
+# the last commit that actually changed the line.
+
+# style(ruff): apply autofixes and formatting
+fc038980c398c4000816c605a255ff3d8776203e

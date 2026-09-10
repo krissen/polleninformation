@@ -36,9 +36,7 @@ CONF_NAMES_IN_INTEGRATION_LANG = "names_in_integration_language"
 DEFAULT_NAMES_IN_INTEGRATION_LANG = False
 
 # URL for requesting an API key
-API_KEY_REQUEST_URL = (
-    "https://www.polleninformation.at/en/data-interface/request-an-api-key"
-)
+API_KEY_REQUEST_URL = "https://www.polleninformation.at/en/data-interface/request-an-api-key"
 
 # Supported ISO 3166-1 alpha-2 country codes
 SUPPORTED_COUNTRIES = [

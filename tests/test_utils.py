@@ -92,7 +92,7 @@ class TestSplitLocation:
         assert name == "Stockholm"
 
     def test_whitespace(self):
-        z, name = split_location("  Hamburg  ")
+        _z, name = split_location("  Hamburg  ")
         assert name == "Hamburg"
 
 

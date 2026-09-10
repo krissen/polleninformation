@@ -70,7 +70,7 @@ To trigger an immediate refresh, use the `homeassistant.update_entity` service t
 
 ## Data Source & Attribution
 
-All data is provided by the Austrian Pollen Information Service.  
+All data is provided by the Austrian Pollen Information Service.
 For more details, visit [polleninformation.at](https://www.polleninformation.at/).
 
 ---

@@ -5,7 +5,7 @@ import os
 import re
 import signal
 import unicodedata
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from json.decoder import JSONDecodeError
 
 import aiohttp
@@ -144,7 +144,7 @@ def load_db():
     if not os.path.exists(DB_FILE):
         # Skapa grundstruktur med "invalid" om ny fil
         return {"countries": {}, "tested": {}, "invalid": []}
-    with open(DB_FILE, "r", encoding="utf-8") as f:
+    with open(DB_FILE, encoding="utf-8") as f:
         data = json.load(f)
     # Se till att "invalid" finns
     if "invalid" not in data:
@@ -173,7 +173,7 @@ def mark_country_ids(db, country, country_id, lat, lon, place_slug, place_format
         "lon": lon,
         "place_slug": place_slug,
         "place_format": place_format,
-        "last_updated": datetime.now(timezone.utc).isoformat(),
+        "last_updated": datetime.now(UTC).isoformat(),
     }
     db["countries"][country] = entry
     save_db(db)
@@ -203,9 +203,7 @@ def is_tested(db, country, country_id):
     """
     if country_id in get_all_matched_ids(db):
         return True
-    if country_id in get_tested_ids(db, country):
-        return True
-    return False
+    return country_id in get_tested_ids(db, country)
 
 
 def mark_tested(db, country, country_id):
@@ -229,31 +227,27 @@ def mark_invalid(db, country_id):
 # ===============================================
 
 
-async def fetch_pollen(
-    lat: float, lon: float, country: str, country_id: int, lang: str = "de"
-):
+async def fetch_pollen(lat: float, lon: float, country: str, country_id: int, lang: str = "de"):
     url = POLLENAT_API_URL.format(
         lat=lat, lon=lon, country=country, country_id=country_id, lang=lang
     )
     try:
-        async with async_timeout.timeout(10):
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url) as resp:
-                    resp.raise_for_status()
-                    text = await resp.text()
-                    if not text.strip():
-                        print(
-                            f"    [DEBUG] fetch_pollen: tomt svar för country_id {country_id}"
-                        )
-                        return None
-                    try:
-                        payload = json.loads(text)
-                        return payload.get("result", {})
-                    except JSONDecodeError:
-                        print(
-                            f"    [DEBUG] fetch_pollen: ogiltigt JSON för country_id {country_id}"
-                        )
-                        return None
+        async with (
+            async_timeout.timeout(10),
+            aiohttp.ClientSession() as session,
+            session.get(url) as resp,
+        ):
+            resp.raise_for_status()
+            text = await resp.text()
+            if not text.strip():
+                print(f"    [DEBUG] fetch_pollen: tomt svar för country_id {country_id}")
+                return None
+            try:
+                payload = json.loads(text)
+                return payload.get("result", {})
+            except JSONDecodeError:
+                print(f"    [DEBUG] fetch_pollen: ogiltigt JSON för country_id {country_id}")
+                return None
     except asyncio.CancelledError:
         raise
     except Exception as e:
@@ -292,18 +286,14 @@ async def discover_country_ids():
         primary_ids = [
             cid
             for cid in range(1, 100)
-            if cid not in matched_global
-            and cid not in tested_local
-            and cid not in invalid_global
+            if cid not in matched_global and cid not in tested_local and cid not in invalid_global
         ]
         # secondary_ids = [
         #     cid
         #     for cid in sorted(invalid_global)
         #     if cid not in matched_global and cid not in tested_local
         # ]
-        tertiary_ids = [
-            cid for cid in sorted(matched_global) if cid not in tested_local
-        ]
+        tertiary_ids = [cid for cid in sorted(matched_global) if cid not in tested_local]
 
         found = False
 
@@ -314,9 +304,7 @@ async def discover_country_ids():
                 if should_exit or found:
                     break
 
-                print(
-                    f"    [DEBUG] ({pool_label} pool) testar country_id = {cid} för {country}"
-                )
+                print(f"    [DEBUG] ({pool_label} pool) testar country_id = {cid} för {country}")
 
                 try:
                     result = await fetch_pollen(lat, lon, country, cid, lang="de")
@@ -364,14 +352,10 @@ async def discover_country_ids():
 
                     allergen_slug = slugify(german_part)
                     level_text_de = (
-                        levels_de[raw_val]
-                        if 0 <= raw_val < len(levels_de)
-                        else "unavailable"
+                        levels_de[raw_val] if 0 <= raw_val < len(levels_de) else "unavailable"
                     )
                     level_text_en = (
-                        levels_en[raw_val]
-                        if 0 <= raw_val < len(levels_en)
-                        else "unavailable"
+                        levels_en[raw_val] if 0 <= raw_val < len(levels_en) else "unavailable"
                     )
 
                     print("    – Exempel‐allergen:")
@@ -385,9 +369,7 @@ async def discover_country_ids():
                         f"       Exempel entity_id: polleninformation_{example_place_slug}_{allergen_slug}\n"
                     )
 
-                    print(
-                        f"    [DEBUG] Markerar country_id {cid} som testad och sparar matchning."
-                    )
+                    print(f"    [DEBUG] Markerar country_id {cid} som testad och sparar matchning.")
                     mark_tested(db, country, cid)
                     mark_country_ids(
                         db,
@@ -445,7 +427,7 @@ async def discover_country_ids():
 # ===============================================
 
 
-def handle_sigint(signum, frame):
+def handle_sigint(signum, frame):  # noqa: ARG001 -- required by signal.signal()'s handler contract
     global should_exit
     should_exit = True
 

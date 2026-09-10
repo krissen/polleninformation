@@ -9,7 +9,10 @@ Home Assistant custom integration (HACS) for monitoring pollen levels across Eur
 ## Development Commands
 
 ```bash
-# Lint and format (always run before committing)
+# Verify the tree is clean (run before committing or opening a PR)
+make check
+
+# Autofix formatting and whatever ruff can fix on its own
 ./scripts/lint.sh
 
 # Validate Python syntax
@@ -20,6 +23,25 @@ python3 -c "import json; json.load(open('custom_components/polleninformation/man
 ```
 
 Note: No build process - this is a pure Python Home Assistant integration.
+
+## Quality Gates
+
+Lint, format and secret-scanning run via [prek](https://github.com/j178/prek)
+(`.pre-commit-config.yaml`), driven by a machine-global git hook dispatcher
+rather than a per-repo `prek install`. Two things are required for it to run
+at commit/push time, and both are repo-local (a fresh clone needs step 2
+again):
+
+```bash
+# 1. the config already exists: .pre-commit-config.yaml
+# 2. opt in for this clone
+git config prek.enabled true
+```
+
+`SKIP_PREK=1 git commit ...` skips the lint pass for one commit without
+disabling anything else. CI runs the same `.pre-commit-config.yaml` via
+`prek run --all-files` (see `.github/workflows/test.yaml`), so there is one
+rule list instead of two to keep in sync.
 
 ## Architecture
 
@@ -49,15 +71,26 @@ Note: No build process - this is a pure Python Home Assistant integration.
 Legacy helper scripts for API discovery and validation. Not actively maintained but useful for debugging:
 - `test_pollenapi.py`: Single API call testing
 - `test_pollenapi_countryid.py`: Country ID discovery
-- `lint.sh`: Runs `ruff format . && ruff check . --fix`
+- `lint.sh`: Runs `ruff format . && ruff check . --fix` (uses `.venv/bin/ruff` when present)
 
 ## Commit Messages
 
-Format: `(scope) Beskrivning`
+Conventional Commits 1.0, with a mandatory scope: `type(scope): subject`.
 
-- **Single file**: Use filename (can be abbreviated), e.g. `(sensor.py) Fix forecast indexing`
-- **Multiple files**: Use action/feature name, e.g. `(debug messages) Remove verbose logging`
-- **Never include references to Claude or other AI tools**
+- **type**: one of `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`,
+  `build`, `ci`, `chore`, `revert`.
+- **scope**: lowercase, short -- a filename without extension (`sensor`, not
+  `sensor.py`) or a feature/module name (`config-flow`, `translations`).
+- **subject**: imperative mood, lowercase first letter, no trailing period,
+  <=72 characters.
+- Breaking change: `type(scope)!: subject` plus a `BREAKING CHANGE:` footer.
+- One commit per logical change; a fix touching several files for one bug is
+  still one commit, two unrelated fixes are two commits.
+- English only.
+- **Never include references to Claude or other AI tools.**
+
+Examples: `fix(sensor): correct forecast indexing`,
+`chore(translations): remove verbose debug logging`.
 
 ## Key Guidelines
 

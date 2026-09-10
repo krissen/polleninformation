@@ -4,10 +4,54 @@ on:
   push:
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  lint:
+    name: prek (lint + format)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Set PREK_HOME
+        run: echo "PREK_HOME=${{ runner.temp }}/prek" >> "$GITHUB_ENV"
+
+      - name: Cache prek hook environments
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: ${{ env.PREK_HOME }}
+          key: prek-${{ runner.os }}-py3.13-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: Install prek
+        run: pip install prek==0.5.2
+
+      - name: prek run --all-files
+        run: prek run --all-files --show-diff-on-failure
+
+      - name: gitleaks (full tree)
+        # The prek hook's entry is hardcoded to `gitleaks git --staged`,
+        # which is a no-op on a clean checkout with nothing staged -- this
+        # step does a real scan of the whole tree instead. Binary verified
+        # against the release's own published sha256 before running it.
+        run: |
+          curl -sSfLo gitleaks.tar.gz https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf gitleaks.tar.gz gitleaks
+          ./gitleaks dir . --no-banner
+
   pytest:
     name: pytest
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1

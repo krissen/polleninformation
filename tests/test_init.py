@@ -1,6 +1,6 @@
 """Tests for integration setup and coordinator."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -71,9 +71,7 @@ class TestUpdateIntervalClamping:
             data["update_interval"] = data_interval
         if options_interval is not None:
             options["update_interval"] = options_interval
-        entry = MockConfigEntry(
-            domain=DOMAIN, title="Hamburg", data=data, options=options
-        )
+        entry = MockConfigEntry(domain=DOMAIN, title="Hamburg", data=data, options=options)
         entry.add_to_hass(hass)
         return entry
 
@@ -145,9 +143,7 @@ class TestOptionsReloadConsistency:
         "custom_components.polleninformation.async_get_pollenat_data",
         new_callable=AsyncMock,
     )
-    async def test_coordinator_uses_options_over_data(
-        self, mock_api, hass: HomeAssistant
-    ):
+    async def test_coordinator_uses_options_over_data(self, mock_api, hass: HomeAssistant):
         """Coordinator should reflect options when they differ from data."""
         mock_api.return_value = {"contamination": []}
         entry = MockConfigEntry(
@@ -236,8 +232,8 @@ RISK_ONLY_PAYLOAD = {
     "allergyrisk_hourly": {"allergyrisk_hourly_1": [7.5] * 24},
 }
 
-E1 = datetime(2026, 8, 18, 6, 0, tzinfo=timezone.utc)
-E2 = datetime(2026, 8, 18, 18, 0, tzinfo=timezone.utc)
+E1 = datetime(2026, 8, 18, 6, 0, tzinfo=UTC)
+E2 = datetime(2026, 8, 18, 18, 0, tzinfo=UTC)
 
 
 def _frozen(moment):

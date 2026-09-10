@@ -3,7 +3,7 @@ import json
 import os
 import re
 import unicodedata
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 DB_FILE = "country_ids.json"
 
@@ -45,7 +45,7 @@ def migrate_slugs():
         print(f"Fel: Kunde inte hitta {DB_FILE}.")
         return
 
-    with open(DB_FILE, "r", encoding="utf-8") as f:
+    with open(DB_FILE, encoding="utf-8") as f:
         db = json.load(f)
 
     updated = False
@@ -57,9 +57,7 @@ def migrate_slugs():
             if new_slug != old_slug:
                 print(f"[MIGRATE] Land {country}: '{old_slug}' → '{new_slug}'")
                 db["countries"][country]["place_slug"] = new_slug
-                db["countries"][country]["last_updated"] = datetime.now(
-                    timezone.utc
-                ).isoformat()
+                db["countries"][country]["last_updated"] = datetime.now(UTC).isoformat()
                 updated = True
 
     if updated:

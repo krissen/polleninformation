@@ -1,5 +1,6 @@
 import json
 import re
+
 import pandas as pd
 import pgeocode
 import requests
@@ -120,11 +121,7 @@ def match_city_or_postcode(country_code, locationtitle):
             return ort_match, ort_wrong_country, ort_info
         # Om ingen postnummer, testa city som fallback
         locations = safe_query_city(nomi, city)
-        if (
-            locations is not None
-            and hasattr(locations, "country_code")
-            and len(locations) > 0
-        ):
+        if locations is not None and hasattr(locations, "country_code") and len(locations) > 0:
             loc_country_code = locations.iloc[0].country_code.upper()
             place = locations.iloc[0].place_name
             ort_info = f"{place} [{loc_country_code}] (city fallback)"
@@ -188,14 +185,10 @@ for match in pattern.finditer(content):
         if lat is not None and lon is not None:
             gps_country_code, gps_country_name = get_country_code_from_gps(lat, lon)
         gps_match = gps_country_code == country_code
-        gps_info = (
-            f"{gps_country_name} [{gps_country_code}]" if gps_country_name else "?"
-        )
+        gps_info = f"{gps_country_name} [{gps_country_code}]" if gps_country_name else "?"
 
         # Ort/postnummer-match
-        ort_match, ort_wrong_country, ort_info = match_city_or_postcode(
-            country_code, locationtitle
-        )
+        ort_match, ort_wrong_country, ort_info = match_city_or_postcode(country_code, locationtitle)
 
         # Färglogik
         if gps_match and ort_match:
