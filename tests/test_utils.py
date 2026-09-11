@@ -16,6 +16,7 @@ from custom_components.polleninformation.utils import (
     normalize,
     slugify,
     split_location,
+    usable_risk_block,
 )
 
 
@@ -206,3 +207,35 @@ class TestGetCountryCodeFromLatLon:
             result = await async_get_country_code_from_latlon(hass, 50.85, 4.35)
 
         assert result is None
+
+
+class TestUsableRiskBlock:
+    """A block full of metadata is not usable; a block full of readings is.
+
+    issue #79: a field carrying the block's own prefix was accepted as a
+    forecast entry regardless of what came after it, so a block holding
+    only "allergyrisk_error" counted as usable data.
+    """
+
+    def test_a_prefixed_error_field_does_not_count(self):
+        assert (
+            usable_risk_block(
+                {"allergyrisk": {"allergyrisk_error": "upstream failure"}}, "allergyrisk"
+            )
+            == {}
+        )
+
+    def test_a_numbered_field_counts_even_when_zero(self):
+        # A risk of 0 is a real reading, not an absent one.
+        block = {"allergyrisk_1": 0}
+        assert usable_risk_block({"allergyrisk": block}, "allergyrisk") == block
+
+    def test_a_numbered_hourly_field_counts(self):
+        block = {"allergyrisk_hourly_1": [1.0] * 24}
+        assert usable_risk_block({"allergyrisk_hourly": block}, "allergyrisk_hourly") == block
+
+    def test_a_null_numbered_field_does_not_count(self):
+        assert usable_risk_block({"allergyrisk": {"allergyrisk_1": None}}, "allergyrisk") == {}
+
+    def test_an_empty_block_does_not_count(self):
+        assert usable_risk_block({"allergyrisk": {}}, "allergyrisk") == {}

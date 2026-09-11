@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.5.6 — Finland, Portugal, Slovakia and Hungary (2026-09-09)
+## v0.6.0 (unreleased)
 
 ### New features
 
@@ -10,6 +10,17 @@
   user could ask for allergen names in Portuguese but had no country to request
   the data under. They are added to the HACS country filter too, without which
   a user in one of them was not shown the integration in the first place.
+  (issue #81, PR #83 by @tixastronauta)
+
+### Bug fixes
+
+- **A risk block carrying only an error field no longer counts as usable
+  data** (issue #79) — `usable_risk_block` treated any field starting with
+  the block's own prefix as a forecast entry, so a block holding only a
+  metadata field such as `allergyrisk_error` counted as readable. That kept
+  the coordinator from stamping an outage when the API sent only an error.
+  A field now has to carry a numbered suffix, matching the API's real
+  `allergyrisk_1..4` and `allergyrisk_hourly_1..4` shape, to count.
 
 ## v0.5.5 — Allergen identification (2026-08-23)
 
