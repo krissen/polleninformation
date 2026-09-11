@@ -3201,6 +3201,14 @@ READABLE_RISK_RESPONSE = {
     "allergyrisk_hourly": {"allergyrisk_hourly_1": [7.0] * 24},
 }
 
+# issue #79: a block carrying only its own prefix, with no numbered suffix,
+# is metadata rather than a forecast entry and must not count as usable.
+RISK_BLOCK_WITH_ONLY_METADATA_FIELD_RESPONSE = {
+    "contamination": [{"poll_title": "()"}, {"poll_title": ""}],
+    "allergyrisk": {"allergyrisk_error": "upstream failure"},
+    "allergyrisk_hourly": {},
+}
+
 
 class TestARiskBlockWithNothingReadable:
     """Nonempty is not usable, one level deeper than last time.
@@ -3243,6 +3251,20 @@ class TestARiskBlockWithNothingReadable:
             hass,
             "de",
             response=UNREADABLE_RISK_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        unique_ids = {e.unique_id for e in entities if e.unique_id}
+
+        assert "polleninformation_hamburg_allergy_risk" not in unique_ids
+
+    async def test_a_prefixed_metadata_field_does_not_count_as_readable(self, hass):
+        # A field carrying the block's own prefix but not a numbered suffix,
+        # such as "allergyrisk_error", is metadata sent to say something is
+        # wrong, not a forecast entry. It must not be mistaken for one.
+        entities = await _setup_entities(
+            hass,
+            "de",
+            response=RISK_BLOCK_WITH_ONLY_METADATA_FIELD_RESPONSE,
             language_block=EMPTY_LANGUAGE_BLOCK,
         )
         unique_ids = {e.unique_id for e in entities if e.unique_id}

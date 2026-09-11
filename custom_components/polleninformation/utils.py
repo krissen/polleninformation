@@ -360,12 +360,16 @@ def usable_risk_block(data, key):
 
     A field counts when it is one of this block's own numbered fields and
     holds something. A risk of 0 is a real reading and counts; a null, an
-    empty list or an empty string does not.
+    empty list or an empty string does not. A field carrying the prefix but
+    not a numbered suffix, such as "allergyrisk_error", is metadata rather
+    than a forecast entry and does not count.
     """
     block = block_of(data, key)
     prefix = f"{key}_"
     for field, value in block.items():
         if not isinstance(field, str) or not field.startswith(prefix):
+            continue
+        if not field[len(prefix) :].isdigit():
             continue
         if value is None:
             continue
