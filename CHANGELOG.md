@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.5.6 — Finland, Portugal, Slovakia and Hungary (2026-09-09)
+
+### New features
+
+- **Four more countries** — Finland, Portugal, Slovakia and Hungary can now be
+  chosen at setup. All four are served by the upstream API and listed on
+  polleninformation.eu; their languages were already shipped, so a Portuguese
+  user could ask for allergen names in Portuguese but had no country to request
+  the data under. They are added to the HACS country filter too, without which
+  a user in one of them was not shown the integration in the first place.
+
 ## v0.5.5 — Allergen identification (2026-08-23)
 
 ### Bug fixes
