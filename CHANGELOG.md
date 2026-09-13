@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.6.0 — Four more countries (2026-09-11)
+## v0.6.0 — Four more countries (2026-09-13)
 
 ### New features
 
