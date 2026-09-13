@@ -62,8 +62,8 @@ commit ...` skips the whole lint pass for one commit without disabling
 anything else -- it has no effect under (a).
 
 `make check` runs the same gate CI does (`prek run --all-files`, a no-fix
-`ruff check .` / `ruff format --check .` pass, a full-tree `gitleaks dir .`
-scan, and the test suite) and prints one line on success, the failing
+`ruff check .` / `ruff format --check .` pass, a `gitleaks dir` scan of
+every file git can see via `scripts/scan_secrets.sh`, and the test suite) and prints one line on success, the failing
 output on error. CI runs the identical `.pre-commit-config.yaml` via `prek
 run --all-files` (see `.github/workflows/test.yaml`), so there is one rule
 list instead of two to keep in sync.

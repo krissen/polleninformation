@@ -10,14 +10,17 @@ setup:
 # a PR: prints one line on success, only the failing output on error, and
 # always keeps the full log at .check.log (gitignored) to grep afterward.
 #
-# Runs `prek run --all-files`, a full-tree `gitleaks dir .`, a plain
-# no-fix `ruff check .`, and pytest -- not prek alone, for two reasons:
+# Runs `prek run --all-files`, a `gitleaks dir` scan of every git-visible
+# file (scripts/scan_secrets.sh), a plain no-fix `ruff check .`, and
+# pytest -- not prek alone, for two reasons:
 #
 # - The gitleaks pre-commit hook is `gitleaks git --staged`-only (see
 #   .pre-commit-config.yaml), which is a no-op on a clean tree with
 #   nothing staged -- exactly the state this target runs in. Without
-#   the explicit `gitleaks dir .` step, a secret already committed
-#   earlier would pass this target silently.
+#   the explicit scan step, a secret already committed earlier would
+#   pass this target silently. The scan skips gitignored files, which
+#   hold real local credentials but can never be committed by accident;
+#   see the script for why they are not pinned in .gitleaksignore.
 # - `prek run --all-files` only sees git-TRACKED files (it lists them via
 #   git, same as pre-commit) -- an untracked, not-yet-`git add`-ed file is
 #   invisible to it entirely, not merely silently autofixed. Confirmed by
@@ -55,7 +58,7 @@ check:
 	rm -f .check.log; \
 	( \
 		"$$prek_bin" run --all-files >> .check.log 2>&1 && \
-		gitleaks dir . --no-banner >> .check.log 2>&1 && \
+		scripts/scan_secrets.sh >> .check.log 2>&1 && \
 		.venv/bin/ruff check . >> .check.log 2>&1 && \
 		.venv/bin/ruff format --check . >> .check.log 2>&1 && \
 		.venv/bin/python -m pytest --tb=line >> .check.log 2>&1 \
