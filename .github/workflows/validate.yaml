@@ -6,17 +6,24 @@ on:
   release:
     types: [published, prereleased]
   schedule:
-    - cron:  '0 0 * * *'
+    - cron: '0 0 * * *'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   hassfest:
     name: HACS hassfest
     runs-on: "ubuntu-latest"
+    timeout-minutes: 10
     steps:
-        - uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"  # v7.0.1
-        - uses: "home-assistant/actions/hassfest@a7c616ce81ccda50150bf1595786c71b1883fabb"  # master 2026-08-03
+      - uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"  # v7.0.1
+      - uses: "home-assistant/actions/hassfest@a7c616ce81ccda50150bf1595786c71b1883fabb"  # master 2026-08-03
   hacs:
     name: HACS Validation
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
@@ -24,4 +31,3 @@ jobs:
         uses: hacs/action@1ebf01c408f29afcb6406bd431bc98fd8cbb15aa  # main 2026-06-08
         with:
           category: integration
-

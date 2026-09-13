@@ -6,4 +6,3 @@ for L in {0..10}; do
     -H 'User-Agent: Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148' \
     | jq -r '.result.contamination_date_1 // "NO RESPONSE"'
 done
-

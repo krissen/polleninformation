@@ -18,4 +18,3 @@ fi
 
 export PYTHONPATH="$BASEDIR/custom_components:$PYTHONPATH"
 echo "✅ venv är aktiverad (för Home Assistant) och PYTHONPATH är satt."
-

@@ -34,7 +34,7 @@ A Home Assistant integration for monitoring pollen across Europe, data provided 
 
 ## Features
 
-- **Supported countries:** Austria, Switzerland, Germany, Spain, France, United Kingdom, Italy, Lithuania, Latvia, Poland, Sweden, Türkiye, and Ukraine.
+- **Supported countries:** Austria, Finland, France, Germany, Great Britain, Hungary, Italy, Latvia, Lithuania, Poland, Portugal, Slovakia, Spain, Sweden, Switzerland, Türkiye, and Ukraine.
 - **Multiple allergens:** Individual sensors for each detected allergen. *Different countries have different supported allergens.*
 - **Multi-day forecast:** Each sensor exposes several days of forecast data.
 - **Allergy risk**, by day and by hour.
@@ -164,7 +164,7 @@ When the API is unavailable for your location, sensors will remain available but
 
 ## Data Source & Attribution
 
-All data is provided by the [Austrian Pollen Information Service](https://www.polleninformation.at/), via their [official public API](https://www.polleninformation.at/en/data-interface).  
+All data is provided by the [Austrian Pollen Information Service](https://www.polleninformation.at/), via their [official public API](https://www.polleninformation.at/en/data-interface).
 
 ---
 

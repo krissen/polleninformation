@@ -9,7 +9,10 @@ Home Assistant custom integration (HACS) for monitoring pollen levels across Eur
 ## Development Commands
 
 ```bash
-# Lint and format (always run before committing)
+# Verify the tree is clean (run before committing or opening a PR)
+make check
+
+# Autofix formatting and whatever ruff can fix on its own
 ./scripts/lint.sh
 
 # Validate Python syntax
@@ -20,6 +23,50 @@ python3 -c "import json; json.load(open('custom_components/polleninformation/man
 ```
 
 Note: No build process - this is a pure Python Home Assistant integration.
+
+## Quality Gates
+
+Lint, format and secret-scanning run via [prek](https://github.com/j178/prek)
+against `.pre-commit-config.yaml`. Two ways to wire it in, depending on the
+machine:
+
+**(a) Ordinary clone.**
+
+```bash
+pipx install prek==0.5.2   # or: uv tool install prek==0.5.2
+brew install gitleaks       # or: https://github.com/gitleaks/gitleaks/releases
+prek install
+```
+
+`make setup` does this for you and is idempotent -- safe to re-run any time
+(e.g. after `.github/workflows/test.yaml` bumps the pinned prek version).
+`prek install` wires the hooks into this clone's own `.git/hooks`, which
+`.pre-commit-config.yaml` is the only source of truth for.
+
+**(b) Maintainer machine with a global git-hook dispatcher.** If
+`core.hooksPath` already points somewhere other than this clone's own
+`.git/hooks` (a machine-wide convention that routes every repo through one
+dispatcher), `prek install` refuses -- opt this clone in instead:
+
+```bash
+git config prek.enabled true
+```
+
+`make setup` detects this case automatically and prints the right command
+instead of trying to install hooks that would never run.
+
+**Escape hatch**, per path: on a machine using (a)'s per-clone hooks,
+prek's own `SKIP=<hook-id>,<hook-id>` (or `PREK_SKIP`) skips named hooks for
+one commit. On a machine using (b)'s global dispatcher, `SKIP_PREK=1 git
+commit ...` skips the whole lint pass for one commit without disabling
+anything else -- it has no effect under (a).
+
+`make check` runs the same gate CI does (`prek run --all-files`, a no-fix
+`ruff check .` / `ruff format --check .` pass, a full-tree `gitleaks dir .`
+scan, and the test suite) and prints one line on success, the failing
+output on error. CI runs the identical `.pre-commit-config.yaml` via `prek
+run --all-files` (see `.github/workflows/test.yaml`), so there is one rule
+list instead of two to keep in sync.
 
 ## Architecture
 
@@ -49,15 +96,26 @@ Note: No build process - this is a pure Python Home Assistant integration.
 Legacy helper scripts for API discovery and validation. Not actively maintained but useful for debugging:
 - `test_pollenapi.py`: Single API call testing
 - `test_pollenapi_countryid.py`: Country ID discovery
-- `lint.sh`: Runs `ruff format . && ruff check . --fix`
+- `lint.sh`: Runs `ruff format . && ruff check . --fix` (uses `.venv/bin/ruff` when present)
 
 ## Commit Messages
 
-Format: `(scope) Beskrivning`
+Conventional Commits 1.0, with a mandatory scope: `type(scope): subject`.
 
-- **Single file**: Use filename (can be abbreviated), e.g. `(sensor.py) Fix forecast indexing`
-- **Multiple files**: Use action/feature name, e.g. `(debug messages) Remove verbose logging`
-- **Never include references to Claude or other AI tools**
+- **type**: one of `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`,
+  `build`, `ci`, `chore`, `revert`.
+- **scope**: lowercase, short -- a filename without extension (`sensor`, not
+  `sensor.py`) or a feature/module name (`config-flow`, `translations`).
+- **subject**: imperative mood, lowercase first letter, no trailing period,
+  <=72 characters.
+- Breaking change: `type(scope)!: subject` plus a `BREAKING CHANGE:` footer.
+- One commit per logical change; a fix touching several files for one bug is
+  still one commit, two unrelated fixes are two commits.
+- English only.
+- **Never include references to Claude or other AI tools.**
+
+Examples: `fix(sensor): correct forecast indexing`,
+`chore(translations): remove verbose debug logging`.
 
 ## Key Guidelines
 

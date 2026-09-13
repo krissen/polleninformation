@@ -1,6 +1,6 @@
 # Contributing to Polleninformation EU
 
-First of all, **thank you for considering contributing to this project!**  
+First of all, **thank you for considering contributing to this project!**
 Everyone is welcome to participate, regardless of experience level, background, or where you are from.
 
 We appreciate all kinds of contributions, including code, documentation, translations, bug reports, feature requests, and ideas for improvements.
@@ -25,6 +25,26 @@ We appreciate all kinds of contributions, including code, documentation, transla
 python3 -m venv .venv
 .venv/bin/pip install -r requirements_test.txt
 .venv/bin/pytest tests/
+```
+
+## Before Opening a PR
+
+```bash
+.venv/bin/pip install -r requirements_dev.txt  # ruff, pinned
+make setup   # first time only: installs prek + wires the pre-commit hook
+make check
+```
+
+`make check` runs the same lint/format/secret checks as the commit hook and
+CI (see CLAUDE.md's "Quality Gates" section) plus the test suite, and prints
+one line on success.
+
+`git blame` skips past pure reformatting commits (listed in
+`.git-blame-ignore-revs`) straight to the commit that actually changed a
+line, once this is configured once per clone:
+
+```bash
+git config blame.ignoreRevsFile .git-blame-ignore-revs
 ```
 
 ---

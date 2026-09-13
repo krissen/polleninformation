@@ -1,0 +1,12 @@
+# Relaxed profile for Home Assistant-style YAML (mostly GitHub workflow
+# files here). Kept loose per the portfolio's quality-gates design: these
+# rules are formatting taste, not defect detection, and would just be
+# noise on top of GitHub Actions' own conventions.
+extends: default
+
+rules:
+  line-length: disable
+  truthy: disable
+  document-start: disable
+  comments: disable
+  comments-indentation: disable

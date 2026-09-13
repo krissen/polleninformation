@@ -61,12 +61,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         default_country = defaults.get(
             "country", next(iter(country_options.keys())) if country_options else None
         )
-        default_latitude = defaults.get(
-            "latitude", hass.config.latitude if hass else None
-        )
-        default_longitude = defaults.get(
-            "longitude", hass.config.longitude if hass else None
-        )
+        default_latitude = defaults.get("latitude", hass.config.latitude if hass else None)
+        default_longitude = defaults.get("longitude", hass.config.longitude if hass else None)
         default_language = defaults.get("lang", default_lang_code)
         default_apikey = defaults.get("apikey", "")
         default_location_name = defaults.get("location", "")
@@ -80,16 +76,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             MIN_UPDATE_INTERVAL, min(MAX_UPDATE_INTERVAL, default_update_interval)
         )
         default_names_in_integration_lang = bool(
-            defaults.get(
-                CONF_NAMES_IN_INTEGRATION_LANG, DEFAULT_NAMES_IN_INTEGRATION_LANG
-            )
+            defaults.get(CONF_NAMES_IN_INTEGRATION_LANG, DEFAULT_NAMES_IN_INTEGRATION_LANG)
         )
 
         data_schema = vol.Schema(
             {
-                vol.Required("country", default=default_country): vol.In(
-                    country_options
-                ),
+                vol.Required("country", default=default_country): vol.In(country_options),
                 vol.Required(
                     "location",
                     default={
@@ -98,14 +90,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         "radius": 5000,
                     },
                 ): LocationSelector(LocationSelectorConfig(radius=True)),
-                vol.Required("language", default=default_language): vol.In(
-                    lang_options
-                ),
+                vol.Required("language", default=default_language): vol.In(lang_options),
                 vol.Required("apikey", default=default_apikey): str,
                 vol.Optional("location_name", default=default_location_name): str,
-                vol.Required(
-                    CONF_UPDATE_INTERVAL, default=default_update_interval
-                ): NumberSelector(
+                vol.Required(CONF_UPDATE_INTERVAL, default=default_update_interval): NumberSelector(
                     NumberSelectorConfig(
                         min=MIN_UPDATE_INTERVAL,
                         max=MAX_UPDATE_INTERVAL,
@@ -177,9 +165,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 )
 
             if not errors:
-                update_interval = user_input.get(
-                    CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL
-                )
+                update_interval = user_input.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
                 return self.async_create_entry(
                     title=entry_title,
                     data={

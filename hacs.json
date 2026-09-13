@@ -5,8 +5,9 @@
   "zip_release": true,
   "filename": "polleninformation.zip",
   "country": [
-      "AT", "CH", "DE", "ES", "FR",
-      "GB", "IT", "LT", "LV", "PL",
-      "SE", "TR", "UA", "VA"
+      "AT", "CH", "DE", "ES", "FI",
+      "FR", "GB", "HU", "IT", "LT",
+      "LV", "PL", "PT", "SE", "SK",
+      "TR", "UA", "VA"
     ]
 }

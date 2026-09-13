@@ -1,3 +1,35 @@
+[tool.ruff]
+line-length = 100
+# scripts/check_api_status.py runs under Python 3.12 in CI
+# (.github/workflows/api-status.yaml), the lowest Python version any code
+# in this repo is known to execute under -- not the test venv's 3.14
+# (pytest-homeassistant-custom-component's requirement) or hacs.json's
+# minimum Home Assistant version. Targeting a newer version here could let
+# ruff apply an upgrade rewrite (UP*) using syntax check_api_status.py
+# can't run.
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "B", "SIM", "ARG", "RUF"]
+# RUF001-003 flag typographic characters ('-x) that are intentional in the
+# Swedish/German UI strings this integration handles. RUF100 would silently
+# remove noqa directives that document why a rule was excluded.
+ignore = ["RUF001", "RUF002", "RUF003", "RUF100"]
+
+[tool.ruff.lint.per-file-ignores]
+# pytest fixtures are requested for their side effect and never used in the
+# test body itself.
+"tests/**" = ["ARG001", "ARG002", "ARG005"]
+# test_country_ids() closes over `country`/`lat`/`lon`/`cid` from the
+# enclosing `for country, lat, lon, ... in EUROPEAN_LOCATIONS:` loop, but it
+# is always awaited to completion within the same iteration (never stored or
+# scheduled for later), so the loop variable can never change out from under
+# it -- B023's usual failure mode (a deferred/collected closure reading a
+# stale binding) does not apply here. Verified by inspection, not autofixed:
+# rewriting a legacy, unmaintained debug script (see CLAUDE.md) to silence a
+# static-analysis false positive is not worth the churn.
+"scripts/test_pollenapi_multi.py" = ["B023"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"

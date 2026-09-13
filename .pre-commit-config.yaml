@@ -1,0 +1,57 @@
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      # This hook's entry is hardcoded to `gitleaks git --staged`, which
+      # only sees the pending diff at commit time and is a no-op on a
+      # clean checkout with nothing staged (e.g. straight after
+      # actions/checkout in CI). CI therefore does its own real
+      # filesystem scan instead of relying on this hook (see
+      # .github/workflows/test.yaml).
+      - id: gitleaks
+        stages: [pre-commit]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.5
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+        stages: [pre-commit]
+      - id: ruff-format
+        stages: [pre-commit]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-yaml
+        stages: [pre-commit]
+      - id: check-json
+        stages: [pre-commit]
+      - id: check-added-large-files
+        # --enforce-all: without it, this hook only checks files git
+        # reports as newly ADDED relative to a diff target, which is
+        # empty on a clean checkout with nothing staged. --enforce-all
+        # makes it check every file it's given, matching --all-files.
+        args: ["--maxkb=1000", "--enforce-all"]
+        # icon@4x.png is a pre-existing HACS branding asset (1.35 MB) that
+        # is not going to shrink or change; exclude it by name rather than
+        # raising the threshold for the whole repo.
+        exclude: '^custom_components/polleninformation/icon@4x\.png$'
+        stages: [pre-commit]
+      - id: end-of-file-fixer
+        stages: [pre-commit]
+      - id: trailing-whitespace
+        stages: [pre-commit]
+
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.38.0
+    hooks:
+      - id: yamllint
+        args: [-c, .yamllint]
+        stages: [pre-commit]
+
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+      - id: actionlint
+        stages: [pre-commit]

@@ -30,12 +30,15 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from custom_components.polleninformation.sensor import (
+# These imports must come after the sys.path.insert() above, which makes the
+# repo root importable as `custom_components...` for a script run standalone
+# from outside a package context.
+from custom_components.polleninformation.sensor import (  # noqa: E402
     LATIN_NAME_ALIASES,
     canonical_latin,
     canonical_latin_for_display_name,
 )
-from custom_components.polleninformation.utils import parse_poll_title
+from custom_components.polleninformation.utils import parse_poll_title  # noqa: E402
 
 # ================================
 # CONFIGURATION
@@ -67,9 +70,7 @@ LANG_CODES = [
 # directory found no file, read no languages, fetched all sixteen and wrote a
 # new map there. A file that is merely absent is indistinguishable from an
 # empty database, so no guard downstream can catch that.
-DB_FILE = str(
-    REPO_ROOT / "custom_components" / "polleninformation" / "language_map.json"
-)
+DB_FILE = str(REPO_ROOT / "custom_components" / "polleninformation" / "language_map.json")
 DELAY_SEC = 2  # Polite delay between requests (adjust if needed)
 HEADERS = {
     "Accept": "application/json, text/plain, */*",
@@ -93,7 +94,7 @@ def load_db():
     """
     if not os.path.exists(DB_FILE):
         return {}
-    with open(DB_FILE, "r", encoding="utf-8") as f:
+    with open(DB_FILE, encoding="utf-8") as f:
         try:
             return json.load(f)
         except json.JSONDecodeError as e:
@@ -220,7 +221,7 @@ def resolve_latin(name, latin):
                 f"{name!r}: the API spells the latin name {latin!r}; recording "
                 f"it as {canonical!r}, the spelling every lookup matches on"
             )
-        return canonical, blank_name + [warning]
+        return canonical, [*blank_name, warning]
 
     sent = f"latin name {latin!r}" if latin else "no latin name"
 
@@ -230,8 +231,7 @@ def resolve_latin(name, latin):
         # that begins with a genus, and recording it as Ambrosia would file
         # the entry under an allergen the sensors refuse to read it as.
         warning = (
-            f"{name!r}: the API sent {sent} and a display name that is one; "
-            f"recording {canonical!r}"
+            f"{name!r}: the API sent {sent} and a display name that is one; recording {canonical!r}"
         )
         return canonical, [warning]
 
@@ -280,9 +280,7 @@ def poll_titles_from_contamination(contamination):
         ]
     for poll in contamination:
         if not isinstance(poll, dict):
-            warnings.append(
-                f"skipping a contamination entry that is not an object: {poll!r}"
-            )
+            warnings.append(f"skipping a contamination entry that is not an object: {poll!r}")
             continue
         poll_id = poll.get("poll_id")
         if poll_id is not None and not isinstance(poll_id, (str, int, float)):
@@ -297,15 +295,11 @@ def poll_titles_from_contamination(contamination):
             # readable. "()" and "( )" are non-blank titles with nothing in
             # either half, and they name an allergen exactly as little as a
             # missing title does.
-            warnings.append(
-                f"skipping a contamination entry that identifies no allergen: {poll!r}"
-            )
+            warnings.append(f"skipping a contamination entry that identifies no allergen: {poll!r}")
             continue
         latin, entry_warnings = resolve_latin(name, latin)
         warnings.extend(entry_warnings)
-        poll_titles.append(
-            {"name": name, "latin": latin, "poll_id": poll.get("poll_id")}
-        )
+        poll_titles.append({"name": name, "latin": latin, "poll_id": poll.get("poll_id")})
     return poll_titles, warnings
 
 
@@ -459,9 +453,7 @@ def language_entry_from_response(lang_code, data):
     poll_titles = []
     dropped = 0
     if not isinstance(data, dict):
-        error = (
-            f"malformed response: the top level is {type(data).__name__}, not an object"
-        )
+        error = f"malformed response: the top level is {type(data).__name__}, not an object"
     elif "contamination" not in data:
         error = "malformed response: no contamination block"
     else:
@@ -525,15 +517,11 @@ def repair_db(db):
         if poll_titles is None:
             poll_titles = []
         if not isinstance(poll_titles, list):
-            warnings.append(
-                f"{lang_code}: poll_titles is not a list, skipping: {poll_titles!r}"
-            )
+            warnings.append(f"{lang_code}: poll_titles is not a list, skipping: {poll_titles!r}")
             continue
         for poll in poll_titles:
             if not isinstance(poll, dict):
-                warnings.append(
-                    f"{lang_code}: entry is not an object, skipping: {poll!r}"
-                )
+                warnings.append(f"{lang_code}: entry is not an object, skipping: {poll!r}")
                 continue
             name = poll.get("name")
             latin = poll.get("latin")
@@ -542,9 +530,7 @@ def repair_db(db):
             if latin is None:
                 latin = ""
             if not isinstance(name, str) or not isinstance(latin, str):
-                warnings.append(
-                    f"{lang_code}: name or latin is not a string, skipping: {poll!r}"
-                )
+                warnings.append(f"{lang_code}: name or latin is not a string, skipping: {poll!r}")
                 continue
             poll_id = poll.get("poll_id")
             if poll_id is not None and not isinstance(poll_id, (str, int, float)):
@@ -628,9 +614,7 @@ def run_fetch():
             data = resp.json()
         except Exception as e:
             print(f"{lang_code}: [request error: {e}]")
-            db[lang_code] = entry_after_retry(
-                previous, {"error": str(e), "lang_code": lang_code}
-            )
+            db[lang_code] = entry_after_retry(previous, {"error": str(e), "lang_code": lang_code})
             save_db(db)
             time.sleep(DELAY_SEC)
             continue

@@ -52,7 +52,7 @@ This is a Home Assistant custom component (HACS integration) that provides polle
 ```
 custom_components/polleninformation/
 ├── __init__.py          # Main integration setup
-├── sensor.py            # Sensor platform implementation  
+├── sensor.py            # Sensor platform implementation
 ├── config_flow.py       # Configuration flow UI
 ├── api.py              # API communication layer
 ├── const.py            # Constants and configuration
@@ -66,7 +66,7 @@ custom_components/polleninformation/
 ```
 scripts/
 ├── setup.sh            # Environment setup (requires python3.13 -> modify to python3)
-├── dev_init.sh         # Development environment activation  
+├── dev_init.sh         # Development environment activation
 ├── lint.sh             # Code formatting and linting
 ├── test_pollenapi.py   # API testing (requires dependencies)
 └── README.md           # Script documentation

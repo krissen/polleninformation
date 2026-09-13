@@ -3,7 +3,6 @@
 See official API documentation: https://www.polleninformation.at/en/data-interface
 """
 
-import asyncio
 import logging
 
 import aiohttp
@@ -69,51 +68,51 @@ async def async_get_pollenat_data(
 
     try:
         session = async_get_clientsession(hass)
-        async with async_timeout.timeout(15):
-            async with session.get(
+        async with (
+            async_timeout.timeout(15),
+            session.get(
                 API_URL,
                 params=params,
                 headers={
                     "Accept": "application/json, text/plain, */*",
                     "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
                 },
-            ) as resp:
-                if resp.status == 401:
-                    raise PollenApiAuthError("Invalid API key")
-                if resp.status == 403:
-                    raise PollenApiAuthError("API key not authorized for this resource")
-                resp.raise_for_status()
+            ) as resp,
+        ):
+            if resp.status == 401:
+                raise PollenApiAuthError("Invalid API key")
+            if resp.status == 403:
+                raise PollenApiAuthError("API key not authorized for this resource")
+            resp.raise_for_status()
 
-                content_type = resp.content_type or ""
-                if "json" not in content_type:
-                    body_preview = (await resp.read())[:200]
-                    _LOGGER.error(
-                        "API returned non-JSON content-type %r, body: %s",
-                        content_type,
-                        body_preview,
-                    )
-                    raise PollenApiError(
-                        f"API returned non-JSON response ({content_type})"
-                    )
+            content_type = resp.content_type or ""
+            if "json" not in content_type:
+                body_preview = (await resp.read())[:200]
+                _LOGGER.error(
+                    "API returned non-JSON content-type %r, body: %s",
+                    content_type,
+                    body_preview,
+                )
+                raise PollenApiError(f"API returned non-JSON response ({content_type})")
 
-                try:
-                    data = await resp.json()
-                except ValueError as e:
-                    body_preview = (await resp.read())[:200]
-                    _LOGGER.error("API returned invalid JSON, body: %s", body_preview)
-                    raise PollenApiError(f"API returned invalid JSON: {e}") from e
+            try:
+                data = await resp.json()
+            except ValueError as e:
+                body_preview = (await resp.read())[:200]
+                _LOGGER.error("API returned invalid JSON, body: %s", body_preview)
+                raise PollenApiError(f"API returned invalid JSON: {e}") from e
 
-                if isinstance(data, dict) and "error" in data:
-                    error_msg = data.get("error", "Unknown error")
-                    if "api key" in error_msg.lower():
-                        raise PollenApiAuthError(error_msg)
-                    raise PollenApiError(error_msg)
+            if isinstance(data, dict) and "error" in data:
+                error_msg = data.get("error", "Unknown error")
+                if "api key" in error_msg.lower():
+                    raise PollenApiAuthError(error_msg)
+                raise PollenApiError(error_msg)
 
-                return data
+            return data
 
     except PollenApiError:
         raise
-    except asyncio.TimeoutError as e:
+    except TimeoutError as e:
         raise PollenApiConnectionError(f"Timeout connecting to API: {e}") from e
     except aiohttp.ClientResponseError as e:
         raise PollenApiError(f"API returned HTTP {e.status}: {e.message}") from e

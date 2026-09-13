@@ -2,7 +2,7 @@
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 from zoneinfo import ZoneInfo
@@ -100,10 +100,7 @@ class TestExtractAllergenSlug:
 
     def test_unknown_slug(self):
         assert (
-            extract_allergen_slug_from_unique_id(
-                "polleninformation_hamburg_unknown_thing"
-            )
-            is None
+            extract_allergen_slug_from_unique_id("polleninformation_hamburg_unknown_thing") is None
         )
 
     def test_empty(self):
@@ -116,8 +113,8 @@ class TestExtractAllergenSlug:
 # --- Sensor class tests ---
 
 
-T1 = datetime(2026, 8, 18, 6, 0, tzinfo=timezone.utc)
-T2 = datetime(2026, 8, 18, 18, 0, tzinfo=timezone.utc)
+T1 = datetime(2026, 8, 18, 6, 0, tzinfo=UTC)
+T2 = datetime(2026, 8, 18, 18, 0, tzinfo=UTC)
 
 _UNSET = object()
 
@@ -135,9 +132,7 @@ def _frozen_util(moment):
     return patch("custom_components.polleninformation.dt_util.now", return_value=moment)
 
 
-def _make_coordinator(
-    data, last_updated=None, last_update_success=True, empty_since=_UNSET
-):
+def _make_coordinator(data, last_updated=None, last_update_success=True, empty_since=_UNSET):
     """Create a mock coordinator with the given data.
 
     empty_since is set by the real coordinator method rather than by a copy
@@ -147,14 +142,12 @@ def _make_coordinator(
     """
     coordinator = MagicMock()
     coordinator.data = data
-    coordinator.last_updated = last_updated or datetime.now(timezone.utc)
+    coordinator.last_updated = last_updated or datetime.now(UTC)
     coordinator.last_update_success = last_update_success
     coordinator.empty_since = None
     if empty_since is _UNSET:
         with _frozen_util(T1):
-            PollenInformationDataUpdateCoordinator._track_empty_response(
-                coordinator, data or {}
-            )
+            PollenInformationDataUpdateCoordinator._track_empty_response(coordinator, data or {})
     else:
         coordinator.empty_since = empty_since
     return coordinator
@@ -216,15 +209,11 @@ class TestPolleninformationSensor:
         assert attrs["stale_since"] == T1.isoformat()
 
     def test_available_when_success(self, mock_api_response):
-        sensor = self._make_sensor(
-            _make_coordinator(mock_api_response, last_update_success=True)
-        )
+        sensor = self._make_sensor(_make_coordinator(mock_api_response, last_update_success=True))
         assert sensor.available is True
 
     def test_unavailable_when_failed(self, mock_api_response):
-        sensor = self._make_sensor(
-            _make_coordinator(mock_api_response, last_update_success=False)
-        )
+        sensor = self._make_sensor(_make_coordinator(mock_api_response, last_update_success=False))
         assert sensor.available is False
 
 
@@ -351,9 +340,7 @@ class TestRiskSensorTranslationKeys:
         assert sensor.name == "Allergierisiko"
 
     def test_explicit_hourly_name_wins(self):
-        sensor = AllergyRiskHourlySensor(
-            name="Allergierisiko (stündlich)", **self._kwargs()
-        )
+        sensor = AllergyRiskHourlySensor(name="Allergierisiko (stündlich)", **self._kwargs())
         assert sensor.name == "Allergierisiko (stündlich)"
 
 
@@ -430,9 +417,7 @@ RAGWEED_RESPONSE = {
     "allergyrisk_hourly": {"allergyrisk_hourly_1": [5.0] * 24},
 }
 
-RAGWEED_LANGUAGE_BLOCK = {
-    "poll_titles": [{"name": "Ragweed", "latin": "Ambrosia artemisiifolia"}]
-}
+RAGWEED_LANGUAGE_BLOCK = {"poll_titles": [{"name": "Ragweed", "latin": "Ambrosia artemisiifolia"}]}
 
 
 def _make_entry(lang, options=None):
@@ -464,11 +449,7 @@ SHIPPED_LANGUAGE_MAP = json.loads(
 
 def shipped_block(lang):
     """The language block this integration actually ships for a language."""
-    return next(
-        block
-        for block in SHIPPED_LANGUAGE_MAP.values()
-        if block.get("lang_code") == lang
-    )
+    return next(block for block in SHIPPED_LANGUAGE_MAP.values() if block.get("lang_code") == lang)
 
 
 async def _setup_with_shipped_blocks(hass, lang, response, entry=None):
@@ -500,9 +481,7 @@ async def _setup_with_shipped_blocks(hass, lang, response, entry=None):
     return entities
 
 
-async def _setup_entities(
-    hass, lang, options=None, entry=None, response=None, language_block=None
-):
+async def _setup_entities(hass, lang, options=None, entry=None, response=None, language_block=None):
     """Run sensor setup for a Ragweed-only response and return the entities."""
     if entry is None:
         entry = _make_entry(lang, options)
@@ -519,9 +498,7 @@ async def _setup_entities(
     with patch(
         "custom_components.polleninformation.sensor.async_get_language_block",
         AsyncMock(
-            return_value=RAGWEED_LANGUAGE_BLOCK
-            if language_block is None
-            else language_block
+            return_value=RAGWEED_LANGUAGE_BLOCK if language_block is None else language_block
         ),
     ):
         await async_setup_entry(hass, entry, _add)
@@ -560,10 +537,7 @@ class TestSetupEntryNaming:
             hass, "de", options={"names_in_integration_language": True}
         )
         assert _by_type(entities, AllergyRiskSensor).name == "Allergierisiko"
-        assert (
-            _by_type(entities, AllergyRiskHourlySensor).name
-            == "Allergierisiko (stündlich)"
-        )
+        assert _by_type(entities, AllergyRiskHourlySensor).name == "Allergierisiko (stündlich)"
 
     async def test_risk_names_fall_back_to_english(self, hass):
         """An unknown language falls back to the English risk sensor names."""
@@ -604,9 +578,7 @@ class TestRiskSensorSuggestedObjectId:
         assert sensor.suggested_object_id == "allergy_risk"
 
     def test_hourly_with_explicit_name(self):
-        sensor = AllergyRiskHourlySensor(
-            name="Allergierisiko (stündlich)", **self._kwargs()
-        )
+        sensor = AllergyRiskHourlySensor(name="Allergierisiko (stündlich)", **self._kwargs())
         assert sensor.suggested_object_id == "allergy_risk_hourly"
 
     async def test_setup_entry_keeps_object_id(self, hass):
@@ -614,9 +586,7 @@ class TestRiskSensorSuggestedObjectId:
         entities = await _setup_entities(
             hass, "de", options={"names_in_integration_language": True}
         )
-        assert _by_type(entities, AllergyRiskSensor).suggested_object_id == (
-            "allergy_risk"
-        )
+        assert _by_type(entities, AllergyRiskSensor).suggested_object_id == ("allergy_risk")
         assert _by_type(entities, AllergyRiskHourlySensor).suggested_object_id == (
             "allergy_risk_hourly"
         )
@@ -730,9 +700,7 @@ class TestMigrateLocalizedRiskEntityIds:
 
     async def test_user_chosen_id_is_left_alone(self, hass):
         """A rename the user made themselves does not match a translation."""
-        ent_reg = await self._run(
-            hass, [(DAILY_UNIQUE_ID, "pollen_hamburg_my_own_name")]
-        )
+        ent_reg = await self._run(hass, [(DAILY_UNIQUE_ID, "pollen_hamburg_my_own_name")])
         assert (
             ent_reg.async_get_entity_id("sensor", DOMAIN, DAILY_UNIQUE_ID)
             == "sensor.pollen_hamburg_my_own_name"
@@ -744,9 +712,7 @@ class TestMigrateLocalizedRiskEntityIds:
             hass, [("polleninformation_hamburg_ragweed", "polleninformation_ambrosia")]
         )
         assert (
-            ent_reg.async_get_entity_id(
-                "sensor", DOMAIN, "polleninformation_hamburg_ragweed"
-            )
+            ent_reg.async_get_entity_id("sensor", DOMAIN, "polleninformation_hamburg_ragweed")
             == "sensor.polleninformation_ambrosia"
         )
 
@@ -761,9 +727,7 @@ class TestMigrateLocalizedRiskEntityIds:
             "other_unique_id",
             suggested_object_id="polleninformation_hamburg_allergy_risk",
         )
-        self._seed(
-            hass, entry, DAILY_UNIQUE_ID, "polleninformation_hamburg_allergierisiko"
-        )
+        self._seed(hass, entry, DAILY_UNIQUE_ID, "polleninformation_hamburg_allergierisiko")
 
         await _setup_entities(hass, "de", entry=entry)
 
@@ -772,9 +736,7 @@ class TestMigrateLocalizedRiskEntityIds:
             == "sensor.polleninformation_hamburg_allergierisiko"
         )
         assert (
-            ent_reg.async_get_entity_id(
-                "sensor", "other_integration", "other_unique_id"
-            )
+            ent_reg.async_get_entity_id("sensor", "other_integration", "other_unique_id")
             == "sensor.polleninformation_hamburg_allergy_risk"
         )
 
@@ -908,9 +870,7 @@ class TestAllergenSlugFromLatin:
             response=GERMAN_TREE_RESPONSE,
             language_block=EMPTY_LANGUAGE_BLOCK,
         )
-        ash = next(
-            e for e in entities if e.unique_id == "polleninformation_hamburg_ash"
-        )
+        ash = next(e for e in entities if e.unique_id == "polleninformation_hamburg_ash")
         assert ash.extra_state_attributes["name_en"] == "ash"
         assert ash.extra_state_attributes["allergen_slug"] == "ash"
         assert ash.icon == "mdi:tree"
@@ -923,9 +883,7 @@ class TestAllergenSlugFromLatin:
             response=GERMAN_TREE_RESPONSE,
             language_block=EMPTY_LANGUAGE_BLOCK,
         )
-        ash = next(
-            e for e in entities if e.unique_id == "polleninformation_hamburg_ash"
-        )
+        ash = next(e for e in entities if e.unique_id == "polleninformation_hamburg_ash")
         # German levels, because the entry is configured for German.
         assert ash.native_value == "mäßig"
 
@@ -968,9 +926,7 @@ class TestMigrateLocalizedAllergenIds:
             ],
         )
         assert (
-            ent_reg.async_get_entity_id(
-                "sensor", DOMAIN, "polleninformation_hamburg_ash"
-            )
+            ent_reg.async_get_entity_id("sensor", DOMAIN, "polleninformation_hamburg_ash")
             == "sensor.polleninformation_hamburg_ash"
         )
         assert (
@@ -980,21 +936,14 @@ class TestMigrateLocalizedAllergenIds:
             == "sensor.polleninformation_hamburg_tree_of_heaven"
         )
         assert (
-            ent_reg.async_get_entity_id(
-                "sensor", DOMAIN, "polleninformation_hamburg_esche"
-            )
-            is None
+            ent_reg.async_get_entity_id("sensor", DOMAIN, "polleninformation_hamburg_esche") is None
         )
 
     async def test_user_renamed_entity_id_is_kept(self, hass):
         """The unique_id is still fixed, but a chosen entity_id is not touched."""
-        ent_reg = await self._run(
-            hass, [("polleninformation_hamburg_esche", "pollen_ash_tree")]
-        )
+        ent_reg = await self._run(hass, [("polleninformation_hamburg_esche", "pollen_ash_tree")])
         assert (
-            ent_reg.async_get_entity_id(
-                "sensor", DOMAIN, "polleninformation_hamburg_ash"
-            )
+            ent_reg.async_get_entity_id("sensor", DOMAIN, "polleninformation_hamburg_ash")
             == "sensor.pollen_ash_tree"
         )
 
@@ -1004,9 +953,7 @@ class TestMigrateLocalizedAllergenIds:
             hass, [("polleninformation_hamburg_ash", "polleninformation_hamburg_ash")]
         )
         assert (
-            ent_reg.async_get_entity_id(
-                "sensor", DOMAIN, "polleninformation_hamburg_ash"
-            )
+            ent_reg.async_get_entity_id("sensor", DOMAIN, "polleninformation_hamburg_ash")
             == "sensor.polleninformation_hamburg_ash"
         )
 
@@ -1015,9 +962,7 @@ class TestMigrateLocalizedAllergenIds:
             hass, [("polleninformation_hamburg_birch", "polleninformation_birke")]
         )
         assert (
-            ent_reg.async_get_entity_id(
-                "sensor", DOMAIN, "polleninformation_hamburg_birch"
-            )
+            ent_reg.async_get_entity_id("sensor", DOMAIN, "polleninformation_hamburg_birch")
             == "sensor.polleninformation_birke"
         )
 
@@ -1030,15 +975,11 @@ class TestMigrateLocalizedAllergenIds:
             ],
         )
         assert (
-            ent_reg.async_get_entity_id(
-                "sensor", DOMAIN, "polleninformation_hamburg_esche"
-            )
+            ent_reg.async_get_entity_id("sensor", DOMAIN, "polleninformation_hamburg_esche")
             == "sensor.polleninformation_hamburg_esche"
         )
         assert (
-            ent_reg.async_get_entity_id(
-                "sensor", DOMAIN, "polleninformation_hamburg_ash"
-            )
+            ent_reg.async_get_entity_id("sensor", DOMAIN, "polleninformation_hamburg_ash")
             == "sensor.polleninformation_hamburg_ash"
         )
 
@@ -1068,15 +1009,11 @@ class TestMigrateLocalizedAllergenIds:
         )
 
         assert (
-            ent_reg.async_get_entity_id(
-                "sensor", DOMAIN, "polleninformation_hamburg_ash"
-            )
+            ent_reg.async_get_entity_id("sensor", DOMAIN, "polleninformation_hamburg_ash")
             == "sensor.polleninformation_hamburg_esche"
         )
         assert (
-            ent_reg.async_get_entity_id(
-                "sensor", "other_integration", "other_unique_id"
-            )
+            ent_reg.async_get_entity_id("sensor", "other_integration", "other_unique_id")
             == "sensor.polleninformation_hamburg_ash"
         )
 
@@ -1152,9 +1089,7 @@ class TestUnknownAllergenFallback:
             language_block=EMPTY_LANGUAGE_BLOCK,
         )
         assert (
-            ent_reg.async_get_entity_id(
-                "sensor", DOMAIN, "polleninformation_hamburg_kiefer"
-            )
+            ent_reg.async_get_entity_id("sensor", DOMAIN, "polleninformation_hamburg_kiefer")
             == "sensor.polleninformation_hamburg_kiefer"
         )
 
@@ -1260,15 +1195,11 @@ class TestLatinGenusAsDisplayName:
             language_block=EMPTY_LANGUAGE_BLOCK,
         )
         assert (
-            ent_reg.async_get_entity_id(
-                "sensor", DOMAIN, "polleninformation_hamburg_mugwort"
-            )
+            ent_reg.async_get_entity_id("sensor", DOMAIN, "polleninformation_hamburg_mugwort")
             == "sensor.polleninformation_hamburg_mugwort"
         )
         assert (
-            ent_reg.async_get_entity_id(
-                "sensor", DOMAIN, "polleninformation_hamburg_artemisia"
-            )
+            ent_reg.async_get_entity_id("sensor", DOMAIN, "polleninformation_hamburg_artemisia")
             is None
         )
 
@@ -1353,23 +1284,16 @@ class TestTheRegistryRowRecordsWhichAllergenItIs:
     @staticmethod
     def _response(*poll_titles):
         return {
-            "contamination": [
-                {"poll_title": title, "contamination_1": 2} for title in poll_titles
-            ],
+            "contamination": [{"poll_title": title, "contamination_1": 2} for title in poll_titles],
             "allergyrisk": {},
             "allergyrisk_hourly": {},
         }
 
     async def test_a_newly_created_sensor_records_its_allergen(self, hass):
-        await _setup_through_the_platform(
-            hass, "de", self._response("Beifu\u00df (Artemisia)")
-        )
+        await _setup_through_the_platform(hass, "de", self._response("Beifu\u00df (Artemisia)"))
 
         ent_reg = er.async_get(hass)
-        assert (
-            _recorded_latin(ent_reg, "sensor.polleninformation_hamburg_mugwort")
-            == "Artemisia"
-        )
+        assert _recorded_latin(ent_reg, "sensor.polleninformation_hamburg_mugwort") == "Artemisia"
 
     async def test_a_row_that_already_existed_is_recorded_too(self, hass):
         # The backfill. An installation upgrading into this has a row for
@@ -1392,10 +1316,7 @@ class TestTheRegistryRowRecordsWhichAllergenItIs:
             hass, "de", self._response("Beifu\u00df (Artemisia)"), entry=entry
         )
 
-        assert (
-            _recorded_latin(ent_reg, "sensor.polleninformation_hamburg_mugwort")
-            == "Artemisia"
-        )
+        assert _recorded_latin(ent_reg, "sensor.polleninformation_hamburg_mugwort") == "Artemisia"
 
     async def test_recording_the_same_allergen_again_writes_nothing(self, hass):
         entry = await _setup_through_the_platform(
@@ -1422,9 +1343,7 @@ class TestTheRegistryRowRecordsWhichAllergenItIs:
         assert writes == []
         assert ent_reg.async_get(entity_id).modified_at == before
 
-    async def test_the_genus_a_recreated_sensor_knows_does_not_overwrite_a_species(
-        self, hass
-    ):
+    async def test_the_genus_a_recreated_sensor_knows_does_not_overwrite_a_species(self, hass):
         # The two paths that can name this allergen disagree in detail: the
         # response can send a species, while a sensor rebuilt from its slug
         # can only name the genus. They mean the same allergen, so neither
@@ -1459,9 +1378,7 @@ class TestTheRegistryRowRecordsWhichAllergenItIs:
         # Another integration's options, which this must carry across
         # untouched: async_update_entity_options replaces one domain's key
         # and leaves the rest of the mapping alone.
-        ent_reg.async_update_entity_options(
-            entity_id, "conversation", {"should_expose": False}
-        )
+        ent_reg.async_update_entity_options(entity_id, "conversation", {"should_expose": False})
 
         await _setup_through_the_platform(
             hass, "de", self._response("Beifu\u00df (Artemisia)"), entry=entry
@@ -1491,9 +1408,7 @@ class TestTheRegistryRowRecordsWhichAllergenItIs:
             hass, "de", self._response("Beifu\u00df (Artemisia)"), entry=entry
         )
 
-        assert (
-            _recorded_latin(ent_reg, "sensor.polleninformation_hamburg_birch") is None
-        )
+        assert _recorded_latin(ent_reg, "sensor.polleninformation_hamburg_birch") is None
 
     async def test_a_disabled_row_is_recorded_too(self, hass):
         # An entity disabled in the registry is aborted before it is added,
@@ -1540,9 +1455,7 @@ class TestTheRegistryRowRecordsWhichAllergenItIs:
             disabled_by=er.RegistryEntryDisabler.USER,
         )
 
-        await _setup_through_the_platform(
-            hass, "de", self._response("Foo (Betula)"), entry=entry
-        )
+        await _setup_through_the_platform(hass, "de", self._response("Foo (Betula)"), entry=entry)
 
         migrated = ent_reg.async_get("sensor.polleninformation_hamburg_birch")
         assert migrated is not None
@@ -1565,13 +1478,9 @@ class TestTheRegistryRowRecordsWhichAllergenItIs:
             suggested_object_id="polleninformation_hamburg_foo",
             config_entry=entry,
         )
-        ent_reg.async_update_entity_options(
-            legacy.entity_id, DOMAIN, {"latin": "Nonexistentia"}
-        )
+        ent_reg.async_update_entity_options(legacy.entity_id, DOMAIN, {"latin": "Nonexistentia"})
 
-        await _setup_through_the_platform(
-            hass, "de", self._response("Foo (Betula)"), entry=entry
-        )
+        await _setup_through_the_platform(hass, "de", self._response("Foo (Betula)"), entry=entry)
 
         kept = ent_reg.async_get("sensor.polleninformation_hamburg_foo")
         assert kept is not None
@@ -1600,9 +1509,7 @@ class TestTheRegistryRowRecordsWhichAllergenItIs:
             entry=entry,
         )
 
-        assert (
-            _recorded_latin(ent_reg, "sensor.polleninformation_hamburg_mugwort") is None
-        )
+        assert _recorded_latin(ent_reg, "sensor.polleninformation_hamburg_mugwort") is None
 
 
 class TestARenameThatContradictsWhatTheRowRecords:
@@ -1638,9 +1545,7 @@ class TestARenameThatContradictsWhatTheRowRecords:
             config_entry=entry,
         )
         if latin is not None:
-            ent_reg.async_update_entity_options(
-                registered.entity_id, DOMAIN, {"latin": latin}
-            )
+            ent_reg.async_update_entity_options(registered.entity_id, DOMAIN, {"latin": latin})
         return entry, ent_reg, registered.id
 
     async def test_the_recorded_allergen_keeps_its_row(self, hass):
@@ -1650,9 +1555,7 @@ class TestARenameThatContradictsWhatTheRowRecords:
         # it anyway.
         entry, ent_reg, foo_id = self._register(hass, "foo", latin="Nonexistentia")
 
-        await _setup_with_shipped_blocks(
-            hass, "de", self._response("Foo (Betula)"), entry=entry
-        )
+        await _setup_with_shipped_blocks(hass, "de", self._response("Foo (Betula)"), entry=entry)
 
         kept = ent_reg.async_get("sensor.polleninformation_hamburg_foo")
         assert kept is not None
@@ -1679,9 +1582,7 @@ class TestARenameThatContradictsWhatTheRowRecords:
         # migration for everyone who has not run it yet.
         entry, ent_reg, foo_id = self._register(hass, "foo")
 
-        await _setup_with_shipped_blocks(
-            hass, "de", self._response("Foo (Betula)"), entry=entry
-        )
+        await _setup_with_shipped_blocks(hass, "de", self._response("Foo (Betula)"), entry=entry)
 
         migrated = ent_reg.async_get("sensor.polleninformation_hamburg_birch")
         assert migrated is not None
@@ -1690,9 +1591,7 @@ class TestARenameThatContradictsWhatTheRowRecords:
     async def test_a_row_recording_this_same_allergen_is_migrated(self, hass):
         entry, ent_reg, foo_id = self._register(hass, "foo", latin="Betula")
 
-        await _setup_with_shipped_blocks(
-            hass, "de", self._response("Foo (Betula)"), entry=entry
-        )
+        await _setup_with_shipped_blocks(hass, "de", self._response("Foo (Betula)"), entry=entry)
 
         migrated = ent_reg.async_get("sensor.polleninformation_hamburg_birch")
         assert migrated is not None
@@ -1704,9 +1603,7 @@ class TestARenameThatContradictsWhatTheRowRecords:
         # contradiction.
         entry, ent_reg, foo_id = self._register(hass, "foo", latin="Betula pendula")
 
-        await _setup_with_shipped_blocks(
-            hass, "de", self._response("Foo (Betula)"), entry=entry
-        )
+        await _setup_with_shipped_blocks(hass, "de", self._response("Foo (Betula)"), entry=entry)
 
         migrated = ent_reg.async_get("sensor.polleninformation_hamburg_birch")
         assert migrated is not None
@@ -1718,13 +1615,9 @@ class TestARenameThatContradictsWhatTheRowRecords:
         # genus in one language and the genus with a species in another, and
         # one allergen must not read as two, or the migration is refused
         # naming the allergen it actually is.
-        entry, ent_reg, foo_id = self._register(
-            hass, "foo", latin="Nonexistentia vulgaris"
-        )
+        entry, ent_reg, foo_id = self._register(hass, "foo", latin="Nonexistentia vulgaris")
 
-        migrate_localized_allergen_ids(
-            hass, "hamburg", [("foo", "birch", "Nonexistentia")]
-        )
+        migrate_localized_allergen_ids(hass, "hamburg", [("foo", "birch", "Nonexistentia")])
 
         migrated = ent_reg.async_get("sensor.polleninformation_hamburg_birch")
         assert migrated is not None
@@ -1741,9 +1634,7 @@ class TestARenameThatContradictsWhatTheRowRecords:
         # the API varied its spelling.
         _, ent_reg, foo_id = self._register(hass, "foo", latin="Nonexistentia bar")
 
-        migrate_localized_allergen_ids(
-            hass, "hamburg", [("foo", "birch", "Nonexistentia baz")]
-        )
+        migrate_localized_allergen_ids(hass, "hamburg", [("foo", "birch", "Nonexistentia baz")])
 
         migrated = ent_reg.async_get("sensor.polleninformation_hamburg_birch")
         assert migrated is not None
@@ -1831,9 +1722,7 @@ class TestALegacyCandidateFromTheLiveResponse:
         )
 
         assert (
-            ent_reg.async_get_entity_id(
-                "sensor", DOMAIN, "polleninformation_hamburg_mugwort"
-            )
+            ent_reg.async_get_entity_id("sensor", DOMAIN, "polleninformation_hamburg_mugwort")
             is None
         )
 
@@ -1858,9 +1747,7 @@ class TestALegacyCandidateFromTheLiveResponse:
         # route, and it did so before the display-name candidate existed.
         entry, ent_reg, birch_id = self._register(hass, "birch")
 
-        await _setup_with_shipped_blocks(
-            hass, "de", self._response("Birch (Quercus)"), entry=entry
-        )
+        await _setup_with_shipped_blocks(hass, "de", self._response("Birch (Quercus)"), entry=entry)
 
         kept = ent_reg.async_get("sensor.polleninformation_hamburg_birch")
         assert kept is not None
@@ -1875,9 +1762,7 @@ class TestALegacyCandidateFromTheLiveResponse:
         # the language it looks like.
         entry, ent_reg, olive_id = self._register(hass, "olive")
 
-        await _setup_with_shipped_blocks(
-            hass, "lv", self._response("Olīve (Betula)"), entry=entry
-        )
+        await _setup_with_shipped_blocks(hass, "lv", self._response("Olīve (Betula)"), entry=entry)
 
         kept = ent_reg.async_get("sensor.polleninformation_hamburg_olive")
         assert kept is not None
@@ -1901,9 +1786,7 @@ class TestALegacyCandidateFromTheLiveResponse:
     ):
         entry, ent_reg, original_id = self._register(hass, slug)
 
-        await _setup_with_shipped_blocks(
-            hass, lang, self._response(poll_title), entry=entry
-        )
+        await _setup_with_shipped_blocks(hass, lang, self._response(poll_title), entry=entry)
 
         kept = ent_reg.async_get(f"sensor.polleninformation_hamburg_{slug}")
         assert kept is not None
@@ -1959,9 +1842,7 @@ class TestNoLegacyCandidateCanClaimAnotherAllergen:
         for block in SHIPPED_LANGUAGE_MAP.values():
             seen = {}
             for entry in block.get("poll_titles", []):
-                seen.setdefault(slugify(capitalize_first(entry["name"])), []).append(
-                    entry["name"]
-                )
+                seen.setdefault(slugify(capitalize_first(entry["name"])), []).append(entry["name"])
             assert all(len(names) == 1 for names in seen.values()), (
                 block.get("lang_code"),
                 {k: v for k, v in seen.items() if len(v) > 1},
@@ -2008,20 +1889,14 @@ class TestMigrationAgainstTheShippedMap:
     async def test_a_spanish_install_is_migrated(self, hass):
         entry, ent_reg, _ = self._register(hass, "es", "artemisia")
 
-        await _setup_with_shipped_blocks(
-            hass, "es", SPANISH_MUGWORT_RESPONSE, entry=entry
-        )
+        await _setup_with_shipped_blocks(hass, "es", SPANISH_MUGWORT_RESPONSE, entry=entry)
 
         assert (
-            ent_reg.async_get_entity_id(
-                "sensor", DOMAIN, "polleninformation_hamburg_mugwort"
-            )
+            ent_reg.async_get_entity_id("sensor", DOMAIN, "polleninformation_hamburg_mugwort")
             == "sensor.polleninformation_hamburg_mugwort"
         )
         assert (
-            ent_reg.async_get_entity_id(
-                "sensor", DOMAIN, "polleninformation_hamburg_artemisia"
-            )
+            ent_reg.async_get_entity_id("sensor", DOMAIN, "polleninformation_hamburg_artemisia")
             is None
         )
 
@@ -2030,9 +1905,7 @@ class TestMigrationAgainstTheShippedMap:
         # the registry id, so a new row beside the old one loses it.
         entry, ent_reg, original_id = self._register(hass, "es", "artemisia")
 
-        await _setup_with_shipped_blocks(
-            hass, "es", SPANISH_MUGWORT_RESPONSE, entry=entry
-        )
+        await _setup_with_shipped_blocks(hass, "es", SPANISH_MUGWORT_RESPONSE, entry=entry)
 
         migrated = ent_reg.async_get("sensor.polleninformation_hamburg_mugwort")
         assert migrated is not None
@@ -2041,9 +1914,7 @@ class TestMigrationAgainstTheShippedMap:
     async def test_only_one_entity_remains_for_the_allergen(self, hass):
         entry, ent_reg, _ = self._register(hass, "es", "artemisia")
 
-        await _setup_with_shipped_blocks(
-            hass, "es", SPANISH_MUGWORT_RESPONSE, entry=entry
-        )
+        await _setup_with_shipped_blocks(hass, "es", SPANISH_MUGWORT_RESPONSE, entry=entry)
 
         rows = [
             e
@@ -2059,9 +1930,7 @@ class TestMigrationAgainstTheShippedMap:
         # the display name, so a pre-0.5.5 install could hold "..._ambrosia".
         entry, ent_reg, original_id = self._register(hass, "it", "ambrosia")
 
-        await _setup_with_shipped_blocks(
-            hass, "it", ITALIAN_RAGWEED_RESPONSE, entry=entry
-        )
+        await _setup_with_shipped_blocks(hass, "it", ITALIAN_RAGWEED_RESPONSE, entry=entry)
 
         migrated = ent_reg.async_get("sensor.polleninformation_hamburg_ragweed")
         assert migrated is not None
@@ -2092,9 +1961,7 @@ class TestMigrationAgainstTheShippedMap:
     async def test_an_install_already_on_the_canonical_slug_is_left_alone(self, hass):
         entry, ent_reg, original_id = self._register(hass, "es", "mugwort")
 
-        await _setup_with_shipped_blocks(
-            hass, "es", SPANISH_MUGWORT_RESPONSE, entry=entry
-        )
+        await _setup_with_shipped_blocks(hass, "es", SPANISH_MUGWORT_RESPONSE, entry=entry)
 
         kept = ent_reg.async_get("sensor.polleninformation_hamburg_mugwort")
         assert kept is not None
@@ -2169,9 +2036,7 @@ class TestEnglishBlockOutranksTheDisplayName:
             == "sensor.polleninformation_hamburg_composite_family"
         )
         assert (
-            ent_reg.async_get_entity_id(
-                "sensor", DOMAIN, "polleninformation_hamburg_mugwort"
-            )
+            ent_reg.async_get_entity_id("sensor", DOMAIN, "polleninformation_hamburg_mugwort")
             is None
         )
 
@@ -2230,15 +2095,11 @@ class TestPresentLatinIsAuthoritative:
         await self._setup(hass, entry=entry)
 
         assert (
-            ent_reg.async_get_entity_id(
-                "sensor", DOMAIN, "polleninformation_hamburg_artemisia"
-            )
+            ent_reg.async_get_entity_id("sensor", DOMAIN, "polleninformation_hamburg_artemisia")
             == "sensor.polleninformation_hamburg_artemisia"
         )
         assert (
-            ent_reg.async_get_entity_id(
-                "sensor", DOMAIN, "polleninformation_hamburg_mugwort"
-            )
+            ent_reg.async_get_entity_id("sensor", DOMAIN, "polleninformation_hamburg_mugwort")
             is None
         )
 
@@ -2280,9 +2141,7 @@ class TestDeclaredLatinNameAliases:
         # species and all.
         assert resolve_latin_alias("ambrózia") == "Ambrosia"
         assert resolve_latin_alias("Asteraceae") == "Asteraceae"
-        assert resolve_latin_alias("Ambrosia artemisiifolia") == (
-            "Ambrosia artemisiifolia"
-        )
+        assert resolve_latin_alias("Ambrosia artemisiifolia") == ("Ambrosia artemisiifolia")
         assert resolve_latin_alias("") == ""
         assert resolve_latin_alias(None) is None
 
@@ -2394,17 +2253,13 @@ class TestCanonicalSlugSet:
             CANONICAL_ALLERGEN_SLUGS.values()
         )
 
-    @pytest.mark.parametrize(
-        ("latin", "slug"), sorted(CANONICAL_ALLERGEN_SLUGS.items())
-    )
+    @pytest.mark.parametrize(("latin", "slug"), sorted(CANONICAL_ALLERGEN_SLUGS.items()))
     def test_slug_per_latin_name(self, latin, slug):
         assert slugify(english_name_for_latin(latin)) == slug
 
     def test_icon_map_covers_exactly_the_canonical_slugs(self):
         """An icon for a slug that cannot occur is as wrong as a missing one."""
-        assert set(ALLERGEN_ICON_MAP) - {"default"} == set(
-            CANONICAL_ALLERGEN_SLUGS.values()
-        )
+        assert set(ALLERGEN_ICON_MAP) - {"default"} == set(CANONICAL_ALLERGEN_SLUGS.values())
 
     def test_risk_slugs(self):
         assert set(RISK_SLUGS) == {"allergy_risk", "allergy_risk_hourly"}
@@ -2425,9 +2280,7 @@ class TestTranslationFileReadFailure:
             ):
                 localized_risk_object_id_suffixes()
             records = [
-                r
-                for r in caplog.records
-                if "Could not read translation file" in r.getMessage()
+                r for r in caplog.records if "Could not read translation file" in r.getMessage()
             ]
             assert records
             assert all(r.exc_info for r in records)
@@ -2469,9 +2322,7 @@ class TestOnlyGeneratedEntityIdsAreRenamed:
         entry = _make_entry("de")
         entry.add_to_hass(hass)
         # Ends with "_esche", but the prefix is not ours.
-        self._seed(
-            hass, entry, "polleninformation_hamburg_esche", "pollen_hamburg_esche"
-        )
+        self._seed(hass, entry, "polleninformation_hamburg_esche", "pollen_hamburg_esche")
 
         await _setup_entities(
             hass,
@@ -2484,9 +2335,7 @@ class TestOnlyGeneratedEntityIdsAreRenamed:
         ent_reg = er.async_get(hass)
         # The unique_id is still corrected; only the entity_id is left alone.
         assert (
-            ent_reg.async_get_entity_id(
-                "sensor", DOMAIN, "polleninformation_hamburg_ash"
-            )
+            ent_reg.async_get_entity_id("sensor", DOMAIN, "polleninformation_hamburg_ash")
             == "sensor.pollen_hamburg_esche"
         )
 
@@ -2510,9 +2359,7 @@ class TestOnlyGeneratedEntityIdsAreRenamed:
 
         ent_reg = er.async_get(hass)
         assert (
-            ent_reg.async_get_entity_id(
-                "sensor", DOMAIN, "polleninformation_hamburg_ash"
-            )
+            ent_reg.async_get_entity_id("sensor", DOMAIN, "polleninformation_hamburg_ash")
             == "sensor.polleninformation_bremen_esche"
         )
 
@@ -2534,9 +2381,7 @@ class TestOnlyGeneratedEntityIdsAreRenamed:
         """The strictness must not stop the migration it exists for."""
         entry = _make_entry("de")
         entry.add_to_hass(hass)
-        self._seed(
-            hass, entry, DAILY_UNIQUE_ID, "polleninformation_hamburg_allergierisiko"
-        )
+        self._seed(hass, entry, DAILY_UNIQUE_ID, "polleninformation_hamburg_allergierisiko")
 
         await _setup_entities(hass, "de", entry=entry)
 
@@ -2567,12 +2412,8 @@ class TestStateMachineCollision:
     def test_availability_sees_the_state_machine(self, hass):
         ent_reg = er.async_get(hass)
         hass.states.async_set("sensor.polleninformation_hamburg_ash", "low")
-        assert not entity_id_available(
-            hass, ent_reg, "sensor.polleninformation_hamburg_ash"
-        )
-        assert entity_id_available(
-            hass, ent_reg, "sensor.polleninformation_hamburg_birch"
-        )
+        assert not entity_id_available(hass, ent_reg, "sensor.polleninformation_hamburg_ash")
+        assert entity_id_available(hass, ent_reg, "sensor.polleninformation_hamburg_birch")
 
     async def test_allergen_setup_survives_a_state_only_collision(self, hass):
         entry = _make_entry("de")
@@ -2597,18 +2438,14 @@ class TestStateMachineCollision:
         ent_reg = er.async_get(hass)
         # unique_id corrected, entity_id kept because the target is occupied.
         assert (
-            ent_reg.async_get_entity_id(
-                "sensor", DOMAIN, "polleninformation_hamburg_ash"
-            )
+            ent_reg.async_get_entity_id("sensor", DOMAIN, "polleninformation_hamburg_ash")
             == "sensor.polleninformation_hamburg_esche"
         )
 
     async def test_risk_setup_survives_a_state_only_collision(self, hass):
         entry = _make_entry("de")
         entry.add_to_hass(hass)
-        self._seed(
-            hass, entry, DAILY_UNIQUE_ID, "polleninformation_hamburg_allergierisiko"
-        )
+        self._seed(hass, entry, DAILY_UNIQUE_ID, "polleninformation_hamburg_allergierisiko")
         hass.states.async_set("sensor.polleninformation_hamburg_allergy_risk", "low")
 
         # Must not raise.
@@ -2736,9 +2573,7 @@ class TestStaleSensorRecovery:
         assert [day["level"] for day in forecast] == [3, 2, 1, 0]
 
     async def test_english_dock_sorrel_recovers(self, hass):
-        sensor = await _recreate_stale(
-            hass, "en", "polleninformation_hamburg_dock_sorrel"
-        )
+        sensor = await _recreate_stale(hass, "en", "polleninformation_hamburg_dock_sorrel")
         sensor.coordinator.data = ENGLISH_DOCK_SORREL_RESPONSE
         assert sensor.native_value == "moderate"
 
@@ -2790,9 +2625,7 @@ class TestStaleSensorRecovery:
         Counting words would reject it, but it is a latin name the map knows,
         so a stale tree of heaven sensor must pick it up like any other.
         """
-        sensor = await _recreate_stale(
-            hass, "de", "polleninformation_hamburg_tree_of_heaven"
-        )
+        sensor = await _recreate_stale(hass, "de", "polleninformation_hamburg_tree_of_heaven")
         sensor.coordinator.data = BINOMIAL_NAME_RESPONSE
         assert sensor.native_value == "mäßig"
 
@@ -3031,9 +2864,7 @@ class TestABlockOfUnusableEntriesReadsAsEmpty:
         # the pollen block carried nothing usable, so its sensors are
         # recreated, while the response as a whole did carry data, so nothing
         # is marked stale and the risk sensors report real readings.
-        entities = await self._setup_with_registered(
-            hass, ALL_UNUSABLE_WITH_RISK_RESPONSE
-        )
+        entities = await self._setup_with_registered(hass, ALL_UNUSABLE_WITH_RISK_RESPONSE)
         sensor = _by_type(entities, PolleninformationSensor)
 
         assert "data_stale" not in sensor.extra_state_attributes
@@ -3099,9 +2930,7 @@ class TestANonObjectEntryCostsOnlyItself:
                 response=NON_OBJECT_ELEMENT_RESPONSE,
                 language_block=EMPTY_LANGUAGE_BLOCK,
             )
-        skipped = [
-            r for r in caplog.records if "identifies no allergen" in r.getMessage()
-        ]
+        skipped = [r for r in caplog.records if "identifies no allergen" in r.getMessage()]
         assert len(skipped) == 4
 
     async def test_reading_the_sensor_survives_it(self, hass):
@@ -3333,9 +3162,7 @@ class TestTheHourlyReaderTakesAnyShape:
     @staticmethod
     def _sensor(values):
         return AllergyRiskHourlySensor(
-            coordinator=_make_coordinator(
-                {"allergyrisk_hourly": {"allergyrisk_hourly_1": values}}
-            ),
+            coordinator=_make_coordinator({"allergyrisk_hourly": {"allergyrisk_hourly_1": values}}),
             levels_current=["none", "low", "moderate", "high", "very high"],
             location_slug="hamburg",
             location_title="Hamburg",
@@ -3372,6 +3199,14 @@ READABLE_RISK_RESPONSE = {
     "contamination": [{"poll_title": "()"}],
     "allergyrisk": {"allergyrisk_1": 7.0},
     "allergyrisk_hourly": {"allergyrisk_hourly_1": [7.0] * 24},
+}
+
+# issue #79: a block carrying only its own prefix, with no numbered suffix,
+# is metadata rather than a forecast entry and must not count as usable.
+RISK_BLOCK_WITH_ONLY_METADATA_FIELD_RESPONSE = {
+    "contamination": [{"poll_title": "()"}, {"poll_title": ""}],
+    "allergyrisk": {"allergyrisk_error": "upstream failure"},
+    "allergyrisk_hourly": {},
 }
 
 
@@ -3416,6 +3251,20 @@ class TestARiskBlockWithNothingReadable:
             hass,
             "de",
             response=UNREADABLE_RISK_RESPONSE,
+            language_block=EMPTY_LANGUAGE_BLOCK,
+        )
+        unique_ids = {e.unique_id for e in entities if e.unique_id}
+
+        assert "polleninformation_hamburg_allergy_risk" not in unique_ids
+
+    async def test_a_prefixed_metadata_field_does_not_count_as_readable(self, hass):
+        # A field carrying the block's own prefix but not a numbered suffix,
+        # such as "allergyrisk_error", is metadata sent to say something is
+        # wrong, not a forecast entry. It must not be mistaken for one.
+        entities = await _setup_entities(
+            hass,
+            "de",
+            response=RISK_BLOCK_WITH_ONLY_METADATA_FIELD_RESPONSE,
             language_block=EMPTY_LANGUAGE_BLOCK,
         )
         unique_ids = {e.unique_id for e in entities if e.unique_id}
@@ -3500,11 +3349,7 @@ class TestAMissingReadingIsUnknownNotStale:
     """
 
     def _risk(self, cls, block, contamination=None):
-        data = {
-            "contamination": HEALTHY_CONTAMINATION
-            if contamination is None
-            else contamination
-        }
+        data = {"contamination": HEALTHY_CONTAMINATION if contamination is None else contamination}
         data.update(block)
         return cls(
             coordinator=_make_coordinator(data),
@@ -3595,11 +3440,7 @@ class TestAMissingReadingIsUnknownNotStale:
         """A level the level names do not cover leaves no value either."""
         sensor = PolleninformationSensor(
             coordinator=_make_coordinator(
-                {
-                    "contamination": [
-                        {"poll_title": "Birke (Betula)", "contamination_1": 9}
-                    ]
-                }
+                {"contamination": [{"poll_title": "Birke (Betula)", "contamination_1": 9}]}
             ),
             sensor_type="pollen",
             allergen_name="Birke",
@@ -3683,9 +3524,7 @@ class TestGenusPrefixedNameOnTheSetupPath:
             == "sensor.polleninformation_hamburg_ambrosia_hojas"
         )
         assert (
-            ent_reg.async_get_entity_id(
-                "sensor", DOMAIN, "polleninformation_hamburg_ragweed"
-            )
+            ent_reg.async_get_entity_id("sensor", DOMAIN, "polleninformation_hamburg_ragweed")
             is None
         )
 
@@ -3791,9 +3630,7 @@ class TestTwoEntriesSharingOneName:
             },
             language_block=ASTERACEAE_LANGUAGE_BLOCK,
         )
-        by_slug = {
-            e.unique_id: e for e in entities if isinstance(e, PolleninformationSensor)
-        }
+        by_slug = {e.unique_id: e for e in entities if isinstance(e, PolleninformationSensor)}
         mugwort = by_slug["polleninformation_hamburg_mugwort"]
         composite = by_slug["polleninformation_hamburg_composite_family"]
 

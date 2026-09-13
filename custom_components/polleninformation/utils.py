@@ -58,11 +58,7 @@ async def async_load_available_languages(hass):
     """
     data = await async_load_language_map(hass)
     # Return only dicts with 'lang_code' and 'lang'
-    return [
-        v
-        for v in data.values()
-        if isinstance(v, dict) and "lang_code" in v and "lang" in v
-    ]
+    return [v for v in data.values() if isinstance(v, dict) and "lang_code" in v and "lang" in v]
 
 
 def _sync_load_language_map():
@@ -71,7 +67,7 @@ def _sync_load_language_map():
         return json.load(f)
 
 
-def get_country_code_map(hass=None):
+def get_country_code_map(hass=None):  # noqa: ARG001 -- kept for parity with its async sibling and future HA-backed lookups
     """
     Return a mapping from country display names to ISO country codes.
 
@@ -134,12 +130,10 @@ def get_language_options_sync():
     Return dict of ISO 639-1 language code -> display name.
     Always uses SUPPORTED_LANGUAGES and LANGUAGE_DISPLAY_NAMES from const.py.
     """
-    return {
-        code: LANGUAGE_DISPLAY_NAMES.get(code, code) for code in SUPPORTED_LANGUAGES
-    }
+    return {code: LANGUAGE_DISPLAY_NAMES.get(code, code) for code in SUPPORTED_LANGUAGES}
 
 
-async def async_get_language_options(hass):
+async def async_get_language_options(hass):  # noqa: ARG001 -- signature symmetry with its sync counterpart
     """
     Return dict of ISO 639-1 language code -> display name, async.
     Always uses SUPPORTED_LANGUAGES and LANGUAGE_DISPLAY_NAMES from const.py.
@@ -152,7 +146,7 @@ def get_lang_info_by_code_sync(lang_code):
     Return info dict for language code from language_map.json, or None if not found.
     """
     data = _sync_load_language_map()
-    for k, v in data.items():
+    for _k, v in data.items():
         if isinstance(v, dict) and v.get("lang_code") == lang_code:
             return v
     return None
@@ -163,7 +157,7 @@ async def async_get_lang_info_by_code(hass, lang_code):
     Return info dict for language code from language_map.json, async.
     """
     data = await async_load_language_map(hass)
-    for k, v in data.items():
+    for _k, v in data.items():
         if isinstance(v, dict) and v.get("lang_code") == lang_code:
             return v
     return None
@@ -183,7 +177,7 @@ def find_best_lang_code_for_locale_sync(locale_tag):
     return "en"
 
 
-async def async_find_best_lang_code_for_locale(hass, locale_tag):
+async def async_find_best_lang_code_for_locale(hass, locale_tag):  # noqa: ARG001 -- signature symmetry with its sync counterpart
     """
     Async version of find_best_lang_code_for_locale_sync.
     """
@@ -201,7 +195,7 @@ def get_country_options_sync():
     return {code: COUNTRY_DISPLAY_NAMES.get(code, code) for code in SUPPORTED_COUNTRIES}
 
 
-async def async_get_country_options(hass):
+async def async_get_country_options(hass):  # noqa: ARG001 -- signature symmetry with its sync counterpart
     """
     Return dict of ISO 3166-1 alpha-2 country code -> display name, async.
     Uses SUPPORTED_COUNTRIES and COUNTRY_DISPLAY_NAMES from const.py.
@@ -224,11 +218,7 @@ def normalize(text: str) -> str:
 
         text = unidecode(text)
     except ImportError:
-        text = (
-            unicodedata.normalize("NFKD", text)
-            .encode("ascii", "ignore")
-            .decode("ascii")
-        )
+        text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
     # Replace Swedish and German special characters
     text = (
         text.replace("ö", "o")
@@ -257,11 +247,7 @@ def slugify(text: str) -> str:
 
         text = unidecode(text)
     except ImportError:
-        text = (
-            unicodedata.normalize("NFKD", text)
-            .encode("ascii", "ignore")
-            .decode("ascii")
-        )
+        text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
 
     text = text.split("(", 1)[0] if "(" in text else text
     text = text.strip().lower()
@@ -374,12 +360,16 @@ def usable_risk_block(data, key):
 
     A field counts when it is one of this block's own numbered fields and
     holds something. A risk of 0 is a real reading and counts; a null, an
-    empty list or an empty string does not.
+    empty list or an empty string does not. A field carrying the prefix but
+    not a numbered suffix, such as "allergyrisk_error", is metadata rather
+    than a forecast entry and does not count.
     """
     block = block_of(data, key)
     prefix = f"{key}_"
     for field, value in block.items():
         if not isinstance(field, str) or not field.startswith(prefix):
+            continue
+        if not field[len(prefix) :].isdigit():
             continue
         if value is None:
             continue
@@ -401,7 +391,7 @@ def get_language_block_sync(lang_code):
     Get language block for a given ISO code from language_map.json.
     """
     data = _sync_load_language_map()
-    for k, v in data.items():
+    for _k, v in data.items():
         if isinstance(v, dict) and v.get("lang_code") == lang_code:
             return v
     return {}
@@ -412,7 +402,7 @@ async def async_get_language_block(hass, lang_code):
     Async version to get language block for ISO code.
     """
     data = await async_load_language_map(hass)
-    for k, v in data.items():
+    for _k, v in data.items():
         if isinstance(v, dict) and v.get("lang_code") == lang_code:
             return v
     return {}
