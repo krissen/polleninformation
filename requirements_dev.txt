@@ -5,4 +5,4 @@
 # hook or CI. There is no [project] table in pyproject.toml (this repo is a
 # Home Assistant custom_component, not an installable package), so this pin
 # lives here in requirements_test.txt-style rather than as a `dev` extra.
-ruff==0.16.5
+ruff==0.16.9
