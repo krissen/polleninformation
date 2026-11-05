@@ -33,10 +33,6 @@ repos:
         # empty on a clean checkout with nothing staged. --enforce-all
         # makes it check every file it's given, matching --all-files.
         args: ["--maxkb=1000", "--enforce-all"]
-        # icon@4x.png is a pre-existing HACS branding asset (1.35 MB) that
-        # is not going to shrink or change; exclude it by name rather than
-        # raising the threshold for the whole repo.
-        exclude: '^custom_components/polleninformation/icon@4x\.png$'
         stages: [pre-commit]
       - id: end-of-file-fixer
         stages: [pre-commit]
