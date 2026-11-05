@@ -4,7 +4,6 @@
 [![License][license-shield]](LICENSE)
 [![API Status][api-status-badge]][api-status]
 
-[![hacs][hacsbadge]][hacs]
 [![Project Maintenance][maintenance-shield]][user_profile]
 [![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
 
@@ -43,10 +42,22 @@ A Home Assistant integration for monitoring pollen across Europe, data provided 
 
 ---
 
-## Installation (HACS recommended)
+## Installation
 
-1. Search for and install **Polleninformation EU**.
-3. Restart Home Assistant when prompted.
+### Marketplace (recommended, Home Assistant 2026.11+)
+
+[![Open your Home Assistant instance and open this repository in the Marketplace.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=krissen&repository=polleninformation&category=integration)
+
+1. Select the button above, or find **Polleninformation EU** under **Settings → Marketplace**.
+2. Select **Install** and confirm.
+3. If Home Assistant needs a restart first, a repair under **Settings → System →
+   Repairs** offers it. Otherwise the integration setup opens when the
+   installation is done.
+
+### HACS (Home Assistant 2026.10 and older)
+
+1. Search for and install **Polleninformation EU** in HACS.
+2. Restart Home Assistant when prompted.
 
 ---
 
@@ -172,8 +183,6 @@ All data is provided by the [Austrian Pollen Information Service](https://www.po
 
 ---
 
-[hacs]: https://hacs.xyz
-[hacsbadge]: https://img.shields.io/badge/HACS-Official-orange.svg?style=for-the-badge
 [license-shield]: https://img.shields.io/github/license/krissen/polleninformation.svg?style=for-the-badge
 [maintenance-shield]: https://img.shields.io/badge/maintainer-%40krissen-blue.svg?style=for-the-badge
 [releases-shield]: https://img.shields.io/github/release/krissen/polleninformation.svg?style=for-the-badge

@@ -40,7 +40,7 @@ If the issue persists after these steps, open an issue with the diagnostic info 
 
 After updating Home Assistant, sensors may become "unavailable" rather than showing data.
 
-**This was fixed in v0.4.5.** If you are running an older version, update the integration through HACS.
+**This was fixed in v0.4.5.** If you are running an older version, update the integration through the Marketplace (or HACS).
 
 **If you are already on v0.4.5 or later and still see unavailable sensors:**
 1. Check Home Assistant logs for errors mentioning `polleninformation`
@@ -77,11 +77,11 @@ If data appears stale:
 2. Trigger a manual refresh by calling `homeassistant.update_entity` in Developer Tools > Services.
 3. If neither works, check the logs for API errors.
 
-> **Note:** In older releases, the `last_updated` attribute was incorrect (it showed the time you viewed the sensor, not the actual last fetch). Update to the latest available version in HACS for accurate timestamps.
+> **Note:** In older releases, the `last_updated` attribute was incorrect (it showed the time you viewed the sensor, not the actual last fetch). Update to the latest available version in the Marketplace (or HACS) for accurate timestamps.
 
-### HACS download or update failures
+### Marketplace or HACS download or update failures
 
-If HACS reports a 404 error when downloading or updating, the release assets may not have been packaged correctly. Check the [releases page](https://github.com/krissen/polleninformation/releases) to see if the version you are trying to install has a `polleninformation.zip` asset attached. If not, try a different version or report the issue.
+If the Marketplace or HACS reports a 404 error when downloading or updating, the release assets may not have been packaged correctly. Check the [releases page](https://github.com/krissen/polleninformation/releases) to see if the version you are trying to install has a `polleninformation.zip` asset attached. If not, try a different version or report the issue.
 
 ---
 

@@ -4,7 +4,8 @@
 
 Security fixes are released in the latest stable version. Older releases and
 pre-releases (betas) are not patched separately, so please update to the latest
-release through HACS.
+release through the Marketplace (or HACS on Home Assistant 2026.10 and
+older).
 
 | Version               | Supported |
 | --------------------- | --------- |
@@ -50,5 +51,5 @@ In scope:
 Out of scope, please report these to their own maintainers:
 
 - the polleninformation.at API and its data
-- Home Assistant core
+- Home Assistant core, including the Marketplace
 - HACS
