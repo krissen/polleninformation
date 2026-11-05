@@ -10,11 +10,22 @@ Polleninformation EU is a Home Assistant integration that provides up-to-date po
 - **Forecast included**: Each sensor exposes a multi-day forecast as an attribute.
 - **Works in multiple European countries**: Choose location by country, and latitude and longitude.
 
-## Installation (Recommended: HACS)
+## Installation
 
-1. Add this repository as a "Custom Repository" under "Integrations" in HACS.
-2. Install the "Polleninformation EU" integration.
-3. Restart Home Assistant if prompted.
+### Marketplace (recommended, Home Assistant 2026.11+)
+
+[![Open your Home Assistant instance and open this repository in the Marketplace.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=krissen&repository=polleninformation&category=integration)
+
+1. Select the button above, or find **Polleninformation EU** under **Settings → Marketplace**.
+2. Select **Install** and confirm.
+3. If Home Assistant needs a restart first, a repair under **Settings → System →
+   Repairs** offers it. Otherwise the integration setup opens when the
+   installation is done.
+
+### HACS (Home Assistant 2026.10 and older)
+
+1. Search for and install **Polleninformation EU** in HACS.
+2. Restart Home Assistant when prompted.
 
 ## Configuration
 
